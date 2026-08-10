@@ -57,7 +57,12 @@ If no argument is provided, the program should later fall back to a default conf
 
 See comments inside each file for **OWNER**, **GOAL**, **LEARN**, and **PSEUDOCODE** where the subject is hardest.
 
-Suggested build order is documented in [`docs/WORK_SPLIT.md`](docs/WORK_SPLIT.md).
+Per-person walkthroughs (phases, clarifications, what to study):
+
+- [`KEBRIS-C.md`](KEBRIS-C.md) — sockets, poll loop, connections, CGI process
+- [`KMARRERO.md`](KMARRERO.md) — config, HTTP, routes, handlers, demo, tests
+
+Shared build order: [`docs/WORK_SPLIT.md`](docs/WORK_SPLIT.md).
 
 ## Resources
 
