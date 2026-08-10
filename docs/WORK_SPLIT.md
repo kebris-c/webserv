@@ -2,6 +2,8 @@
 
 Mandatory only. Bonus (cookies/sessions, multiple CGI types) is out of scope for now.
 
+**Server language: C++98.** Python in this repo is only for CGI scripts and external tests (subject-allowed). See [`SUBJECT_RULES.md`](../SUBJECT_RULES.md).
+
 ## Uncomfortable rule
 
 Equal effort ≠ equal file count. **kebris-c** owns fewer files but the grade-0 traps (non-blocking I/O, single poll, never `recv`/`send` without readiness). **kmarrero** owns more surface area (HTTP, config, static site, tests). Both must be able to explain the other’s half in defense.

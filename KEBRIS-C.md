@@ -2,6 +2,8 @@
 
 You already built a multi-user socket chat in Python. That helps with *mental models* — it does **not** make webserv easy. The grade-0 traps live in **your** files: non-blocking I/O, a **single** poll/epoll loop, and never calling `recv`/`send` on sockets/pipes without readiness.
 
+**C++98 server only.** Do not port the chat server to Python here. `www/cgi-bin/*.py` is a CGI *child program* you `execve`; `tests/*.py` is an external client. Full rules: [`SUBJECT_RULES.md`](SUBJECT_RULES.md).
+
 Partner: **kmarrero** owns HTTP/config/content. You must still be able to explain their half in defense.
 
 Related: [`docs/WORK_SPLIT.md`](docs/WORK_SPLIT.md) · partner guide: [`KMARRERO.md`](KMARRERO.md)
@@ -38,9 +40,12 @@ Related: [`docs/WORK_SPLIT.md`](docs/WORK_SPLIT.md) · partner guide: [`KMARRERO
    Idle/header/body timeouts; close stale connections in the loop.
 
 6. **Your chat project ≠ this**  
-   Thread-per-client or blocking `recv` loops will fail the subject. Multiplex in **one** thread/process loop.
+   Thread-per-client or blocking `recv` loops will fail the subject. Multiplex in **one** process loop. **`pthread` / `std::thread` are not on the allowed function list** — do not use them.
 
-7. **Interface with kmarrero**  
+7. **Function whitelist**  
+   Only the subject’s allowed syscalls/C APIs (socket/poll/fork/execve/…). No Boost, no extra networking libs.
+
+8. **Interface with kmarrero**  
    - You append bytes into `Connection::readBuf()`.  
    - They parse with `Request::parse(buffer)` (incremental).  
    - They produce `Response::raw()` (or CGI job).  

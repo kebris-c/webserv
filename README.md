@@ -18,11 +18,14 @@ The server aims to:
 
 This repository currently contains a **skeleton only**: owned placeholders, learning notes, and guidance. Implementation is intentionally left for the team.
 
+**Language boundary:** `webserv` itself is **C++98 only**. Any `.py` in the tree is either a **CGI script** exec’d by the C++ server or an **external test client** — both explicitly allowed by the subject. See [`SUBJECT_RULES.md`](SUBJECT_RULES.md).
+
 ## Instructions
 
 ### Requirements
 
-- C++98 toolchain (`c++` with `-Wall -Wextra -Werror`, optionally `-std=c++98`)
+- C++98 toolchain: compiler invoked as `c++` with `-Wall -Wextra -Werror -std=c++98`
+- No Boost / no external libraries; stay inside the subject function whitelist
 - Unix-like environment (Linux recommended for `epoll`; `poll` is portable)
 
 ### Build

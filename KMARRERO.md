@@ -2,6 +2,8 @@
 
 Scrapers and web tooling give you an edge on **headers, status codes, forms, and configs**. They do not replace reading how HTTP messages are framed on the wire. If the request parser is wrong, kebris-c’s poll loop will look “buggy” when the bug is yours.
 
+**C++98 server only.** Your parser/handlers/config live in `src/*.cpp`. Python is allowed **only** as (1) CGI scripts under `www/cgi-bin/` and (2) external tests under `tests/` — both called out by the subject. Do not implement the server in Python. See [`SUBJECT_RULES.md`](SUBJECT_RULES.md).
+
 Partner: **kebris-c** owns sockets/poll/CGI *process*. You must still explain that half in defense — especially “why no `recv` without poll”.
 
 Related: [`docs/WORK_SPLIT.md`](docs/WORK_SPLIT.md) · partner guide: [`KEBRIS-C.md`](KEBRIS-C.md)

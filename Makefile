@@ -4,9 +4,9 @@
 
 NAME		= webserv
 
-# Subject says compile with c++; on some images `c++` is clang without libstdc++.
-# Prefer g++ for C++98 + libstdc++; override with: make CXX=c++
-CXX			= g++
+# Subject: compile with c++ and -Wall -Wextra -Werror; must accept -std=c++98.
+# If your environment's `c++` is broken, override: make CXX=g++
+CXX			= c++
 CXXFLAGS	= -Wall -Wextra -Werror -std=c++98
 CPPFLAGS	= -Iinclude
 
