@@ -1,0 +1,18 @@
+# Build
+webserv
+obj/
+*.o
+*.a
+*.d
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Runtime uploads / logs
+www/uploads/*
+!www/uploads/.gitkeep
+*.log
