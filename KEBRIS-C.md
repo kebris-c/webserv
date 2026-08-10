@@ -1,237 +1,357 @@
-# kebris-c — walkthrough (I/O + process plane)
+# kebris-c — full walkthrough (I/O + process plane)
 
-You already built a multi-user socket chat in Python. That helps with *mental models* — it does **not** make webserv easy. The grade-0 traps live in **your** files: non-blocking I/O, a **single** poll/epoll loop, and never calling `recv`/`send` on sockets/pipes without readiness.
+Your Python encrypted chat proves you can think in sockets. It does **not** prove you can pass webserv. The grade-0 traps are almost all in **your** modules: non-blocking I/O, **one** multiplexor, CGI pipes inside that same loop, and never calling `recv`/`send` without readiness.
 
-**C++98 server only.** Do not port the chat server to Python here. `www/cgi-bin/*.py` is a CGI *child program* you `execve`; `tests/*.py` is an external client. Full rules: [`SUBJECT_RULES.md`](SUBJECT_RULES.md).
+**Server language: C++98 only.** Python here is CGI payload or external tester. Rules: [`SUBJECT_RULES.md`](SUBJECT_RULES.md).
 
-Partner: **kmarrero** owns HTTP/config/content. You must still be able to explain their half in defense.
-
-Related: [`docs/WORK_SPLIT.md`](docs/WORK_SPLIT.md) · partner guide: [`KMARRERO.md`](KMARRERO.md)
+Partner guide: [`KMARRERO.md`](KMARRERO.md) · Shared phases: [`docs/WORK_SPLIT.md`](docs/WORK_SPLIT.md)
 
 ---
 
-## Your owned files
+## 0. Mindset shift (chat → webserv)
 
-| Path | Your job |
+| Your chat (typical) | webserv (subject) |
 |---|---|
-| `include/Socket.hpp`, `src/Socket.cpp` | listen/accept, non-blocking fds |
-| `include/Connection.hpp`, `src/Connection.cpp` | per-client buffers, state, timeout |
-| `include/Server.hpp`, `src/Server.cpp` | **the** event loop; multi-port; wire handlers |
-| `include/CgiProcess.hpp`, `src/CgiProcess.cpp` | fork/pipes/`execve` + poll integration (**env/output parse = kmarrero**) |
-| Shared: `src/main.cpp`, `Makefile`, `Utils.*` | bootstrap only — do not dump HTTP logic here |
+| Thread per client or blocking `recv` | **One** process, one `poll`/`epoll` |
+| App protocol you invented | HTTP/1.x bytes you must not corrupt |
+| “Read until newline” in a thread | Incremental buffers; HTTP parse is kmarrero’s, feeding is yours |
+| SSL/GUI concerns | Plain TCP + correct readiness |
+| Fork rarely | `fork` **only** for CGI |
+
+If you catch yourself writing `while ((n = recv(...)) > 0)` without poll — stop.
 
 ---
 
-## Clarifications (read before coding)
+## 1. Owned files
 
-1. **One multiplexing call for all network/pipe I/O**  
-   Listen sockets, client sockets, CGI pipes: same `poll`/`epoll`. Disk `open`/`read`/`write` for static files do **not** need poll.
+| Path | Responsibility |
+|---|---|
+| `Socket.*` | `socket/bind/listen/accept`, `SO_REUSEADDR`, non-blocking |
+| `Connection.*` | `readBuf` / `writeBuf`, state, last-activity, send offset |
+| `Server.*` | Listen set, connection map, **the** event loop, timeouts, wiring |
+| `CgiProcess.*` (process half) | `pipe/fork/dup2/execve/waitpid`, poll callbacks on pipe fds |
+| Shared | `main.cpp` bootstrap, `Makefile`, tiny `Utils` — no HTTP logic dump |
 
-2. **`errno` after read/write**  
-   Subject: do **not** use `errno` to adjust server behaviour after a read/write. Design around readiness + return values (`0` = peer close, `-1` with would-block handling decided *before* you rely on errno games). Prefer checking poll flags and treating short reads/writes as normal.
-
-3. **Non-blocking is mandatory**  
-   `accept` / `recv` / `send` / CGI pipe I/O must not stall the whole server. Partial sends are normal — keep a write buffer + offset.
-
-4. **Fork only for CGI**  
-   No worker-process-per-request architecture.
-
-5. **Requests must not hang forever**  
-   Idle/header/body timeouts; close stale connections in the loop.
-
-6. **Your chat project ≠ this**  
-   Thread-per-client or blocking `recv` loops will fail the subject. Multiplex in **one** process loop. **`pthread` / `std::thread` are not on the allowed function list** — do not use them.
-
-7. **Function whitelist**  
-   Only the subject’s allowed syscalls/C APIs (socket/poll/fork/execve/…). No Boost, no extra networking libs.
-
-8. **Interface with kmarrero**  
-   - You append bytes into `Connection::readBuf()`.  
-   - They parse with `Request::parse(buffer)` (incremental).  
-   - They produce `Response::raw()` (or CGI job).  
-   - You only `send` from `writeBuf` when `POLLOUT`.
-
-Agree buffer ownership and “request complete” signalling in writing before phase 3.
+kmarrero owns: config structs you **consume**, `Request`/`Response`/`Router`/`HttpHandler`, CGI **env + stdout parse**.
 
 ---
 
-## Knowledge to learn / investigate
+## 2. Non-negotiable clarifications
 
-### Must know cold
+1. **One multiplexor for listen + clients + CGI pipes.** Disk files exempt.  
+2. **Monitor read and write.** Enable `POLLOUT` only when you have bytes (or always and no-op — but you must support write readiness).  
+3. **No `errno`-driven behaviour after read/write.** Ready → attempt I/O → use return value; on hard failure, close.  
+4. **Partial `send` is normal.** Keep `bytesSent` / erase prefix of `writeBuf`.  
+5. **`recv == 0`** → peer closed; remove from poll, close fd, free `Connection`.  
+6. **Timeouts** so a client dripping headers cannot hold a slot forever.  
+7. **No threads.** Not whitelisted; fights the architecture.  
+8. **Whitelist only** for syscalls ([`SUBJECT_RULES.md`](SUBJECT_RULES.md)).  
+9. **Never `execve` nginx/apache.**  
+10. Freeze an interface with kmarrero before phase 3 (see §7).
 
-| Topic | Where | Why |
-|---|---|---|
-| `socket` `bind` `listen` `accept` `setsockopt(SO_REUSEADDR)` | `man 2 …` | multi-port listeners |
-| `getaddrinfo` / `freeaddrinfo` | `man 3 getaddrinfo` | host:port setup |
-| `fcntl` + `O_NONBLOCK` | `man 2 fcntl` | subject; macOS flag limits if you ever build there |
-| `poll` **or** `epoll` | `man 2 poll` / `man 7 epoll` | pick one; monitor **IN and OUT** |
-| Partial `recv`/`send` | experiments with `curl` / slow `nc` | writeBuf state machine |
-| `pipe` `fork` `dup2` `execve` `waitpid` | CGI | child lifecycle |
-| Signal policy for zombies / `SIGPIPE` | `signal` / `sigaction` | ignore `SIGPIPE` or handle `EPIPE` carefully without violating errno rule spirit |
+---
 
-### Expand investigation
+## 3. What to study (ordered)
 
-- How nginx handles keepalive vs close (you can start with close-after-response).
-- Difference between level-triggered poll and edge-triggered epoll (if you choose epoll, know the traps).
-- What happens when client stops reading while you still have a large `writeBuf` (backpressure: stop reading new requests or stop filling buffer unboundedly).
-- CGI stdin must see **EOF** after body; unchunking is kmarrero’s job — you write already-unchunked bytes.
-- Stress: thousands of connect/close, slowloris-style header drip, disconnect mid-body.
+### Week-zero drills (do before “real” webserv)
 
-### Useful experiments (do these)
+1. Tiny C++98 program: one listen socket, `poll`, echo.  
+2. Same with **two** listen ports.  
+3. Same with forced partial writes (send 1 byte at a time).  
+4. `fork` + `pipe`: parent writes “hello”, child `cat`s to stdout — then make pipes non-blocking and drive them with poll.
 
-```bash
-# Compare with a real server
-nginx  # or docker nginx — curl -v and note status/headers
+### Man pages / docs (read for real)
 
-# Raw client
-printf 'GET / HTTP/1.1\r\nHost: localhost\r\n\r\n' | nc 127.0.0.1 8080
+| Read | Focus |
+|---|---|
+| `man 2 socket` `bind` `listen` `accept` | backlog, `AF_UNSPEC` via getaddrinfo |
+| `man 3 getaddrinfo` | `AI_PASSIVE`, freeaddrinfo, IPv4/IPv6 |
+| `man 7 ip` / TCP basics | ephemeral ports, `SO_REUSEADDR` why |
+| `man 2 poll` **or** `man 7 epoll` | events, revents, hangup/error bits |
+| `man 2 recv` `send` | return 0, short counts |
+| `man 2 fcntl` | `O_NONBLOCK` only (esp. macOS limits) |
+| `man 2 pipe` `dup2` `fork` `execve` `waitpid` | CGI |
+| `man 7 signal` / `man 2 sigaction` | `SIGPIPE` (ignore), avoid reaping bugs |
+| RFC 3875 (skim) | what CGI expects on stdin/stdout |
+| nginx behaviour (observe) | when in doubt later |
 
-# Partial write pressure later
-# Use Python to send 1 byte/sec headers — your timeout + parse must survive
+**Pick one multiplexor and stick to it.** `poll` is portable and enough; `epoll` is fine on Linux. Do not mix models.
+
+### Concepts you must be able to explain in defense
+
+- Why readiness is required before `recv`/`send` on sockets/pipes  
+- Difference between “socket readable” and “HTTP request complete”  
+- Why CGI pipes belong in the **same** poll set  
+- How you avoid hanging forever  
+- Why `fork` for every HTTP request would be wrong here  
+
+---
+
+## 4. Recommended internal design
+
+```text
+Server
+  vector of listen fds (+ which ServerConfig they belong to)
+  map<fd, Connection*>
+  map<fd, CgiProcess*>   // or Connection holds optional CgiProcess*
+  pollfd[] rebuilt each iteration (or epoll ctl updates)
+
+Connection
+  fd
+  state: READING | PROCESSING | WRITING | CLOSING
+  readBuf, writeBuf, writeOffset
+  Request req                      // kmarrero type
+  lastActivity
+  optional: cgi pointer / serverConfig index
 ```
 
-Build a **throwaway echo server** first (phase 1) before wiring HTTP.
+### State machine (keep it boring)
+
+```text
+READING
+  POLLIN -> recv append readBuf
+  ask Request::parse(readBuf)          // kmarrero
+  if error -> build error Response -> WRITING
+  if complete ->
+      if CGI needed -> start CgiProcess -> PROCESSING
+      else Response = HttpHandler -> WRITING
+
+PROCESSING (CGI)
+  poll cgi pipes
+  when CGI DONE -> Response from parseCgiOutput -> WRITING
+
+WRITING
+  POLLOUT -> send from writeBuf+offset
+  if done -> close (simple) OR reset for keepalive (optional later)
+
+CLOSING
+  remove from maps, close fd
+```
+
+Start with **close after one response**. Keepalive is optional polish; correctness first.
+
+### Poll rebuild pattern (poll-based pseudocode)
+
+```text
+each loop:
+  pfds.clear()
+  for listenFd: pfds.push({listenFd, POLLIN})
+  for each conn:
+      events = 0
+      if state == READING or needs more body: events |= POLLIN
+      if writeBuf not fully sent: events |= POLLOUT
+      // also consider POLLIN during WRITING if you support pipelining later
+  for each cgi pipe fd: add POLLIN and/or POLLOUT as needed
+  poll(pfds, timeout_ms)   // timeout_ms also drives idle sweeps
+  handle listen accepts
+  handle client read/write
+  handle cgi fds
+  sweep timeouts
+```
 
 ---
 
-## Walkthrough by phase
+## 5. Phase walkthrough
 
-### Phase 1 — Echo server (solo unblock)
+### Phase 1 — Echo (unblock yourself)
 
-**Done when:** `./webserv` (hardcode one port temporarily if config not ready) accepts many clients, `poll` loop runs, bytes echo back, disconnects cleaned up.
+**Goal:** Prove the loop before HTTP exists.
 
-Checklist:
+- [ ] `Socket::listenOn("127.0.0.1", 8080)` works; `SO_REUSEADDR` set  
+- [ ] Non-blocking listen + clients  
+- [ ] `poll` loop; accept on `POLLIN`  
+- [ ] Echo `readBuf` → `writeBuf`  
+- [ ] Partial send handled  
+- [ ] Disconnect cleanup (no fd leaks — check `/proc/self/fd` or `ls -l /proc/$PID/fd`)  
 
-- [ ] `Socket::listenOn` + `setNonBlocking`
-- [ ] `Server::run` poll loop over listen + clients
-- [ ] `POLLIN` → `recv` into buffer → queue same bytes to `writeBuf`
-- [ ] `POLLOUT` only when `writeBuf` non-empty
-- [ ] Peer close (`recv == 0`) → remove from poll map, close fd
+Temporary: hardcode port if config not ready. Delete hardcoded path once `Config::load` works.
 
-**Do not wait** for a perfect config parser — mock one listen fd if needed; integrate `Config` as soon as kmarrero can load `minimal.conf`.
+**Self-test**
 
-### Phase 2 — Multi-port + real Connection object
+```bash
+printf 'hello' | nc 127.0.0.1 8080
+# second terminal: another nc simultaneously — both must work
+```
 
-**Done when:** two listen ports from config both accept; each client has `Connection` with timeout stamp.
+### Phase 2 — Multi-port + Connection + timeouts
 
-Checklist:
+- [ ] Create one listen socket per `ServerConfig`  
+- [ ] Map `listenFd → config index`  
+- [ ] `Connection::touch` on I/O; close if idle > N seconds  
+- [ ] `poll` timeout (e.g. 500–1000 ms) so sweeps run even without traffic  
 
-- [ ] Map `listenFd → ServerConfig` (or index)
-- [ ] `Connection::touch` / `timedOut`
-- [ ] No blocking `accept` loop without returning to poll
+**Self-test:** listen `8080` and `8081`; echo on both.
 
-### Phase 3 — Wire HTTP parse/respond (pair with kmarrero)
+### Phase 3 — Wire kmarrero HTTP (pair session)
 
-**Done when:** browser `GET /` returns kmarrero’s static response through your send path.
+Agree on API in §7. Then:
 
-Checklist:
+- [ ] On read: append bytes; call `Request::parse`  
+- [ ] Consume parsed bytes from `readBuf` (kmarrero should erase/consume — agree who does)  
+- [ ] On complete: `Router` + `HttpHandler` → `writeBuf = response.raw()`  
+- [ ] Switch to write interest; send until done; close  
 
-- [ ] On read: `Request::parse(readBuf)` until complete/error
-- [ ] Consume parsed bytes from `readBuf` correctly (do not reparse forever)
-- [ ] Call into Router/HttpHandler **or** a thin callback kmarrero provides
-- [ ] `writeBuf = response.raw()`; enable `POLLOUT`
-- [ ] After full send: close or reset for keepalive (keepalive optional; closing is OK at first)
+**First vertical slice:** `GET /` → `www/index.html` in a real browser.
 
-### Phase 4 — Bodies / backpressure
+Debug tip: log (temporarily) sizes of `readBuf`/`writeBuf` and parse state — remove noisy logs before eval if required by peer norms.
 
-**Done when:** large POST bodies stream into `readBuf` without freezing other clients; oversized bodies can be rejected (kmarrero decides 413; you must keep loop alive).
+### Phase 4 — Bodies & backpressure
 
-Checklist:
+- [ ] Large POST does not block other clients  
+- [ ] If body exceeds max size, cooperate with kmarrero’s 413 (you may stop reading / close after error response)  
+- [ ] Bound memory: do not let one client grow `readBuf` without limit  
 
-- [ ] Still only one poll loop
-- [ ] Cap buffer growth or stop `POLLIN` when limits hit
-- [ ] Slow clients cannot stall others
+**Self-test:** upload a few MB while curling `/` in a loop.
 
 ### Phase 5 — CGI process plane
 
-**Done when:** `www/cgi-bin/hello.py` runs via fork/exec; pipes are in **the same** poll set; response returns to browser.
+Subject constraints baked in:
 
-Your responsibilities:
+- `fork` only for CGI  
+- Pipes non-blocking + **same** poll  
+- Write full unchunked body to CGI stdin, then **close write end** (EOF)  
+- Read stdout until EOF; `waitpid(WNOHANG)` in loop  
 
-- [ ] `pipe` + `fork` + `dup2` + `execve(cgi_pass, …)`
-- [ ] Parent ends non-blocking; register stdin/stdout pipe fds in poll
-- [ ] `onPipeWritable` / `onPipeReadable` / `tryReap`
-- [ ] Close CGI stdin after body fully written (EOF for CGI)
+Checklist:
 
-kmarrero responsibilities (block on them, do not reimplement):
+- [ ] `pipe` for stdin, `pipe` for stdout (stderr: inherit, redirect to `/dev/null`, or separate pipe — decide and document)  
+- [ ] Child: `dup2`, close extras, `chdir` to correct dir, `execve(cgi_pass, argv, envp)`  
+- [ ] Parent: close child ends; register parent ends in poll  
+- [ ] `onPipeWritable` / `onPipeReadable` / `tryReap`  
+- [ ] On failure (`execve` fail): return 500 path to kmarrero  
 
-- `CgiProcess::buildEnv`
-- Parsing CGI stdout (headers + body) into `Response`
+**Self-test:** `curl -v 'http://127.0.0.1:8080/cgi-bin/hello.py?x=1'` and POST body variant.
 
-### Phase 6 — Stress & hang hunting
+Hang checklist if CGI stuck:
 
-**Done when:** server stays up under parallel curls; hung clients get timed out; no crash on abrupt TCP close.
+1. Did you close CGI stdin after body?  
+2. Are pipe fds in poll?  
+3. Is `waitpid` blocking the loop? (must be `WNOHANG`)  
+4. Is the script executable / interpreter path correct in config?  
 
-Suggested personal tests:
+### Phase 6 — Stress & resilience
+
+- [ ] 200 parallel `curl`s survive  
+- [ ] Client disconnect mid-headers mid-body  
+- [ ] Slowloris-ish drip (partner can script) → timeout, server lives  
+- [ ] CGI crash / early exit → 500, server lives  
+- [ ] No crash on huge headers if you impose a max header size (good practice; coordinate with parser)  
 
 ```bash
-# Parallel GETs
 for i in $(seq 1 200); do curl -s -o /dev/null http://127.0.0.1:8080/ & done; wait
-
-# Disconnect mid-request
-( printf 'GET / HTTP/1.1\r\nHost: x\r\n'; sleep 0.1; ) | nc 127.0.0.1 8080 &
-sleep 0.2; killall nc 2>/dev/null || true
 ```
-
-Partner’s `tests/` should eventually automate this; you still own loop correctness.
 
 ---
 
-## Integration contract (copy into a shared note if needed)
+## 6. Socket / accept details worth getting right
+
+- Use `getaddrinfo` for `host:port` (supports `0.0.0.0` / `127.0.0.1`).  
+- `setsockopt(SO_REUSEADDR, 1)` before `bind`.  
+- `listen(fd, backlog)` — backlog 128 is a common starting point.  
+- After `accept`, **immediately** set client non-blocking.  
+- Handle accept errors that mean “try again later” without killing the server.  
+- Track `POLLHUP` / `POLLERR` / `POLLNVAL` → close connection.  
+
+### SIGPIPE
+
+Sending to a closed peer can raise `SIGPIPE` and kill the process. Typical approach: ignore `SIGPIPE` at startup (`signal(SIGPIPE, SIG_IGN)` is on the whitelist). Still handle short/failed sends by closing the connection.
+
+---
+
+## 7. Integration contract with kmarrero (freeze early)
+
+Copy this into a shared note and tick when both agree:
 
 ```text
-Server (you)
-  on POLLIN(client):
-    recv -> conn.readBuf
-    req.parse(conn.readBuf)          # kmarrero
-    if req complete:
-      if needs CGI:
-        env = CgiProcess::buildEnv() # kmarrero
-        cgi.start(...)               # you
-      else:
-        resp = HttpHandler.handle()  # kmarrero
-        conn.writeBuf = resp.raw()
-  on POLLOUT(client):
-    send from writeBuf
-  on POLLIN/POLLOUT(cgi pipes):
-    cgi.onPipe*
-    when cgi DONE:
-      resp = parseCgiOutput()        # kmarrero
-      conn.writeBuf = resp.raw()
+[ ] ServerConfig / LocationConfig fields stable
+[ ] Request::parse(std::string &buf) incremental; returns complete/error
+[ ] Who erases consumed bytes from readBuf? (prefer Request::parse)
+[ ] How HttpHandler signals "needs CGI" (flag / separate method / empty cgi path)
+[ ] CgiProcess::buildEnv(...) owned by kmarrero
+[ ] parseCgiOutput(string) -> Response owned by kmarrero
+[ ] Max header size / max body size sources (config)
+[ ] Error Response always available even if handler throws/returns false
 ```
 
+### Call flow you implement
+
+```text
+POLLIN(client):
+  n = recv(...)
+  if n == 0 -> close
+  if n > 0 -> readBuf.append; touch()
+  if req.parse(readBuf) complete:
+      if route says CGI:
+          env = CgiProcess::buildEnv(...)
+          cgi.start(loc, script, env, req.body())
+          state = PROCESSING
+      else:
+          writeBuf = HttpHandler.handle(...).raw()
+          state = WRITING
+
+POLLOUT(client):
+  n = send(fd, writeBuf.data()+off, remaining)
+  advance off; if done -> close/reset
+
+CGI pipes:
+  writable -> cgi.onPipeWritable()
+  readable -> cgi.onPipeReadable()
+  when DONE -> writeBuf = parseCgiOutput(cgi.output()).raw(); state = WRITING
+```
+
+You **do not** parse HTTP headers yourself beyond maybe detecting completeness if you temporarily stub — final parser is kmarrero’s.
+
 ---
 
-## Common failure modes (yours)
+## 8. Failure modes → fixes
 
-| Symptom | Likely cause |
+| Symptom | Check |
 |---|---|
-| Whole server freezes on one client | Blocking read/write or forgot non-blocking |
-| Works with curl, dies with browser | Incomplete headers/body wait; or only one request then stuck poll flags |
-| CGI hangs | Never closed CGI stdin; pipes not in poll; `waitpid` blocking |
-| Port already in use after crash | Missing `SO_REUSEADDR` or zombie process still bound |
-| Grade 0 speech from evaluator | `recv` without POLLIN, or multiple ad-hoc blocking loops |
+| Server freezes with one client | Blocking call; missing non-blocking; `waitpid` without `WNOHANG` |
+| Works once then dead | Failed to reset poll flags / leaked state / listen not polled |
+| Browser spins | Never switching to WRITING; incomplete response; forgot final `send` |
+| curl OK, browser bad | Often HTTP layer — but also check you handle multiple requests/connections |
+| `Address already in use` | Old process alive; missing `SO_REUSEADDR` |
+| CGI hang | stdin not closed; pipes not polled |
+| Eval “grade 0 I/O” speech | `recv`/`send` without readiness; second hidden loop |
+| Growing memory | unbounded buffers; connections not closed |
 
 ---
 
-## Definition of done (your half)
+## 9. Defense cheat sheet (your mouth, not notes)
 
-- [ ] Single poll/epoll loop drives listen + clients + CGI pipes
-- [ ] Multi-port listen works with kmarrero’s config
-- [ ] Partial reads/writes handled; disconnects safe
-- [ ] Timeouts prevent infinite hangs
-- [ ] CGI child runs without blocking the loop
-- [ ] Stress does not kill the process
-- [ ] You can explain **why** every `recv`/`send` is legal under the subject
+Practice answering out loud:
 
-Bonus later (not now): multiple CGI executors reuse this launcher — keep `cgi_pass` data-driven, not hardcoded to Python only.
+1. “Show me where poll waits for write.”  
+2. “What happens if `send` writes half the response?”  
+3. “Why are CGI pipes in the same poll?”  
+4. “What if the client never finishes headers?”  
+5. “Which functions are allowed for sockets?”  
+6. “Why not thread per client like your chat app?”  
+
+If you cannot answer without reading code, you are not done.
 
 ---
 
-## Suggested study order (short)
+## 10. Definition of done (your half)
 
-1. Rewrite a tiny C/C++ poll echo server from scratch (1 listen port).  
-2. Add non-blocking + multi-client.  
-3. Read RFC 9112 only enough to know where a request ends (kmarrero parses; you must feed bytes correctly).  
-4. RFC 3875 §4 (CGI env) — skim; implement process side.  
-5. Break your server on purpose (slow client, huge body, kill nc) and fix.
+- [ ] Single poll/epoll loop: listen + clients + CGI pipes  
+- [ ] Multi-port from config  
+- [ ] Non-blocking everywhere that can block  
+- [ ] Partial I/O + disconnects + timeouts  
+- [ ] CGI child works without blocking the loop  
+- [ ] Stress does not kill `webserv`  
+- [ ] No forbidden APIs  
+- [ ] You can explain kmarrero’s request/response path at a high level  
+
+Bonus later: multiple CGI executors = data-driven `cgi_pass` (you already should avoid hardcoding `/usr/bin/python3` in C++).
+
+---
+
+## 11. Daily loop suggestion
+
+1. Implement one checklist item.  
+2. Run a concrete `nc`/`curl` repro.  
+3. If blocked on HTTP semantics → ping kmarrero with a **failing raw request string**, not “HTTP is broken.”  
+4. Commit small.  
+5. Re-read §2 before adding any new syscall.

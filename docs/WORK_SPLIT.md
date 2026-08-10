@@ -1,69 +1,102 @@
-# Work split & build order
+# Work split, interfaces, and build order
 
-Mandatory only. Bonus (cookies/sessions, multiple CGI types) is out of scope for now.
+Mandatory only. Bonus is out of scope until mandatory is boringly stable.
 
-**Server language: C++98.** Python in this repo is only for CGI scripts and external tests (subject-allowed). See [`SUBJECT_RULES.md`](../SUBJECT_RULES.md).
+**Server language: C++98.** Python only for CGI scripts and external tests.  
+Compliance map: [`../SUBJECT_RULES.md`](../SUBJECT_RULES.md)  
+Deep guides: [`../KEBRIS-C.md`](../KEBRIS-C.md) · [`../KMARRERO.md`](../KMARRERO.md)
+
+---
 
 ## Uncomfortable rule
 
-Equal effort ≠ equal file count. **kebris-c** owns fewer files but the grade-0 traps (non-blocking I/O, single poll, never `recv`/`send` without readiness). **kmarrero** owns more surface area (HTTP, config, static site, tests). Both must be able to explain the other’s half in defense.
+Equal effort ≠ equal file count.
 
-## Owners
+- **kebris-c** → fewer files, most grade-0 I/O risk  
+- **kmarrero** → more surface (HTTP/config/demo/tests)  
 
-### kebris-c — I/O + process plane
+Both must explain both planes in defense. Ownership is for shipping speed, not for secrecy.
 
-- Sockets: create/bind/listen/accept, multi-port
-- Single `poll`/`epoll` loop (read + write)
-- Non-blocking client buffers / disconnects / timeouts
-- CGI child process: `fork` / `execve` / pipes registered in the same loop
-- Stress resilience of the core loop
+---
 
-### kmarrero — HTTP + config + content plane
+## Ownership map
 
-- Config file parser (nginx-inspired)
-- Request/response parsing & building
-- Location matching, methods, redirects, autoindex, uploads, DELETE
-- CGI environment variables and CGI→HTTP response mapping
-- Demo site, sample configs, Python tests, README polish
+| Owner | Owns | Does not own |
+|---|---|---|
+| **kebris-c** | sockets, poll/epoll loop, connections, CGI **process/pipes**, stress of the loop | config grammar, HTTP header semantics, HTML autoindex content |
+| **kmarrero** | config parser, request/response, router, handlers, CGI **env/output**, www, tests | calling `recv`/`send`, inventing a second I/O wait model |
+| **both** | `main` glue, Makefile, Utils, README truthfulness, integration sessions, defense prep | — |
 
-### both
+---
 
-- Day-1 interface contract (`Config` → `Server`, buffers → `Request` → `Response`)
-- Integration of CGI (process vs HTTP contract)
-- Defense rehearsal
-
-## Interface contract (define before parallel coding)
+## Frozen interface (agree in writing before phase 3)
 
 ```text
-ConfigParser  ->  vector<ServerConfig>
-Server        ->  owns listen fds + Connection map + poll set
-Connection    ->  readBuf / writeBuf / parse state / timeout
-Request       <-  bytes from Connection.readBuf  (kmarrero parser)
-Response      ->  bytes into Connection.writeBuf (kmarrero builder)
-HttpHandler   ->  uses Config + Request -> Response (or CGI job)
-CgiProcess    ->  kebris runs child; kmarrero fills env + interprets output
+Config::load(path) -> vector<ServerConfig>
+
+Server (kebris-c)
+  binds every ServerConfig listen host:port
+  poll(listen + clients + cgi pipes)
+  Connection { readBuf, writeBuf, Request, state, timeout }
+
+Request::parse(readBuf) -> complete | error     # kmarrero, incremental, consumes bytes
+Router::match(server, request) -> RouteMatch    # kmarrero
+HttpHandler::handle(...) -> Response            # or "needs CGI"
+CgiProcess::buildEnv(...)                       # kmarrero
+CgiProcess::start / pipe poll callbacks         # kebris-c
+parseCgiOutput(stdout) -> Response              # kmarrero
+Response::raw() -> bytes into writeBuf          # kmarrero build, kebris-c send
 ```
 
-Hard subject rule: socket/pipe `read`/`recv`/`write`/`send` only after poll readiness. Regular disk files are exempt.
+Hard rule: socket/pipe `read`/`recv`/`write`/`send` only after poll readiness. Disk files exempt.
 
-## Phased order
+---
 
-| Phase | kebris-c | kmarrero |
-|---|---|---|
-| 1 | accept + poll + echo bytes | config lexer/parser → structs |
-| 2 | multi-port + per-client buffers | GET parse + static file Response API |
-| 3 | wire Request extraction from buffers | methods, redirect, autoindex, errors |
-| 4 | body streaming / backpressure | POST upload + DELETE + body size |
-| 5 | CGI pipes inside poll | CGI env + stdout headers/body |
-| 6 | stress / slow-client / disconnect | browser demo + nginx compare + tests |
+## Phased order (do not skip vertically)
 
-## Definition of done (mandatory)
+| Phase | kebris-c | kmarrero | Merge gate |
+|---|---|---|---|
+| **1** | poll echo, 1 port | config → structs for `minimal.conf` | config can describe a port |
+| **2** | multi-port + Connection + timeouts | Request/Response string tests + static GET builder | API of Request/Response stable |
+| **3** | wire parse → handler → send | Router: methods, redirect, autoindex, errors | **browser GET /** works |
+| **4** | body/backpressure | POST upload, DELETE, 413 | upload+delete demos |
+| **5** | CGI pipes in **same** poll | CGI env + stdout→HTTP | browser CGI works |
+| **6** | stress / disconnect / hang hunt | smoke tests, nginx compare, README, demo polish | eval-ready |
 
-- [ ] `./webserv configs/default.conf` serves `www/` in a real browser
-- [ ] GET / POST / DELETE work per location rules
-- [ ] Upload works to configured path
-- [ ] At least one CGI works
-- [ ] Multi-port works
-- [ ] Default error pages exist
-- [ ] Stress: server stays up
-- [ ] No blocking I/O on sockets/pipes outside poll
+If phase N is red, do not start N+2 features on top.
+
+---
+
+## Pair sessions (schedule these)
+
+1. **Kickoff (2–3h):** read `SUBJECT_RULES.md` together; freeze `ServerConfig`/`LocationConfig` fields; choose `poll` vs `epoll`.  
+2. **First GET (phase 3):** sit together until browser shows `www/index.html`.  
+3. **CGI (phase 5):** env vars + pipe EOF checklist on one machine.  
+4. **Defense rehearsal:** each explains the other’s module with the PDF open.
+
+---
+
+## Definition of done (team)
+
+- [ ] `./webserv configs/default.conf` serves `www/` in a real browser  
+- [ ] GET / POST / DELETE per location rules  
+- [ ] Upload to configured store  
+- [ ] ≥1 CGI works  
+- [ ] Multi-port works (`8080` / `8081` samples)  
+- [ ] Default error pages  
+- [ ] Stress: process stays up  
+- [ ] No blocking socket/pipe I/O outside poll  
+- [ ] Whitelist-only syscalls; C++98; no Boost/threads  
+- [ ] README still matches subject Ch. V  
+
+---
+
+## When blocked
+
+| Blocked on | Do this |
+|---|---|
+| “Bytes don’t arrive” | kebris-c: log recv lengths; kmarrero: provide expected request bytes |
+| “Parse never completes” | kmarrero: reproduce with string-only slices; check Content-Length |
+| “CGI hangs” | joint: stdin closed? pipes in poll? `waitpid WNOHANG`? |
+| “Status disagrees with nginx” | kmarrero owns alignment; capture both `curl -v` outputs |
+| “Which syscall is allowed?” | `SUBJECT_RULES.md` — if absent, don’t use it |

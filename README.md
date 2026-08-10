@@ -32,9 +32,11 @@ This repository currently contains a **skeleton only**: owned placeholders, lear
 
 ```bash
 make
+# if `c++` is a broken clang symlink in your environment:
+make CXX=g++
 ```
 
-Useful targets: `all`, `clean`, `fclean`, `re`.
+Useful targets: `all`, `clean`, `fclean`, `re`. Compiler name in the Makefile is `c++` as required by the subject.
 
 ### Run
 

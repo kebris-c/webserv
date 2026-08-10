@@ -1,245 +1,508 @@
-# kmarrero — walkthrough (HTTP + config + content plane)
+# kmarrero — full walkthrough (HTTP + config + content plane)
 
-Scrapers and web tooling give you an edge on **headers, status codes, forms, and configs**. They do not replace reading how HTTP messages are framed on the wire. If the request parser is wrong, kebris-c’s poll loop will look “buggy” when the bug is yours.
+Scrapers and web tooling help you with headers, status codes, forms, and configs. They do **not** replace learning HTTP framing. If `Request::parse` is wrong, kebris-c’s poll loop will look guilty when the bug is yours.
 
-**C++98 server only.** Your parser/handlers/config live in `src/*.cpp`. Python is allowed **only** as (1) CGI scripts under `www/cgi-bin/` and (2) external tests under `tests/` — both called out by the subject. Do not implement the server in Python. See [`SUBJECT_RULES.md`](SUBJECT_RULES.md).
+**Server language: C++98 only.** Your code lives in `src/*.cpp`. Python is allowed only as CGI scripts (`www/cgi-bin/`) and external tests (`tests/`). Rules: [`SUBJECT_RULES.md`](SUBJECT_RULES.md).
 
-Partner: **kebris-c** owns sockets/poll/CGI *process*. You must still explain that half in defense — especially “why no `recv` without poll”.
-
-Related: [`docs/WORK_SPLIT.md`](docs/WORK_SPLIT.md) · partner guide: [`KEBRIS-C.md`](KEBRIS-C.md)
+Partner guide: [`KEBRIS-C.md`](KEBRIS-C.md) · Shared phases: [`docs/WORK_SPLIT.md`](docs/WORK_SPLIT.md)
 
 ---
 
-## Your owned files
+## 0. Mindset
 
-| Path | Your job |
+You own the **meaning** of bytes. kebris-c owns **moving** bytes safely.
+
+| You build | You do **not** build |
 |---|---|
-| `include/Config.hpp`, `src/Config.cpp` | parse nginx-inspired configs → structs |
-| `configs/default.conf`, `configs/minimal.conf` | evaluation configs that prove features |
-| `include/Request.hpp`, `src/Request.cpp` | incremental HTTP request parser |
-| `include/Response.hpp`, `src/Response.cpp` | status/headers/body → wire bytes |
-| `include/Router.hpp`, `src/Router.cpp` | location match + URL→filesystem mapping |
-| `include/HttpHandler.hpp`, `src/HttpHandler.cpp` | GET/POST/DELETE/redirect/autoindex/upload |
-| `CgiProcess::buildEnv` + CGI stdout→HTTP | CGI *contract* (process = kebris-c) |
-| `www/**`, `tests/**` | demo site + automated checks |
-| Shared: README polish, `Utils.*` helpers | docs/tests accuracy |
+| Config → structs | `poll` loop |
+| Request/Response | `recv`/`send` |
+| Router + static/upload/DELETE | `fork`/`pipe` mechanics |
+| CGI env + CGI stdout→HTTP | registering pipe fds in poll |
+| Demo site + tests + eval configs | stress internals of the loop (help with scripts) |
+
+Defense still requires you to explain why socket I/O must wait for poll.
 
 ---
 
-## Clarifications (read before coding)
+## 1. Owned files
 
-1. **You do not call `recv`/`send`**  
-   Work on `std::string` buffers. kebris-c owns socket I/O. If you “just read the socket in the handler”, you can zero the project.
-
-2. **Parser must be incremental**  
-   Bytes arrive in pieces. `Request::parse(buffer)` should resume across calls and consume data from the buffer when headers/body complete.
-
-3. **Chunked bodies**  
-   Subject: unchunk before CGI. CGI expects a plain body and EOF. Implement chunk decode in the request parser (or a dedicated helper you own).
-
-4. **Virtual hosts are optional**  
-   Subject says virtual host is out of scope. You may ignore `Host`-based vhosts at first; still parse `server_name` if you want later. Multi-**port** is mandatory (multiple `listen` entries).
-
-5. **Accurate status codes**  
-   Not optional flavour — evaluators check them. Build a small table (200, 201, 204, 301, 302, 400, 403, 404, 405, 413, 500, 501…) and default HTML error pages (`www/errors/`).
-
-6. **Config is part of the product**  
-   Evaluation uses *your* config files. `configs/default.conf` must demonstrate: multi-port, methods, redirect, autoindex, upload path, CGI extension, body size, error pages.
-
-7. **nginx is the behaviour oracle**  
-   When unsure (trailing slash, redirect, autoindex listing, method denial), compare with nginx. Do not invent a second HTTP dialect.
-
-8. **C++98**  
-   No C++11 move semantics, no ranged-for, no `std::to_string` (use `stringstream`), no `<unordered_map>` unless you confirm your toolchain/subject comfort — stick to `std::map` / `std::vector`.
+| Path | Job |
+|---|---|
+| `Config.*` + `configs/*` | nginx-inspired parser + eval configs |
+| `Request.*` | incremental parser (incl. chunked unchunk) |
+| `Response.*` | status/headers/body → wire string |
+| `Router.*` | longest-prefix location + URI→fs path |
+| `HttpHandler.*` | GET/POST/DELETE/redirect/autoindex/upload/CGI dispatch |
+| `CgiProcess::buildEnv` + CGI output parse | CGI contract |
+| `www/**` | static demo, errors, uploads dir, CGI scripts |
+| `tests/**` | Python (or other) external tests |
+| README accuracy | keep Instructions/Resources honest |
 
 ---
 
-## Knowledge to learn / investigate
+## 2. Non-negotiable clarifications
 
-### Must know cold
+1. **No `recv`/`send` in your handlers.** Buffers only.  
+2. **Incremental parse.** Bytes arrive in pieces; resume across calls.  
+3. **Unchunk before CGI.** Subject requirement.  
+4. **Multi-port required; virtual hosts optional** (out of scope).  
+5. **Status codes must be accurate.** Build a table; use it everywhere.  
+6. **Config is product.** Eval demos run on *your* `.conf` files.  
+7. **nginx is the oracle** for ambiguous behaviour.  
+8. **C++98:** no ranged-for, no `auto` as C++11, no `std::to_string`, no `unordered_map` unless you are sure — prefer `map`/`vector`/`stringstream`.  
+9. **Path traversal is your bug** even if kebris-c serves the file. Reject `..` and nasty encodings.  
+10. Freeze structs/API with kebris-c before they wire phase 3 ([`KEBRIS-C.md` §7](KEBRIS-C.md)).
 
-| Topic | Resource | Why |
-|---|---|---|
-| Request line + headers + body framing | [RFC 9112](https://www.rfc-editor.org/rfc/rfc9112.html) | parser correctness |
-| Method semantics / status codes | [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html) | GET/POST/DELETE + errors |
-| nginx `server` / `location` / `root` / `index` / `error_page` | [nginx docs](https://nginx.org/en/docs/beginners_guide.html) | config model |
-| CGI environment & response | [RFC 3875](https://datatracker.ietf.org/doc/html/rfc3875) | `buildEnv` + stdout parse |
-| MIME types basics | extension → `Content-Type` | static site |
-| HTML form upload / multipart (as needed) | MDN form encoding | POST upload |
-| Directory listing safety | HTML-escape names; block `..` | autoindex + path map |
+---
 
-### Expand investigation
+## 3. What to study (ordered)
 
-- **Longest-prefix location match** (no regex required). Example from subject: `/kapouet` rooted at `/tmp/www`.
-- **Path traversal**: `/%2e%2e/`, `/../../etc/passwd` — reject before `open`.
-- **`client_max_body_size`**: enforce → **413**; agree with kebris-c when to stop reading.
-- **Directory requests**: use `index`, else autoindex on, else 403/404 — decide consistently with nginx.
-- **DELETE**: file vs directory policy; do not casually `rm -rf` trees unless you intentionally support it.
-- **CGI output**: headers until blank line; optional `Status:` header; if no `Content-Length`, EOF ends body (kebris-c must deliver EOF).
-- **Browser quirks**: Chrome may send multiple requests (favicon). Server must keep serving.
+### Paper before code
 
-### Useful experiments
+Write by hand (or in a text file) these requests and mark where headers end / body ends:
+
+```http
+GET / HTTP/1.1
+Host: localhost
+
+```
+
+```http
+POST /upload HTTP/1.1
+Host: localhost
+Content-Length: 5
+
+hello
+```
+
+```http
+POST /cgi-bin/hello.py HTTP/1.1
+Host: localhost
+Transfer-Encoding: chunked
+
+5\r\nhello\r\n0\r\n\r\n
+```
+
+If you cannot find the body boundary on paper, the parser will hang the browser.
+
+### References
+
+| Resource | Use |
+|---|---|
+| [RFC 9112](https://www.rfc-editor.org/rfc/rfc9112.html) | request line, headers, chunked |
+| [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html) | method/status semantics |
+| [RFC 3875](https://datatracker.ietf.org/doc/html/rfc3875) | CGI env + response |
+| nginx docs (`server`, `location`, `root`, `index`, `error_page`, `client_max_body_size`) | config model |
+| MDN: HTTP status / CORS not needed / forms | upload mental model |
+| `man 3 opendir` `readdir` `stat` | autoindex + file types |
+
+### Observe nginx
+
+Run a minimal nginx with similar roots and compare:
+
+- status line for missing file  
+- redirect responses (`Location`)  
+- method not allowed  
+- directory with/without index and autoindex  
 
 ```bash
-# See a real response
-curl -v http://127.0.0.1:8080/
-
-# Force methods
+curl -v http://127.0.0.1:8080/missing
+curl -v -X POST http://127.0.0.1:8080/
 curl -v -X DELETE http://127.0.0.1:8080/files/readme.txt
-curl -v -X POST --data-binary @file.bin http://127.0.0.1:8080/upload
-
-# Chunked POST (once supported)
-curl -v -H 'Transfer-Encoding: chunked' -d @file.bin http://127.0.0.1:8080/upload
-
-# Compare with nginx on the same paths/status lines
 ```
 
-Write Python tests early (`tests/test_smoke.py`) — that matches your tooling strength and catches regressions when kebris-c changes the loop.
-
 ---
 
-## Walkthrough by phase
+## 4. Config design (phase 1 deep dive)
 
-### Phase 1 — Config parser
+### Target grammar (keep small)
 
-**Done when:** `Config::load("configs/minimal.conf")` fills `ServerConfig` + `LocationConfig`; `default.conf` loads without crashing.
-
-Checklist:
-
-- [ ] Ignore `#` comments and whitespace
-- [ ] Parse `server { ... }` and nested `location <path> { ... }`
-- [ ] Directives: `listen`, `root`, `index`, `error_page`, `client_max_body_size`, `allowed_methods`, `return`/`redirect`, `autoindex`, `upload_store`, `cgi_extension`, `cgi_pass`
-- [ ] Sizes like `10M` → bytes
-- [ ] Clear error messages on malformed config (stderr is fine)
-
-Tip: tokenize on spaces/braces first; do not overbuild a full nginx clone.
-
-Deliverable for kebris-c: they can iterate `config.servers()` and bind each `host:port`.
-
-### Phase 2 — Request + Response + static GET
-
-**Done when:** given a full request string, you produce a correct `HTTP/1.1` response for a file under `www/`.
-
-Checklist:
-
-- [ ] Parse method, target, version, headers
-- [ ] Split query string from path
-- [ ] `Content-Length` body accumulation
-- [ ] `Response::raw()` correct CRLFs
-- [ ] `Content-Type` for html/css/txt/png/… (start small)
-- [ ] Default 404 page from config or `www/errors/404.html`
-
-Unit-test the parser with raw strings **before** integration (no sockets needed).
-
-### Phase 3 — Router + methods + redirect + autoindex + errors
-
-**Done when:** `configs/default.conf` behaviours match expectations for `/`, `/files`, `/old`, unknown paths.
-
-Checklist:
-
-- [ ] Longest prefix location match
-- [ ] Map URI → filesystem path (subject `/kapouet` example)
-- [ ] Reject `..` / escaped traversal
-- [ ] Method allow-list → **405** + `Allow` header (nice to have / nginx-like)
-- [ ] Redirect location → **301/302** + `Location`
-- [ ] Autoindex HTML via `opendir`/`readdir`/`closedir`
-- [ ] Directory + index file behaviour
-
-### Phase 4 — POST upload + DELETE + body limits
-
-**Done when:** upload lands in `www/uploads` (or configured store); DELETE removes allowed resources; oversized body → 413.
-
-Checklist:
-
-- [ ] Enforce max body size during parse
-- [ ] POST writes file safely (unique name or from headers — document choice)
-- [ ] DELETE returns sensible codes (200/204/403/404)
-- [ ] Update demo page with a minimal upload form
-
-Coordinate with kebris-c: they must keep reading sockets while bodies arrive; you define when the request is “complete”.
-
-### Phase 5 — CGI contract
-
-**Done when:** browser hits `/cgi-bin/hello.py` and sees script output; POST body reaches the script.
-
-Your checklist:
-
-- [ ] Detect CGI by extension + `cgi_pass` from location
-- [ ] `CgiProcess::buildEnv` — `REQUEST_METHOD`, `QUERY_STRING`, `CONTENT_LENGTH`, `CONTENT_TYPE`, `SCRIPT_FILENAME` / `SCRIPT_NAME`, `PATH_INFO`, `SERVER_PROTOCOL`, `SERVER_PORT`, `GATEWAY_INTERFACE`, etc.
-- [ ] Working directory expectation documented for kebris-c (`chdir` in child)
-- [ ] Parse CGI stdout → HTTP response (Status/Content-Type/body)
-- [ ] Unchunked body only on CGI stdin
-
-kebris-c checklist (you depend on it): non-blocking pipes inside **their** poll loop, EOF on stdin, `waitpid` without blocking the server.
-
-### Phase 6 — Demo, nginx comparison, tests, README
-
-**Done when:** evaluation can be driven from README + `configs/default.conf` + browser; `tests/test_smoke.py` covers the checklist in `tests/README.md`.
-
-Checklist:
-
-- [ ] Static site looks intentional on ports **8080** and **8081**
-- [ ] Error pages exist and are referenced
-- [ ] Python smoke tests for GET/404/POST/DELETE/redirect/CGI/multi-port
-- [ ] README Instructions still accurate
-- [ ] Note how AI was used stays honest
-
----
-
-## Integration contract (what you owe kebris-c)
+Your `configs/default.conf` already sketches directives. Support at least:
 
 ```text
-Config::load(path) -> vector<ServerConfig>
+server {
+  listen HOST:PORT;          # or PORT with default host
+  server_name NAME;          # optional
+  client_max_body_size SIZE; # e.g. 10M
+  error_page CODE PATH;
 
-Request::parse(std::string &readBuf) -> bool (complete or error)
-  - strips consumed bytes from readBuf
-  - sets errorCode on bad requests
-
-Router::match(server, request) -> RouteMatch (location + fsPath)
-
-HttpHandler::handle(request, route) -> Response
-  OR signals "needs CGI" with script path + env
-
-CgiProcess::buildEnv(...) -> vector<string> KEY=VALUE
-parseCgiOutput(cgi.stdout bytes) -> Response
+  location /path {
+    root DIR;
+    index FILE;
+    autoindex on|off;
+    allowed_methods GET POST DELETE;
+    return CODE URL;         # redirect
+    upload_store DIR;
+    cgi_extension .py;
+    cgi_pass /usr/bin/python3;
+  }
+}
 ```
 
-Keep APIs C++98-friendly and free of socket calls.
+You may choose equivalent directive names if documented — but closer to nginx = less eval confusion.
+
+### Parser strategy (recommended)
+
+1. Read whole file (config is small).  
+2. Strip `#` comments.  
+3. Tokenize: `{` `}` `;` and words.  
+4. Recursive-descent or brace-counting for `server` / `location` blocks.  
+5. Fill `ServerConfig` / `LocationConfig`.  
+6. Validate: at least one listen, locations non-empty ideally, numeric ports, known sizes.
+
+### Size parsing
+
+`10M` → `10 * 1024 * 1024` (document whether you use 1000 or 1024; be consistent).
+
+### Deliverable for kebris-c
+
+`Config::load` succeeds on `minimal.conf` and `default.conf`; `servers()` returns listen host/port they can bind.
+
+**Unit dump:** print configs to stderr in debug builds to verify nesting.
+
+### Subject mapping example
+
+> URL `/kapouet` rooted to `/tmp/www` →  
+> `/kapouet/pouic/toto/pouet` searches `/tmp/www/pouic/toto/pouet`
+
+Implement this join carefully in `Router` (strip location prefix, append to root, normalize slashes, reject `..`).
 
 ---
 
-## Common failure modes (yours)
+## 5. Request parser (phase 2 deep dive)
 
-| Symptom | Likely cause |
+### States
+
+```text
+REQ_LINE -> REQ_HEADERS -> REQ_BODY -> REQ_COMPLETE
+                              \-> REQ_ERROR
+```
+
+### Algorithm
+
+```text
+parse(buffer):
+  loop:
+    if REQ_LINE:
+      need line ending with \r\n
+      split METHOD SP REQUEST_TARGET SP HTTP/VERSION
+      split target into path and query at first '?'
+      -> REQ_HEADERS
+    if REQ_HEADERS:
+      read lines until empty line \r\n\r\n
+      store headers (normalize names to lowercase internally)
+      detect Content-Length / Transfer-Encoding: chunked
+      if no body expected -> COMPLETE
+      else -> REQ_BODY
+    if REQ_BODY:
+      if chunked: decode until 0-chunk; produce unchunked body
+      else: wait until body.size == Content-Length
+      enforce client_max_body_size -> 413 / REQ_ERROR
+      -> COMPLETE
+  erase consumed prefix from buffer
+  return (state == COMPLETE || state == ERROR)
+```
+
+### Body expected?
+
+- `GET`/`DELETE` usually no body (if `Content-Length` present, decide: read and ignore, or reject — document; nginx often reads length if present).  
+- `POST` with length/chunked: must read.  
+
+### Limits (strongly recommended)
+
+- Max request line length  
+- Max header block size  
+- Max body size from matched server/location (may need provisional server limit until routed)
+
+If headers never finish → kebris-c timeout should kill the connection; you still must not loop forever busy-spinning.
+
+### Chunked decoding essentials
+
+```text
+while true:
+  read chunk-size line (hex)
+  if size == 0: consume trailing \r\n (and optional trailers) -> done
+  read exactly size bytes + \r\n
+  append bytes to body
+```
+
+Malformed chunk → 400.
+
+### String-only tests (no server required)
+
+Feed partial slices of a request to `parse` in a small `main` or test harness:
+
+1. Full request in one shot.  
+2. One character at a time.  
+3. Split inside `\r\n\r\n`.  
+4. Chunked body in awkward slices.  
+
+This is where your tooling brain wins — automate it in `tests/` even before sockets work.
+
+---
+
+## 6. Response builder
+
+Wire format:
+
+```text
+HTTP/1.1 200 OK\r\n
+Content-Type: text/html\r\n
+Content-Length: 123\r\n
+Connection: close\r\n
+\r\n
+<body bytes>
+```
+
+### Rules of thumb
+
+- Always set `Content-Length` for in-memory bodies (simplest).  
+- Set `Content-Type` from extension (`html`, `css`, `js`, `png`, `jpg`, `txt`, …); default `application/octet-stream`.  
+- Redirects: status + `Location` + usually empty/short body.  
+- Errors: prefer configured `error_page` file; else built-in HTML in `www/errors/` or generated.  
+- `Connection: close` is fine while kebris-c closes after response.
+
+### Status table (minimum)
+
+| Code | When |
 |---|---|
-| Browser spins forever | Parser never reaches COMPLETE (waiting for body that will not come) |
-| CGI gets empty POST | Chunked not unchunked; or `CONTENT_LENGTH` wrong |
-| 404 for valid files | `root` + location prefix join wrong |
-| Works in curl, not browser | Missing `Host` handling is usually OK; more often bad `Content-Length` or incomplete response CRLF |
-| Upload “works” but eval fails | Path not from config; methods not restricted; no size limit |
-| Partner blocked | Config API unstable — freeze `ServerConfig` fields early |
+| 200 | OK |
+| 201 | Created (optional for upload) |
+| 204 | No Content (optional for DELETE) |
+| 301/302 | Redirect from config |
+| 400 | Bad request / malformed |
+| 403 | Forbidden (no list permission, etc.) |
+| 404 | Not found |
+| 405 | Method not allowed |
+| 413 | Body too large |
+| 500 | CGI/handler failure |
+| 501 | Not implemented (temporary during skeleton) |
 
 ---
 
-## Definition of done (your half)
+## 7. Router + HttpHandler
 
-- [ ] Config loads `minimal.conf` and `default.conf`
-- [ ] Incremental request parser + solid response builder
-- [ ] GET static + autoindex + index + redirects + error pages
-- [ ] POST upload + DELETE + 413 on huge body
-- [ ] CGI env + CGI response parsing for at least one script
-- [ ] Demo site + tests + nginx comparison notes
-- [ ] You can explain status codes and location matching without reading notes
+### Location match
 
-Bonus later (not now): cookies/sessions are mostly **your** feature (Set-Cookie, session map, tiny login demo). Do not start until mandatory is boringly stable.
+Longest prefix wins among `location` paths. Example:
+
+- `/` and `/cgi-bin` → request `/cgi-bin/hello.py` matches `/cgi-bin`.
+
+Exact-match locations are optional sugar.
+
+### Filesystem map
+
+1. Reject paths with `..` after normalization (and consider `%2e%2e`).  
+2. Strip location prefix from URI path.  
+3. Join with `root` (or `alias` if you add it).  
+4. `stat`:
+
+| Result | Action |
+|---|---|
+| Regular file | GET → serve; DELETE → unlink if allowed |
+| Directory | index file / autoindex / 403/404 |
+| Missing | 404 |
+
+### Method allow-list
+
+If method not in location list → **405**. Optionally send `Allow: GET, POST`.
+
+### Redirect location
+
+If location has `return`/`redirect` → build redirect Response; do not touch disk.
+
+### Autoindex
+
+`opendir` / `readdir` / `closedir` → simple HTML `<a href="...">`. Escape `<`, `&`, `"` in names. Do not expose paths outside the root.
+
+### POST upload
+
+Minimum viable (document choice):
+
+- Raw body saved as a generated filename in `upload_store`, **or**  
+- `multipart/form-data` parse for `file` field (harder; only if you need browser form fidelity)
+
+Enforce size → 413. Success → 201/200 + message body.
+
+### DELETE
+
+- Allow only under configured locations/methods.  
+- Delete files; be careful with directories (prefer 403 on dirs unless you intentionally support).  
+
+### CGI dispatch
+
+If path ends with `cgi_extension` (or location is CGI-only) and file exists:
+
+1. Resolve script path.  
+2. `buildEnv`.  
+3. Hand to kebris-c `CgiProcess::start` with **unchunked** body.  
+4. When done, `parseCgiOutput`.
 
 ---
 
-## Suggested study order (short)
+## 8. CGI contract (your half)
 
-1. Manually write 5 HTTP requests in a text file; parse them on paper.  
-2. Implement config → structs; print dump.  
-3. Implement `Request`/`Response` with string-only unit tests.  
-4. Router + static GET; plug into kebris-c when echo server exists.  
-5. Upload/DELETE/CGI contract.  
-6. Automate with Python; break cases on purpose (bad headers, huge body, `..` paths).
+### Environment (build these as `KEY=VALUE` strings)
+
+Minimum useful set:
+
+| Variable | Typical source |
+|---|---|
+| `GATEWAY_INTERFACE` | `CGI/1.1` |
+| `REQUEST_METHOD` | request method |
+| `SCRIPT_FILENAME` | absolute script path |
+| `SCRIPT_NAME` | URI path to script |
+| `PATH_INFO` | extra path after script (often empty) |
+| `QUERY_STRING` | without `?` |
+| `CONTENT_TYPE` | header or empty |
+| `CONTENT_LENGTH` | body size decimal |
+| `SERVER_PROTOCOL` | e.g. `HTTP/1.1` |
+| `SERVER_NAME` / `SERVER_PORT` | config / listen |
+| `REMOTE_ADDR` | peer (if kebris-c exposes it) |
+| `REDIRECT_STATUS` | `200` (helps php-cgi) |
+
+Pass to child as `char *envp[]` (kebris-c builds argv/envp arrays from your strings).
+
+### Working directory
+
+Subject: CGI runs in correct directory for relative paths. Agree with kebris-c: usually `chdir` to the script’s directory or the location root — **document which**.
+
+### CGI stdout → HTTP
+
+```text
+read headers until blank line
+if header Status: NNN ... -> use that code
+else default 200
+remaining bytes -> body
+if Content-Length absent, body is until EOF (kebris-c already collected)
+synthesize HTTP response with proper status/headers/body
+```
+
+### Sample script
+
+`www/cgi-bin/hello.py` is a starting point. Add a POST echo and a script that reads a relative file once cwd is correct.
+
+---
+
+## 9. Phase walkthrough checklists
+
+### Phase 1 — Config
+
+- [ ] `minimal.conf` loads  
+- [ ] `default.conf` loads (multi-server)  
+- [ ] Bad file → clear error, non-zero exit from `main`  
+- [ ] Size suffixes work  
+- [ ] Dump/print for visual check  
+
+### Phase 2 — Request/Response + static GET (string-level)
+
+- [ ] Parser tests: full / sliced / bad request  
+- [ ] `Response::raw` CRLF correctness  
+- [ ] File body + content type  
+- [ ] 404 default page  
+
+### Phase 3 — Router features
+
+- [ ] `/` serves index  
+- [ ] `/files` autoindex  
+- [ ] `/old` redirect  
+- [ ] Unknown → 404  
+- [ ] Method denial → 405  
+- [ ] Traversal attempt → 403/400  
+
+### Phase 4 — Upload / DELETE / 413
+
+- [ ] POST stores under `upload_store`  
+- [ ] DELETE removes allowed file  
+- [ ] Oversized → 413  
+- [ ] Demo form on site (optional but great for eval)  
+
+### Phase 5 — CGI
+
+- [ ] GET CGI works in browser  
+- [ ] POST CGI receives body  
+- [ ] Query string visible in script  
+- [ ] CGI failure → 500  
+
+### Phase 6 — Eval pack
+
+- [ ] Port 8080 and 8081 demos  
+- [ ] `tests/test_smoke.py` covers list in `tests/README.md`  
+- [ ] nginx comparison notes (short markdown section in tests or README)  
+- [ ] README Instructions match reality  
+
+---
+
+## 10. Test plan (use your scraper/tooling skills)
+
+Implement `tests/test_smoke.py` as a real client (`http.client` or raw sockets).
+
+Suggested cases:
+
+1. `GET /` → 200, body contains expected marker  
+2. `GET /missing` → 404 + error page HTML  
+3. `GET /files/` → 200 listing when autoindex on  
+4. `GET /old` → 301/302 + `Location`  
+5. `POST /` with body where POST forbidden → 405  
+6. `POST /upload` small file → success + file exists on disk  
+7. `POST` huge body → 413  
+8. `DELETE` allowed vs denied  
+9. CGI GET/POST  
+10. Port `8081` returns site2 content  
+11. Malformed request → 400  
+12. Chunked POST (once supported)  
+
+Also keep a **raw socket** slow-client script for kebris-c (1 byte/sec headers).
+
+---
+
+## 11. Failure modes → fixes
+
+| Symptom | Likely yours if… |
+|---|---|
+| Browser spins forever | parse never COMPLETE (waiting for body) |
+| Double-parsed garbage | consumed bytes not erased from `readBuf` |
+| CGI empty POST | chunked not decoded; wrong `CONTENT_LENGTH` |
+| 404 for real files | root/location join wrong; missing strip of prefix |
+| Upload ok locally, eval fails | path not from config; methods open; no size cap |
+| Wrong status vs nginx | you guessed; re-check oracle |
+| Partner blocked on bind | unstable listen fields / config API churn |
+
+---
+
+## 12. Defense cheat sheet
+
+Practice out loud:
+
+1. “Show how a chunked body becomes CGI stdin.”  
+2. “How do you map `/kapouet/...` to disk?”  
+3. “Where is `client_max_body_size` enforced?”  
+4. “Why don’t you call `recv` in HttpHandler?”  
+5. “What status for DELETE on a missing file?”  
+6. “Which CGI env vars did you set and why?”  
+
+---
+
+## 13. Definition of done (your half)
+
+- [ ] Config loads both sample files  
+- [ ] Incremental parser + response builder correct under slicing  
+- [ ] Static GET + index + autoindex + redirects + errors  
+- [ ] POST upload + DELETE + 413  
+- [ ] One CGI working end-to-end with kebris-c  
+- [ ] Multi-port content difference demonstrated  
+- [ ] Tests + demo site + README ready for eval  
+- [ ] You can explain the poll rule without saying “that’s kebris’s stuff”  
+
+Bonus later (yours): cookies + sessions demo. Not now.
+
+---
+
+## 14. Daily loop suggestion
+
+1. Pick one checklist box.  
+2. Add a failing test or a `curl -v` expectation first.  
+3. Implement in C++98.  
+4. Compare weird cases to nginx.  
+5. If blocked on “bytes never arrive” → give kebris-c the **hex dump / length** of what you expected vs `readBuf`.  
+6. Keep `ServerConfig` fields stable once phase 2 starts.
