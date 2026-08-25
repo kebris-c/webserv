@@ -33,7 +33,7 @@
 #include <signal.h>
 #include <dirent.h>
 #include <netdb.h>
-#include <poll.h> /* or epoll — choose one multiplexing API and stick to it */
+#include <poll.h>
 
 /* Default path if argv[1] is missing (subject allows a default path). */
 #ifndef WEBSERV_DEFAULT_CONF
