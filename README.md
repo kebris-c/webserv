@@ -4,7 +4,7 @@
 
 ## Description
 
-`webserv` is an HTTP/1.x server written in C++98. It reads an nginx-inspired configuration file, listens on one or more `interface:port` pairs, and serves clients through a **single non-blocking I/O multiplexing loop** (`poll` / `epoll` / equivalent).
+`webserv` is an HTTP/1.x server written in C++98. It reads an nginx-inspired configuration file, listens on one or more `interface:port` pairs, and serves clients through a **single non-blocking `poll` loop**.
 
 The server aims to:
 
@@ -16,7 +16,9 @@ The server aims to:
 - Remain available under stress and never hang a request indefinitely
 - Return accurate HTTP status codes and default error pages
 
-This repository currently contains a **skeleton only**: owned placeholders, learning notes, and guidance. Implementation is intentionally left for the team.
+The kebris-c transport scaffold, resilience limits, and CGI process mechanics are
+implemented. End-to-end HTTP/CGI remains blocked by the owned kmarrero HTTP/config
+skeletons, so the executable temporarily runs a clearly marked TCP echo workaround.
 
 **Language boundary:** `webserv` itself is **C++98 only**. Any `.py` in the tree is either a **CGI script** exec’d by the C++ server or an **external test client** — both explicitly allowed by the subject. See [`SUBJECT_RULES.md`](SUBJECT_RULES.md).
 
@@ -26,7 +28,7 @@ This repository currently contains a **skeleton only**: owned placeholders, lear
 
 - C++98 toolchain: compiler invoked as `c++` with `-Wall -Wextra -Werror -std=c++98`
 - No Boost / no external libraries; stay inside the subject function whitelist
-- Unix-like environment (Linux recommended for `epoll`; `poll` is portable)
+- Unix-like environment with `poll`
 
 ### Build
 
@@ -44,7 +46,10 @@ Useful targets: `all`, `clean`, `fclean`, `re`. Compiler name in the Makefile is
 ./webserv configs/default.conf
 ```
 
-If no argument is provided, the program should later fall back to a default config path (see `src/main.cpp` notes).
+If no argument is provided, the program uses `configs/default.conf`.
+
+Until the owned config parser is implemented, a highlighted workaround starts a TCP
+echo transport test on ports `8080` and `8081`; this is not an HTTP-capable release.
 
 ### Demo content
 
@@ -68,6 +73,7 @@ Per-person walkthroughs (phases, clarifications, what to study):
 - [`KMARRERO.md`](KMARRERO.md) — config, HTTP, routes, handlers, demo, tests
 
 Shared build order: [`docs/WORK_SPLIT.md`](docs/WORK_SPLIT.md).
+Seams, workarounds, and cross-owner touchpoints: [`docs/README.md`](docs/README.md).
 
 ## Resources
 
@@ -87,5 +93,9 @@ AI assisted with:
 - Reading the subject and proposing an equal ownership split by prior skills
 - Generating this repository skeleton, ownership notes, learning checklists, and hard-path pseudocode
 - Drafting the subject-compliant README structure
+- Implementing and auditing kebris-c's non-blocking sockets, connection lifecycle,
+  `poll`, timeouts, partial I/O, and CGI process mechanics
+- Designing stress, descriptor-lifecycle, sanitizer, and CGI tests
 
-AI did **not** implement the server logic. All functional code must be written and understood by kebris-c and kmarrero before evaluation.
+Both owners must review, understand, and take responsibility for every submitted line
+before evaluation.

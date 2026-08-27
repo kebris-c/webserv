@@ -19,18 +19,24 @@
 
 class Socket {
 public:
+	/* Creates an empty socket owner; used by Server for each listener. */
 	Socket();
+	/* Takes ownership of fd; used only when an existing descriptor is wrapped. */
 	explicit Socket(int fd);
+	/* Closes the owned descriptor during listener cleanup. */
 	~Socket();
 
-	/* Create non-blocking listening socket for host:port. Returns false on error. */
+	/* Creates a non-blocking listener for host:port; Server calls it at setup. */
 	bool	listenOn(const std::string &host, int port);
 
-	/* Accept one client; returns fd or -1 if would-block / error. */
-	int		acceptClient() const;
+	/* Accepts one non-blocking client after POLLIN; fills peer IPv4 text. */
+	int		acceptClient(std::string &remoteAddr) const;
 
+	/* Returns the owned listener descriptor; Server uses it in poll(). */
 	int		fd() const;
-	void	setNonBlocking(int fd) const;
+	/* Sets O_NONBLOCK on fd; listener setup and accept use it. */
+	bool	setNonBlocking(int fd) const;
+	/* Closes and invalidates the owned descriptor; destructor also calls it. */
 	void	closeFd();
 
 private:

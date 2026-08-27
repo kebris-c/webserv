@@ -2,9 +2,29 @@
 
 Mandatory only. Bonus is out of scope until mandatory is boringly stable.
 
-**Server language: C++98.** Python only for CGI scripts and external tests.  
-Compliance map: [`../SUBJECT_RULES.md`](../SUBJECT_RULES.md)  
-Deep guides: [`../KEBRIS-C.md`](../KEBRIS-C.md) · [`../KMARRERO.md`](../KMARRERO.md)
+**Server language: C++98.** Python only for CGI scripts and external tests.
+Compliance map: [`../SUBJECT_RULES.md`](../SUBJECT_RULES.md).
+Deep guides: [`../KEBRIS-C.md`](../KEBRIS-C.md) · [`../KMARRERO.md`](../KMARRERO.md).
+Integration ledger (workarounds / seams): [`README.md`](README.md).
+
+---
+
+## Current integration checkpoint
+
+- **Multiplexor is frozen to `poll`.** Do not add `epoll`, `select`, or a second wait loop.
+- kebris-c transport is **closed for mandatory I/O**: non-blocking listeners/clients,
+  multi-port mapping, partial writes, bounded admission/buffers, disconnect cleanup,
+  idle timeouts + phase deadlines, CGI process pipes/reaping, signal stop, accept
+  backoff, and peer IPv4 via `Connection::remoteAddr()` passed into `prepareCgi`.
+- `src/main.cpp` still falls back to temporary TCP echo on `127.0.0.1:8080` and
+  `:8081` because `Config::load` is a kmarrero stub. Echo proves transport only; it
+  is **not HTTP**.
+- `HttpHandler::prepareCgi` and `HttpHandler::parseCgiOutput` remain explicit
+  integration stubs for kmarrero to replace (see [`README.md`](README.md) §3).
+
+**Removal gate:** delete every highlighted workaround only after config loading,
+incremental request parsing, normal response generation, and CGI response parsing pass
+string tests and a browser `GET /` works.
 
 ---
 
@@ -23,7 +43,7 @@ Both must explain both planes in defense. Ownership is for shipping speed, not f
 
 | Owner | Owns | Does not own |
 |---|---|---|
-| **kebris-c** | sockets, poll/epoll loop, connections, CGI **process/pipes**, stress of the loop | config grammar, HTTP header semantics, HTML autoindex content |
+| **kebris-c** | sockets, `poll` loop, connections, CGI **process/pipes**, stress of the loop | config grammar, HTTP header semantics, HTML autoindex content |
 | **kmarrero** | config parser, request/response, router, handlers, CGI **env/output**, www, tests | calling `recv`/`send`, inventing a second I/O wait model |
 | **both** | `main` glue, Makefile, Utils, README truthfulness, integration sessions, defense prep | — |
 
@@ -42,9 +62,10 @@ Server (kebris-c)
 Request::parse(readBuf) -> complete | error     # kmarrero, incremental, consumes bytes
 Router::match(server, request) -> RouteMatch    # kmarrero
 HttpHandler::handle(...) -> Response            # or "needs CGI"
-CgiProcess::buildEnv(...)                       # kmarrero
+HttpHandler::prepareCgi(...) -> bool + path/env # + remoteAddr string from Connection
+CgiProcess::buildEnv(...)                       # kmarrero (must set REMOTE_ADDR=)
 CgiProcess::start / pipe poll callbacks         # kebris-c
-parseCgiOutput(stdout) -> Response              # kmarrero
+HttpHandler::parseCgiOutput(stdout) -> Response # kmarrero
 Response::raw() -> bytes into writeBuf          # kmarrero build, kebris-c send
 ```
 
@@ -69,7 +90,7 @@ If phase N is red, do not start N+2 features on top.
 
 ## Pair sessions (schedule these)
 
-1. **Kickoff (2–3h):** read `SUBJECT_RULES.md` together; freeze `ServerConfig`/`LocationConfig` fields; choose `poll` vs `epoll`.  
+1. **Kickoff (2–3h):** read `SUBJECT_RULES.md` together; freeze `ServerConfig`/`LocationConfig` fields. **`poll` is already chosen.**
 2. **First GET (phase 3):** sit together until browser shows `www/index.html`.  
 3. **CGI (phase 5):** env vars + pipe EOF checklist on one machine.  
 4. **Defense rehearsal:** each explains the other’s module with the PDF open.

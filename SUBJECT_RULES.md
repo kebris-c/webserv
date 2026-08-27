@@ -1,4 +1,4 @@
-# Subject rules — allowed vs forbidden (webserv v24.0)
+# Subject rules — allowed vs forbidden (webserv v24.1)
 
 Re-read the official PDF when in doubt. This file is the team compliance map so nobody confuses **CGI/test Python** with the **C++98 server**, and so grade-0 rules stay visible while coding.
 
@@ -53,7 +53,7 @@ Use these for OS work (plus normal **C++98 STL** / iostreams / strings / contain
 `htons`, `htonl`, `ntohs`, `ntohl`,  
 `select`, `poll`, `epoll_create`, `epoll_ctl`, `epoll_wait`,  
 `kqueue`, `kevent`,  
-`socket`, `accept`, `listen`, `send`, `recv`,  
+`socket`, `accept`, `listen`, `send`, `recv`, `shutdown`,
 `chdir`, `bind`, `connect`,  
 `getaddrinfo`, `freeaddrinfo`, `setsockopt`, `getsockname`, `getprotobyname`,  
 `fcntl`, `close`, `read`, `write`,  

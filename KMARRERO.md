@@ -4,7 +4,79 @@ Scrapers and web tooling help you with headers, status codes, forms, and configs
 
 **Server language: C++98 only.** Your code lives in `src/*.cpp`. Python is allowed only as CGI scripts (`www/cgi-bin/`) and external tests (`tests/`). Rules: [`SUBJECT_RULES.md`](SUBJECT_RULES.md).
 
-Partner guide: [`KEBRIS-C.md`](KEBRIS-C.md) · Shared phases: [`docs/WORK_SPLIT.md`](docs/WORK_SPLIT.md)
+Partner guide: [`KEBRIS-C.md`](KEBRIS-C.md) · Shared phases: [`docs/WORK_SPLIT.md`](docs/WORK_SPLIT.md) · Seam ledger: [`docs/README.md`](docs/README.md)
+
+---
+
+## Integration status (read first — Aug 2026)
+
+kebris-c’s transport/`poll`/CGI process plane is already wired and waiting on **your**
+HTTP/config plane. Until you implement the stubs below, the binary only proves TCP
+echo — **not** subject HTTP.
+
+### Forced / temporary touchpoints you must review
+
+Search for these markers before rewriting behaviour:
+
+| Where | What happened | Your action |
+|---|---|---|
+| `src/main.cpp` | If `Config::load` fails, kebris-c workaround binds `8080`/`8081` and enables TCP echo | Make `load()` succeed; then **delete** the echo fallback (invalid config must fail) |
+| `src/Server.cpp` | Echo branch copies `readBuf` → `writeBuf` when that mode is on | Do not treat echo as HTTP; it disappears when config works |
+| `HttpHandler::prepareCgi` / `parseCgiOutput` | Public API stubs **added** so Server can call CGI without owning HTTP semantics; both currently return “no CGI” / `501` | Replace with real route/env decision and CGI-header→HTTP conversion |
+| `CgiProcess::buildEnv` | Still your stub; kebris-c already executes `start`/pipes/`waitpid(WNOHANG)` | Fill RFC 3875 `KEY=VALUE` strings |
+| `LocationConfig` | No per-location body-size field yet, but `configs/default.conf` has `client_max_body_size` inside `/upload` | Extend the struct **or** change the sample conf — keep them consistent |
+| `REMOTE_ADDR` | `Connection::remoteAddr()` already filled at accept; passed into `prepareCgi` | Put `REMOTE_ADDR=<remoteAddr>` in the env vector (and/or `buildEnv`) |
+
+Workaround banner used by kebris-c (do not leave in final code):
+
+```text
+// TODO: This is a workaround to allow me keep going on, must be
+// changed/improved before the project end.
+```
+
+Also keep existing `TODO(kmarrero):` comments in your owned `.cpp` files — they mark
+real unfinished mandatory work, not optional polish.
+
+### Contract Server already calls (do not rename casually)
+
+```text
+Config::load(path) -> servers()
+Request::parse(readBuf)   # incremental; must consume bytes
+Router::match(server, request)
+HttpHandler::prepareCgi(...) -> false | scriptPath + env  # + remoteAddr arg
+HttpHandler::handle(...) -> Response
+HttpHandler::parseCgiOutput(cgiStdout) -> Response
+Response::raw() / Response::makeError(...)
+CgiProcess::buildEnv(...)   # called from your prepareCgi path; set REMOTE_ADDR
+```
+
+Hard rule unchanged: **no** `recv`/`send`/`read`/`write` on sockets/pipes in your code.
+
+Full seam/workaround table: [`docs/README.md`](docs/README.md).
+
+### Stepped-on APIs — location, why, what you do, what you must respect
+
+kebris-c left **explicit TODO banners** on every forced touchpoint. Expand them in
+the `.cpp` if anything is unclear. Summary:
+
+| Location | Why kebris-c touched it | What you implement | Must keep / must not break |
+|---|---|---|---|
+| `src/main.cpp` `else` after failed `load` | Without listeners, I/O plane cannot run | Real `Config::load`; **delete** fallback + echo flag | CLI `./webserv [conf]`; `configure` + `run` only; invalid conf → error exit |
+| `Server::_onReadable` echo branch | Transport demo while HTTP stubs exist | Ensure echo is never enabled; **delete** branch | No `recv`/`send` in your code; leave poll readiness, partial send, timeouts, CGI wiring |
+| `HttpHandler::prepareCgi` (+ header decl) | Server needs CGI yes/no + path/env without owning HTTP | Return `true` + `scriptPath` + env (incl. `REMOTE_ADDR=`) or `false` → `handle` | **Keep signature** (incl. `remoteAddr`); no fork/pipe/poll; body already unchunked |
+| `HttpHandler::parseCgiOutput` | Server has raw stdout after async CGI; needs `Response` | Parse CGI headers/`Status`, body; build `Response` | No socket/pipe I/O; input is full `CgiProcess::output()` after reap |
+| `CgiProcess::buildEnv` | Process/pipes already done by kebris-c | Fill `KEY=VALUE` vector; call from `prepareCgi` | Do not change `start`/pipe ownership/`waitpid(WNOHANG)` paths |
+| `Connection::remoteAddr()` | Peer captured at `accept` (whitelist-safe IPv4 text) | Put into env as `REMOTE_ADDR=` | Do not remove getter; do not require `inet_ntop` |
+
+Also: `configs/default.conf` has per-location `client_max_body_size` but
+`LocationConfig` does not — align struct **or** conf before claiming parser done.
+
+Search:
+
+```bash
+rg 'TODO: This is a workaround' src include
+rg 'WHY \\(kebris-c\\)|YOU \\(kmarrero\\)|RESPECT:' src
+```
 
 ---
 
@@ -51,7 +123,7 @@ Defense still requires you to explain why socket I/O must wait for poll.
 7. **nginx is the oracle** for ambiguous behaviour.  
 8. **C++98:** no ranged-for, no `auto` as C++11, no `std::to_string`, no `unordered_map` unless you are sure — prefer `map`/`vector`/`stringstream`.  
 9. **Path traversal is your bug** even if kebris-c serves the file. Reject `..` and nasty encodings.  
-10. Freeze structs/API with kebris-c before they wire phase 3 ([`KEBRIS-C.md` §7](KEBRIS-C.md)).
+10. Freeze structs/API with kebris-c before changing phase-3 wiring ([`docs/WORK_SPLIT.md`](docs/WORK_SPLIT.md), [`KEBRIS-C.md`](KEBRIS-C.md)). `prepareCgi` / `parseCgiOutput` are already frozen call sites.
 
 ---
 
@@ -358,14 +430,14 @@ Minimum useful set:
 | `CONTENT_LENGTH` | body size decimal |
 | `SERVER_PROTOCOL` | e.g. `HTTP/1.1` |
 | `SERVER_NAME` / `SERVER_PORT` | config / listen |
-| `REMOTE_ADDR` | peer (if kebris-c exposes it) |
+| `REMOTE_ADDR` | `remoteAddr` argument of `prepareCgi` / `Connection::remoteAddr()` |
 | `REDIRECT_STATUS` | `200` (helps php-cgi) |
 
 Pass to child as `char *envp[]` (kebris-c builds argv/envp arrays from your strings).
 
 ### Working directory
 
-Subject: CGI runs in correct directory for relative paths. Agree with kebris-c: usually `chdir` to the script’s directory or the location root — **document which**.
+Subject: CGI runs in correct directory for relative paths. kebris-c currently `chdir`s to the **script’s directory** before `execve`. If you need location-root semantics instead, change it jointly — do not assume silently.
 
 ### CGI stdout → HTTP
 
@@ -492,7 +564,9 @@ Practice out loud:
 - [ ] One CGI working end-to-end with kebris-c  
 - [ ] Multi-port content difference demonstrated  
 - [ ] Tests + demo site + README ready for eval  
-- [ ] You can explain the poll rule without saying “that’s kebris’s stuff”  
+- [ ] You can explain the poll rule without saying “that’s kebris’s stuff”
+- [ ] Every `TODO: This is a workaround` block is gone
+- [ ] `default.conf` grammar matches `ServerConfig` / `LocationConfig` fields
 
 Bonus later (yours): cookies + sessions demo. Not now.
 
