@@ -24,12 +24,15 @@ enum CgiState {
 	CGI_INIT,
 	CGI_RUNNING,
 	CGI_DONE,
-	CGI_FAILED
+	CGI_FAILED,
+	CGI_TERMINATING
 };
 
 class CgiProcess {
 public:
+	/* Creates an inactive CGI process with no open pipes. */
 	CgiProcess();
+	/* Closes pipes and terminates a child still owned during shutdown. */
 	~CgiProcess();
 
 	/* kmarrero: build env from Request + Location + ServerConfig */
@@ -38,20 +41,34 @@ public:
 												const LocationConfig &loc,
 												const std::string &scriptPath);
 
-	/* kebris-c: spawn child, register pipe fds with Server poll loop */
+	/* Spawns one CGI and exposes parent pipe ends for Server's poll loop. */
 	bool	start(const LocationConfig &loc,
 					const std::string &scriptPath,
 					const std::vector<std::string> &env,
-					const std::string &body);
+					const std::string &body,
+					const std::vector<int> &inheritedFds);
 
-	int		stdinFd() const;	/* parent writes request body */
-	int		stdoutFd() const;	/* parent reads CGI output */
+	/* Returns the parent-to-CGI fd, or -1 after request-body EOF. */
+	int		stdinFd() const;
+	/* Returns the CGI-to-parent fd, or -1 after response EOF. */
+	int		stdoutFd() const;
+	/* Returns lifecycle state used when Server builds poll interests. */
 	CgiState	state() const;
+	/* Reports whether this object still owns an unreaped child pid. */
+	bool		childActive() const;
+	/* Returns raw CGI stdout for kmarrero's response parser. */
 	const std::string	&output() const;
 
-	void	onPipeWritable();	/* write more body */
-	void	onPipeReadable();	/* read more output */
-	void	tryReap();			/* waitpid WNOHANG */
+	/* Writes one ready body chunk after Server reports POLLOUT. */
+	void	onPipeWritable();
+	/* Reads one ready output chunk after Server reports POLLIN. */
+	void	onPipeReadable();
+	/* Reaps the child without blocking; Server calls it each loop. */
+	void	tryReap();
+	/* Marks pipe transport failed without blocking on child termination. */
+	void	fail();
+	/* Sends SIGKILL and leaves non-blocking reaping to Server. */
+	void	terminate();
 
 	/*
 	 * PSEUDOCODE — split ownership
@@ -80,6 +97,12 @@ private:
 	std::string	_input;			/* remaining body to write */
 	std::size_t	_inputPos;
 	std::string	_output;
+
+	/* Closes both parent pipe ends and invalidates their descriptors. */
+	void		_closePipes();
+
+	CgiProcess(const CgiProcess &);
+	CgiProcess	&operator=(const CgiProcess &);
 };
 
 #endif /* CGI_PROCESS_HPP */

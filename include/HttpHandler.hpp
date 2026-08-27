@@ -29,6 +29,19 @@ public:
 	~HttpHandler();
 
 	Response	handle(const Request &req, const RouteMatch &route) const;
+	/*
+	 * CGI decision for Server (kebris-c call site). Stub until you implement it.
+	 * See workaround TODO in HttpHandler.cpp — keep signature stable.
+	 */
+	bool		prepareCgi(const Request &req, const RouteMatch &route,
+						const std::string &remoteAddr,
+						std::string &scriptPath,
+						std::vector<std::string> &environment) const;
+	/*
+	 * CGI stdout -> Response after kebris-c finished pipes/reap.
+	 * See workaround TODO in HttpHandler.cpp.
+	 */
+	Response	parseCgiOutput(const std::string &output) const;
 
 private:
 	Response	_handleGet(const Request &req, const RouteMatch &route) const;
