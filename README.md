@@ -28,7 +28,7 @@ client** — both uses allowed by the subject.
 
 ### Requirements
 
-- C++98 toolchain: compile with `c++ -Wall -Wextra -Werror -std=c++98`
+- `C++98` toolchain: compile with `c++ -Wall -Wextra -Werror -std=c++98`
 - No Boost and no external libraries; stay inside the subject function whitelist
 - Unix-like environment with `poll`
 - A browser and/or `curl` to exercise the HTTP features
@@ -39,8 +39,6 @@ client** — both uses allowed by the subject.
 
 ```bash
 make
-# if c++ is a broken clang symlink in your environment:
-make CXX=g++
 ```
 
 Useful targets: `all`, `clean`, `fclean`, `re`. The Makefile invokes `c++` as
