@@ -1,5 +1,9 @@
 # kmarrero — full walkthrough (HTTP + config + content plane)
 
+> **INTERNAL — do not include in the evaluation Git submit.**
+> Local study / pair communication only. Listed in `.gitignore` under team docs.
+> Official public README is the root [`README.md`](README.md).
+
 Scrapers and web tooling help you with headers, status codes, forms, and configs. They do **not** replace learning HTTP framing. If `Request::parse` is wrong, kebris-c’s poll loop will look guilty when the bug is yours.
 
 **Server language: C++98 only.** Your code lives in `src/*.cpp`. Python is allowed only as CGI scripts (`www/cgi-bin/`) and external tests (`tests/`). Rules: [`SUBJECT_RULES.md`](SUBJECT_RULES.md).

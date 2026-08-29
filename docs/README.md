@@ -1,5 +1,13 @@
 # Integration ledger — kebris-c ↔ kmarrero
 
+> **INTERNAL — do not include in the evaluation Git submit.**
+> Seams / workarounds / ownership for the pair only. Whole `docs/` is gitignored.
+>
+> **Subject (Ch. VII):** only repository content is evaluated. Intended submit
+> surface: `Makefile`, sources/headers, configs, `www/`, CGI/scripts as needed,
+> root `README.md` (Ch. V). Keep this ledger and the other INTERNAL guides out of
+> the final push (`git rm --cached` if they were tracked earlier).
+
 Constancia escrita de **dónde enlazan** los dos planos, qué **workarounds**
 existen solo para no bloquear el transporte, y qué piezas se **pisaron** en el
 terreno del otro. No sustituye [`WORK_SPLIT.md`](WORK_SPLIT.md),

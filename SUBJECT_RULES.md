@@ -1,5 +1,8 @@
 # Subject rules — allowed vs forbidden (webserv v24.1)
 
+> **INTERNAL — do not include in the evaluation Git submit.**
+> Team compliance map. Listed in `.gitignore`. Re-read the official PDF for defense.
+
 Re-read the official PDF when in doubt. This file is the team compliance map so nobody confuses **CGI/test Python** with the **C++98 server**, and so grade-0 rules stay visible while coding.
 
 Cross-links: [`KEBRIS-C.md`](KEBRIS-C.md) · [`KMARRERO.md`](KMARRERO.md) · [`docs/WORK_SPLIT.md`](docs/WORK_SPLIT.md)

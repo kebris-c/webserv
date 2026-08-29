@@ -1,5 +1,8 @@
 # Work split, interfaces, and build order
 
+> **INTERNAL — do not include in the evaluation Git submit.**
+> Team planning only. Listed in `.gitignore` (`docs/`).
+
 Mandatory only. Bonus is out of scope until mandatory is boringly stable.
 
 **Server language: C++98.** Python only for CGI scripts and external tests.

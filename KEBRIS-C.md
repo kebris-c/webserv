@@ -1,5 +1,9 @@
 # kebris-c — manual del plano de I/O y defensa de webserv
 
+> **INTERNAL — do not include in the evaluation Git submit.**
+> Local study / defense prep only. Listed in `.gitignore` under team docs.
+> Official public README is the root [`README.md`](README.md).
+
 Este documento explica el código real del repositorio. No sustituye leer el subject,
 los manuales ni revisar cada línea. Su objetivo es que puedas reconstruir el flujo de
 memoria y descriptores durante una defensa sin responder “eso lo hizo la IA”.

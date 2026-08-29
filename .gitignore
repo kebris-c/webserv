@@ -16,3 +16,13 @@ obj/
 www/uploads/*
 !www/uploads/.gitkeep
 *.log
+
+# Internal team docs (study / split / seams) — NOT for evaluation submit.
+# Subject: only repository content is evaluated. Keep these local or untracked
+# before the final defense push.
+#
+# Uncomment when main branch is pushed and ensure this file is named as '.gitignore' instead of 'gitingore'
+#KEBRIS-C.md
+#KMARRERO.md
+#SUBJECT_RULES.md
+#docs/
