@@ -1,0 +1,15 @@
+/* OWNER: kmarrero — keep the demo readable, not flashy */
+body {
+	font-family: Georgia, "Times New Roman", serif;
+	margin: 0;
+	min-height: 100vh;
+	background: linear-gradient(160deg, #f3efe6 0%, #d9e2ec 55%, #b8c5d1 100%);
+	color: #1f2a33;
+}
+main {
+	max-width: 40rem;
+	margin: 0 auto;
+	padding: 4rem 1.25rem;
+}
+h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+a { color: #0b3d5c; }
