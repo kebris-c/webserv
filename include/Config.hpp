@@ -14,9 +14,9 @@
  * ************************************************************************** */
 
 #ifndef CONFIG_HPP
-#define CONFIG_HPP
+# define CONFIG_HPP
 
-#include "Webserv.hpp"
+# include "Webserv.hpp"
 
 struct LocationConfig {
 	std::string					path;			/* URL prefix, e.g. /upload */
@@ -45,19 +45,20 @@ struct ServerConfig {
 };
 
 class Config {
-public:
-	Config();
-	~Config();
+	public:
+			Config();
+			~Config();
 
-	/* Parse path; throw std::runtime_error or return false on hard failure. */
-	bool	load(const std::string &path);
+			/* Parse path; throw std::runtime_error or return false on hard failure. */
+			bool	load(const std::string &path);
 
-	const std::vector<ServerConfig>	&servers() const;
+			const std::vector<ServerConfig>	&servers() const;
 
-private:
-	std::vector<ServerConfig>	_servers;
+	private:
+			std::vector<ServerConfig>	_servers;
+			
 
-	/* TODO(kmarrero): lexer + parseServer + parseLocation helpers. */
+			/* TODO(kmarrero): lexer + parseServer + parseLocation helpers. */
 };
 
 #endif /* CONFIG_HPP */
