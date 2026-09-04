@@ -1,49 +1,48 @@
-# OWNER: both (kebris-c sets compiler/flags/link; kmarrero adds new src files when modules land)
-# GOAL: Build ./webserv with C++98, -Wall -Wextra -Werror, no unnecessary relinking.
-# LEARN: Make pattern rules, dependency tracking, phony targets.
+###########################################
+#             VARIABLES                   #
+###########################################
 
-NAME		= webserv
+NAME			=	Lexer
+OBJ_DIR			=	obj
+SRC				= 	src/Lexer.cpp	\
+					src/Parser.cpp	\
+					main.cpp
+INCLUDES		=	include
+CPP				=	c++
+CPPFLAGS		=	-Wall -Werror -Wextra -std=c++98 -I$(INCLUDES) -MMD -MP -g
+OBJ				=	$(patsubst %.cpp, $(OBJ_DIR)/%.o, $(SRC))
 
-# Subject: compile with c++ and -Wall -Wextra -Werror; must accept -std=c++98.
-# If your environment's `c++` is broken, override: make CXX=g++
-CXX			= c++
-CXXFLAGS	= -Wall -Wextra -Werror -std=c++98
-CPPFLAGS	= -Iinclude
-
-SRC_DIR		= src
-OBJ_DIR		= obj
-
-SRCS		= \
-	$(SRC_DIR)/main.cpp \
-	$(SRC_DIR)/Config.cpp \
-	$(SRC_DIR)/Server.cpp \
-	$(SRC_DIR)/Socket.cpp \
-	$(SRC_DIR)/Connection.cpp \
-	$(SRC_DIR)/Request.cpp \
-	$(SRC_DIR)/Response.cpp \
-	$(SRC_DIR)/Router.cpp \
-	$(SRC_DIR)/HttpHandler.cpp \
-	$(SRC_DIR)/CgiProcess.cpp \
-	$(SRC_DIR)/Utils.cpp
-
-OBJS		= $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+###########################################
+#                 RULES                   #
+###########################################
 
 all: $(NAME)
 
-$(NAME): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)
+$(NAME): $(OBJ)
+	@echo "Compiling Lexer Webserv"
+	@$(CPP) $(CPPFLAGS) $(OBJ) -o $(NAME)
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
+$(OBJ_DIR)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	@$(CPP) $(CPPFLAGS) -c $< -o $@
 
-$(OBJ_DIR):
-	mkdir -p $(OBJ_DIR)
+###########################################
+#                 INCLUDE                 #
+###########################################
+
+-include $(OBJ:.o=.d)
+
+###########################################
+#               CLEANING                  #
+###########################################
 
 clean:
-	rm -rf $(OBJ_DIR)
+	@echo "Removing object files"
+	@rm -rf $(OBJ_DIR)
 
 fclean: clean
-	rm -f $(NAME)
+	@echo "Removing executables"
+	@rm -f $(NAME)
 
 re: fclean all
 

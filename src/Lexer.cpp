@@ -3,51 +3,125 @@
 /*                                                        :::      ::::::::   */
 /*   Lexer.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/03 18:15:01 by kjroydev          #+#    #+#             */
-/*   Updated: 2026/09/03 18:59:09 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/04 23:15:40 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Lexer.hpp"
 
 Lexer::Lexer()
-	:innerPosition(0)
-{};
-
-int	Lexer::getI()
 {
-	return (this->innerPosition);
+    specialTokens[';'] = TOKEN_SEMICOLON;
+    specialTokens['{'] = TOKEN_LBRACE;
+    specialTokens['}'] = TOKEN_RBRACE;
+	tokenTypeText[TOKEN_SEMICOLON] = "TOKEN_SEMICOLON";
+	tokenTypeText[TOKEN_LBRACE] = "TOKEN_LBRACE";
+	tokenTypeText[TOKEN_RBRACE] = "TOKEN_RBRACE";
+	tokenTypeText[TOKEN_WORD] = "TOKEN_WORD";
 }
 
-void	Lexer::setI(int i)
+Lexer::Lexer(const Lexer& other)
 {
-	this->innerPosition = i;
+	std::cout << "Copy constructor called" << std::endl;
+	*this = other;
 }
 
-std::ifstream	Lexer::obtainInfile(const std::string &userConfig) const
+Lexer&	Lexer::operator=(const Lexer& other)
 {
-	std::ifstream	file(userConfig);
-
-	if (!file.is_open())
+	if (this != &other)
 	{
-		std::cerr << "Error opening the conf file" << std::endl;
-		return ;
+		this->tokens = other.tokens;
+		this->token = other.token;
 	}
-	return (file);
+	return (*this);
 }
 
-void	Lexer::ignoreComments(std::ifstream &userInput)
+Lexer::~Lexer()
+{
+	std::cout << "Destructor of Lexer called" << std::endl;	
+}
+
+void	Lexer::obtainInfile(std::ifstream& file, const std::string& userConfig) const
+{
+	file.open(userConfig.c_str());
+}
+
+void	Lexer::saveInfoInVector()
+{
+	this->tokens.push_back(this->token);
+}
+
+void	Lexer::setToken(TokenType tokenType, std::string& tokenData)
+{
+	this->token.value = tokenData;
+	this->token.type = tokenType;
+	this->token.typeText = tokenTypeText.find(tokenType)->second;
+	saveInfoInVector();
+	tokenData.clear();
+}
+
+bool	Lexer::checkSpecialTokens(char c)
+{
+	return (this->specialTokens.find(c) != this->specialTokens.end());
+}
+
+void	Lexer::ignoreComments(std::ifstream& userConfig)
 {
 	char	c;
 
-	while (userInput.get(c) && c != '\n')
+	while (userConfig.get(c) && c != '\n')
 		;
 }
 
-void	Lexer::setTokenType(TokenType type)
+void	Lexer::makeToken(std::ifstream& userConfig)
 {
-	this->token.type = type;
-	
+	std::string	word;
+	std::string	buffer;
+
+	while (userConfig >> word)
+	{
+		if (word[0] == '#')
+		{
+			ignoreComments(userConfig);
+			continue ;
+		}
+		for (std::string::iterator loc = word.begin(); loc != word.end(); loc++)
+		{
+			if (checkSpecialTokens(*loc))
+			{
+				if (!buffer.empty())
+					setToken(TOKEN_WORD, buffer);
+				buffer += *loc;
+				setToken(specialTokens.find(*loc)->second, buffer);
+			}
+			else
+				buffer += *loc;
+		}
+		if (!buffer.empty())
+			setToken(TOKEN_WORD, buffer);
+	}
+	userConfig.close();
+}
+
+TokenType	Lexer::getTokenType(int vectorIndex)
+{
+	return (this->tokens.at(vectorIndex).type);
+}
+
+std::string	Lexer::getTokenValue(int vectorIndex)
+{
+	return (this->tokens.at(vectorIndex).value);
+}
+
+std::string	Lexer::getTokenTypeText(int vectorIndex)
+{
+	return (this->tokens.at(vectorIndex).typeText);
+}
+
+const std::vector<Token>&	Lexer::getTokens()
+{
+	return (this->tokens);
 }
