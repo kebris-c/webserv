@@ -6,7 +6,7 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/03 18:15:01 by kjroydev          #+#    #+#             */
-/*   Updated: 2026/09/04 23:15:40 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/07 18:43:36 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,9 +14,9 @@
 
 Lexer::Lexer()
 {
-    specialTokens[';'] = TOKEN_SEMICOLON;
-    specialTokens['{'] = TOKEN_LBRACE;
-    specialTokens['}'] = TOKEN_RBRACE;
+	specialTokens[';'] = TOKEN_SEMICOLON;
+	specialTokens['{'] = TOKEN_LBRACE;
+	specialTokens['}'] = TOKEN_RBRACE;
 	tokenTypeText[TOKEN_SEMICOLON] = "TOKEN_SEMICOLON";
 	tokenTypeText[TOKEN_LBRACE] = "TOKEN_LBRACE";
 	tokenTypeText[TOKEN_RBRACE] = "TOKEN_RBRACE";
@@ -76,7 +76,7 @@ void	Lexer::ignoreComments(std::ifstream& userConfig)
 		;
 }
 
-void	Lexer::makeToken(std::ifstream& userConfig)
+void	Lexer::tokenVectorization(std::ifstream& userConfig)
 {
 	std::string	word;
 	std::string	buffer;

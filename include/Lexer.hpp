@@ -6,7 +6,7 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/03 16:28:00 by kjroydev          #+#    #+#             */
-/*   Updated: 2026/09/04 23:17:17 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/07 20:26:47 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,7 +50,7 @@ class	Lexer
 		TokenType					getTokenType(int vectorIndex);
 		std::string					getTokenValue(int vectorIndex);
 		std::string					getTokenTypeText(int vectorIndex);
-		void						makeToken(std::ifstream& userConfig);
+		void						tokenVectorization(std::ifstream& userConfig);
 		void						obtainInfile(std::ifstream& file, const std::string& userConfig) const;
 };
 
