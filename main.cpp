@@ -6,7 +6,7 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/08 18:51:16 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/08 19:43:58 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,7 +47,6 @@ int main(int ac, char *av[])
 	{
 		StateMachine	stateMachine(START);
 		Parser			parser;
-		Context			ctx;
 	
 		stateMachine.addTransition(START, BALANCE, WORD, &Parser::balance);
 		stateMachine.handle(ctx, parser, BALANCE);
@@ -56,6 +55,11 @@ int main(int ac, char *av[])
 			std::cout << "Sucess!" << std::endl;
 			return (0);
 		}
-		return (1);
+		else
+		{
+			std::cout << "Epic Fail!" << std::endl;
+			std::cout << ctx.error << std::endl;
+			return (1);
+		}
 	}
 }

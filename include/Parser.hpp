@@ -6,7 +6,7 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:21 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/08 18:43:29 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/08 19:40:21 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,7 @@ struct	LocationConfig
 class	Parser
 {
 	public:
-		void	balance(Context& ctx);
+		int	balance(Context& ctx);
 };
 
 #endif

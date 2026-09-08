@@ -6,7 +6,7 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/08 15:52:43 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/08 19:09:21 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/08 19:42:22 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,9 +47,7 @@ Action	StateMachine::nextTransition(ParserState currentState, ParserEvent event)
 
 	std::map<TransitionKey, Action>::iterator it = functions.find(key);
 	if (it != functions.end())
-	{
 		return (it->second);
-	}
 	else
 	{
 		std::cerr << "Invalid transition" << std::endl;
@@ -61,8 +59,14 @@ void	StateMachine::handle(Context& ctx, Parser& parser, ParserEvent event)
 {
 	ParserState	currentState = getCurrentState();
 	Action	action = nextTransition(currentState, event);
+	int	answer;
 
-	(parser.*action.function)(ctx);
+	answer = (parser.*action.function)(ctx);
+	if (answer)
+	{
+		setCurrentState(SINTAX_ERROR);
+		return ;
+	}
 	setCurrentState(action.nextState);
 }
 

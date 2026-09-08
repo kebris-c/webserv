@@ -6,7 +6,7 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 19:46:24 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/08 18:49:56 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/08 19:46:45 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,6 +41,8 @@ enum ParserEvent
 struct	Context
 {
 	std::string			line;
+	std::string			error;
+	std::string			currentWord;
 	int					lineNumber;
 	std::vector<Token>	tokens;
 	bool				balance;
@@ -49,7 +51,7 @@ struct	Context
 /**
  * @brief Function contained in Parser class. (Consult `Parser.hpp`)
  */
-typedef void	(Parser::*ActionFunction)(Context&);
+typedef int	(Parser::*ActionFunction)(Context&);
 
 /**
  * @brief Structure that represents an action associated with a state
