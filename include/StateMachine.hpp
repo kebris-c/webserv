@@ -6,7 +6,7 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 19:46:24 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/07 20:32:32 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/08 17:38:04 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,48 +14,83 @@
 # define STATEMACHINE_HPP
 
 # include "Webserv.hpp"
-# include <memory>
+# include "Lexer.hpp"
 
-enum States
+enum ParserState
 {
 	START,
 	WORD,
-	READING,
 	RBRACET,
 	LBRACET,
-	ERROR,
+	READING,
+	SINTAX_ERROR,
 	END
 };
 
-enum Event
+enum ParserEvent
 {
 	BALANCE,
 	KEYWORD,
-	LINE,
+	BEGIN_BLOCK,
+	CLOSE_BLOCK,
+	PARSE_CONTENT,
 	EOF_REACHED,
 	ERROR
 };
 
 struct	Context
 {
-	std::string	line;
-	int			lineNumber;
+	std::string			line;
+	int					lineNumber;
+	std::vector<Token>	tokens;
 };
 
-class	State
+/**
+ * @brief Function contained in Parser class. (Consult `Parser.hpp`)
+ */
+typedef void	(Parser::*ActionFunction)(Context&);
+
+/**
+ * @brief Structure that represents an action associated with a state
+ *        transition. It stores the next parser state and the function
+ *        to execute when the transition occurs.
+ *
+ * Composition:
+ * 
+ * - ParserState: the next state in the transition.
+ * 
+ * - ActionFunction: the function to execute during the transition.
+ */
+struct Action
 {
-	public:
-		virtual ~State() = default;
-		virtual	State* handle(const Event& event, Context& context) = 0;
+    ParserState     nextState; /** next state in transition */
+    ActionFunction  function; /** function to execute */
 };
+
+/**
+ * @brief Pair of State & Event. The values contained in the corresponding
+ * `enums`, servers as keys in order to find the corresponding Action
+ * in the `std::map<TransitionKey, Action>`
+ */
+typedef std::pair<ParserState, ParserEvent>	TransitionKey;
 
 class	StateMachine
 {
 	private:
-		Context					context;
-		std::unique_ptr<State>	state;
+		ParserState	currentState;
+		std::map<TransitionKey, Action>	functions;
+		void	setCurrentState();
 	public:
-		
+		StateMachine();
+		StateMachine(ParserState initialState);
+		StateMachine(const StateMachine& other);
+		void	addTransition(ParserState fromState,
+								ParserEvent event,
+								ParserState toState,
+								ActionFunction function);
+		Action	nextTransition(ParserState currentState, ParserEvent event);
+		void	handle(Context& ctx, ParserEvent event);
+		ParserState	getCurrentState();
 };
 
 #endif

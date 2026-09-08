@@ -6,7 +6,7 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:21 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/07 20:28:18 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/08 17:10:07 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,14 +14,6 @@
 # define PARSER_HPP
 
 # include "Webserv.hpp"
-# include "Lexer.hpp"
-
-struct	ParserContext
-{
-	std::string	keyWord;
-	std::string	value;
-	char		symbol;
-};
 
 struct	ServerConfig
 {
@@ -49,15 +41,7 @@ struct	LocationConfig
 
 class	Parser
 {
-	private:
-		int lineNumber;
-		void	setLineNumber(int i);
 	public:
-		Parser();
-		Parser(const Parser& other);
-		Parser& operator=(const Parser& other);
-		int	getLineNumber();
-		~Parser();
 };
 
 #endif
