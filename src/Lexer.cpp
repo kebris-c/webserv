@@ -6,7 +6,7 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/03 18:15:01 by kjroydev          #+#    #+#             */
-/*   Updated: 2026/09/07 18:43:36 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/08 15:48:04 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,6 +63,35 @@ void	Lexer::setToken(TokenType tokenType, std::string& tokenData)
 	tokenData.clear();
 }
 
+bool	Lexer::wordChecker(const std::string& word)
+{
+	for (std::string::const_iterator it = word.begin(); it != word.end(); ++it)
+	{
+		if (!std::isalnum(*it)
+		&& (*it != '_'
+			&& *it != '/'
+			&& *it != '.'
+			&& *it != ':'
+			&& *it != '-'))
+			return (false);
+	}
+	return (true);
+}
+
+int	Lexer::flushWord(std::string& buffer)
+{
+	if (buffer.empty())
+		return (0);
+	if (!wordChecker(buffer))
+	{
+		std::cerr << "The word " << buffer << " has a lexical problem"<< std::endl;
+		return (1);
+	}
+	setToken(TOKEN_WORD, buffer);
+	buffer.clear();
+	return (0);
+}
+
 bool	Lexer::checkSpecialTokens(char c)
 {
 	return (this->specialTokens.find(c) != this->specialTokens.end());
@@ -76,7 +105,7 @@ void	Lexer::ignoreComments(std::ifstream& userConfig)
 		;
 }
 
-void	Lexer::tokenVectorization(std::ifstream& userConfig)
+int	Lexer::tokenVectorization(std::ifstream& userConfig)
 {
 	std::string	word;
 	std::string	buffer;
@@ -92,18 +121,20 @@ void	Lexer::tokenVectorization(std::ifstream& userConfig)
 		{
 			if (checkSpecialTokens(*loc))
 			{
-				if (!buffer.empty())
-					setToken(TOKEN_WORD, buffer);
+				if (flushWord(buffer))
+					return (1);
 				buffer += *loc;
 				setToken(specialTokens.find(*loc)->second, buffer);
+				buffer.clear();
 			}
 			else
 				buffer += *loc;
 		}
-		if (!buffer.empty())
-			setToken(TOKEN_WORD, buffer);
+		if (flushWord(buffer))
+			return (1);
 	}
 	userConfig.close();
+	return (0);
 }
 
 TokenType	Lexer::getTokenType(int vectorIndex)

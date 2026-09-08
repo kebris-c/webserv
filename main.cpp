@@ -6,7 +6,7 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/07 19:10:30 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/08 15:46:07 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,13 +24,14 @@ int main(int ac, char *av[])
 		return (1);
 	}
 	lexical_analisys.obtainInfile(file, av[1]);
-	lexical_analisys.tokenVectorization(file);
+	if (lexical_analisys.tokenVectorization(file))
+		return (1);
 	tokens = lexical_analisys.getTokens();
 	
 	for (unsigned long i = 0; i < tokens.size(); i++)
 	{
 		std::cout << "Token Type: "
-				  << tokens[i].type
+				  << tokens[i].typeText
 				  << ". "
 				  << "Token Value: "
 				  << tokens[i].value

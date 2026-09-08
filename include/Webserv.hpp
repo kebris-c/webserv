@@ -21,6 +21,7 @@
 #include <cstring>
 #include <cerrno>
 #include <ctime>
+#include <memory>
 
 #include <sys/types.h>
 #include <sys/socket.h>

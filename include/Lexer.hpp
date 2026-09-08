@@ -6,7 +6,7 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/03 16:28:00 by kjroydev          #+#    #+#             */
-/*   Updated: 2026/09/07 20:26:47 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/08 15:42:14 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,6 +39,8 @@ class	Lexer
 		std::map<TokenType, std::string>	tokenTypeText;
 		void								saveInfoInVector();
 		bool								checkSpecialTokens(char c);
+		int									flushWord(std::string& word);
+		bool								wordChecker(const std::string& word);
 		void								ignoreComments(std::ifstream& userConfig);
 		void								setToken(TokenType tokenType, std::string& tokenData);
 	public:
@@ -50,7 +52,7 @@ class	Lexer
 		TokenType					getTokenType(int vectorIndex);
 		std::string					getTokenValue(int vectorIndex);
 		std::string					getTokenTypeText(int vectorIndex);
-		void						tokenVectorization(std::ifstream& userConfig);
+		int							tokenVectorization(std::ifstream& userConfig);
 		void						obtainInfile(std::ifstream& file, const std::string& userConfig) const;
 };
 
