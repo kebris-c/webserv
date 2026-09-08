@@ -4,8 +4,9 @@
 
 NAME			=	Lexer
 OBJ_DIR			=	obj
-SRC				= 	src/Lexer.cpp	\
-					src/Parser.cpp	\
+SRC				= 	src/Lexer.cpp			\
+					src/Parser.cpp			\
+					src/StateMachine.cpp	\
 					main.cpp
 INCLUDES		=	include
 CPP				=	c++

@@ -6,7 +6,7 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:21 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/08 17:10:07 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/08 18:43:29 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 # define PARSER_HPP
 
 # include "Webserv.hpp"
+# include "StateMachine.hpp"
 
 struct	ServerConfig
 {
@@ -22,7 +23,6 @@ struct	ServerConfig
 	std::string					serverName;		/* optional */
 	std::size_t					clientMaxBodySize; /* bytes */
 	std::map<int, std::string>	errorPages;		/* status -> file path */
-	std::vector<LocationConfig>	locations;
 };
 
 struct	LocationConfig
@@ -42,6 +42,7 @@ struct	LocationConfig
 class	Parser
 {
 	public:
+		void	balance(Context& ctx);
 };
 
 #endif

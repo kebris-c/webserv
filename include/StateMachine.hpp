@@ -6,7 +6,7 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 19:46:24 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/08 17:38:04 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/08 18:49:56 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,6 +43,7 @@ struct	Context
 	std::string			line;
 	int					lineNumber;
 	std::vector<Token>	tokens;
+	bool				balance;
 };
 
 /**
@@ -77,9 +78,10 @@ typedef std::pair<ParserState, ParserEvent>	TransitionKey;
 class	StateMachine
 {
 	private:
+		ParserState	initialState;
 		ParserState	currentState;
 		std::map<TransitionKey, Action>	functions;
-		void	setCurrentState();
+		void	setCurrentState(ParserState state);
 	public:
 		StateMachine();
 		StateMachine(ParserState initialState);
@@ -89,7 +91,7 @@ class	StateMachine
 								ParserState toState,
 								ActionFunction function);
 		Action	nextTransition(ParserState currentState, ParserEvent event);
-		void	handle(Context& ctx, ParserEvent event);
+		void	handle(Context& ctx, Parser& parser, ParserEvent event);
 		ParserState	getCurrentState();
 };
 
