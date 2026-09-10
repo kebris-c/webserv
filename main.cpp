@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/08 19:43:58 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/10 14:12:08 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,8 @@ int main(int ac, char *av[])
 					<< ". "
 					<< "Token Value: "
 					<< tokens[i].value
+					<< " Line number: "
+					<< tokens[i].lineNumber
 					<< std::endl;
 		}
 		ctx.tokens = tokens;

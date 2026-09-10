@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   StateMachine.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 19:46:24 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/08 19:46:45 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/09 16:29:52 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,6 +88,7 @@ class	StateMachine
 		StateMachine();
 		StateMachine(ParserState initialState);
 		StateMachine(const StateMachine& other);
+		~StateMachine();
 		void	addTransition(ParserState fromState,
 								ParserEvent event,
 								ParserState toState,

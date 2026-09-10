@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   StateMachine.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/08 15:52:43 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/08 19:42:22 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/09 18:52:14 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,9 @@ StateMachine::StateMachine(const StateMachine& other)
 {
 	*this = other;
 }
+
+StateMachine::~StateMachine()
+{}
 
 void	StateMachine::addTransition(ParserState fromState,
 								ParserEvent event,

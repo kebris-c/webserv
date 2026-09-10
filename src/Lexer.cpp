@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Lexer.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/03 18:15:01 by kjroydev          #+#    #+#             */
-/*   Updated: 2026/09/08 15:48:04 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/10 14:17:31 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,7 @@ Lexer::Lexer()
 	tokenTypeText[TOKEN_LBRACE] = "TOKEN_LBRACE";
 	tokenTypeText[TOKEN_RBRACE] = "TOKEN_RBRACE";
 	tokenTypeText[TOKEN_WORD] = "TOKEN_WORD";
+	lineNumber = 1;
 }
 
 Lexer::Lexer(const Lexer& other)
@@ -41,7 +42,7 @@ Lexer&	Lexer::operator=(const Lexer& other)
 
 Lexer::~Lexer()
 {
-	std::cout << "Destructor of Lexer called" << std::endl;	
+	std::cout << "Destructor of Lexer called" << std::endl;
 }
 
 void	Lexer::obtainInfile(std::ifstream& file, const std::string& userConfig) const
@@ -59,6 +60,7 @@ void	Lexer::setToken(TokenType tokenType, std::string& tokenData)
 	this->token.value = tokenData;
 	this->token.type = tokenType;
 	this->token.typeText = tokenTypeText.find(tokenType)->second;
+	this->token.lineNumber = this->lineNumber;
 	saveInfoInVector();
 	tokenData.clear();
 }
@@ -84,7 +86,9 @@ int	Lexer::flushWord(std::string& buffer)
 		return (0);
 	if (!wordChecker(buffer))
 	{
-		std::cerr << "The word " << buffer << " has a lexical problem"<< std::endl;
+		std::cerr << "In line " << this->lineNumber
+		<< ": the word " << buffer
+		<< " has an invalid character" << std::endl;
 		return (1);
 	}
 	setToken(TOKEN_WORD, buffer);
@@ -107,19 +111,29 @@ void	Lexer::ignoreComments(std::ifstream& userConfig)
 
 int	Lexer::tokenVectorization(std::ifstream& userConfig)
 {
-	std::string	word;
+	std::string	line;
 	std::string	buffer;
 
-	while (userConfig >> word)
+	while (std::getline(userConfig, line))
 	{
-		if (word[0] == '#')
+		std::string::size_type it = line.find("#");
+		if (it != std::string::npos)
 		{
-			ignoreComments(userConfig);
-			continue ;
+			line.erase(it);
+			if (line.size() == 0)
+			{
+				this->lineNumber++;
+				continue ;
+			}
 		}
-		for (std::string::iterator loc = word.begin(); loc != word.end(); loc++)
+		for (std::string::iterator loc = line.begin(); loc != line.end(); loc++)
 		{
-			if (checkSpecialTokens(*loc))
+			if (*loc == ' ' || *loc == '\t')
+			{
+				flushWord(buffer);
+				buffer.clear();
+			}
+			else if (checkSpecialTokens(*loc))
 			{
 				if (flushWord(buffer))
 					return (1);
@@ -130,8 +144,7 @@ int	Lexer::tokenVectorization(std::ifstream& userConfig)
 			else
 				buffer += *loc;
 		}
-		if (flushWord(buffer))
-			return (1);
+		this->lineNumber++;
 	}
 	userConfig.close();
 	return (0);

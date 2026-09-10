@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Lexer.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/03 16:28:00 by kjroydev          #+#    #+#             */
-/*   Updated: 2026/09/08 15:42:14 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/10 13:50:36 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,7 @@ struct	Token
 	TokenType	type;
 	std::string	value;
 	std::string	typeText;
+	int			lineNumber;
 };
 
 class	Lexer
@@ -37,6 +38,7 @@ class	Lexer
 		std::vector<Token>					tokens;
 		std::map<char, TokenType> 			specialTokens;
 		std::map<TokenType, std::string>	tokenTypeText;
+		int									lineNumber;
 		void								saveInfoInVector();
 		bool								checkSpecialTokens(char c);
 		int									flushWord(std::string& word);
