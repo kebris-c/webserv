@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 19:46:24 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/09 16:29:52 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/10 18:48:12 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,9 +20,9 @@ enum ParserState
 {
 	START,
 	WORD,
-	RBRACET,
 	LBRACET,
 	READING,
+	RBRACET,
 	SINTAX_ERROR,
 	END
 };
@@ -32,18 +32,26 @@ enum ParserEvent
 	BALANCE,
 	KEYWORD,
 	BEGIN_BLOCK,
-	CLOSE_BLOCK,
 	PARSE_CONTENT,
+	CLOSE_BLOCK,
 	EOF_REACHED,
 	ERROR
 };
 
+enum BlockType
+{
+	NONE,
+	SERVER,
+	LOCATION
+};
+
 struct	Context
 {
-	std::string			line;
+	ParserState			state;
+	BlockType			blockContext;
 	std::string			error;
+	char				bracet;
 	std::string			currentWord;
-	int					lineNumber;
 	std::vector<Token>	tokens;
 	bool				balance;
 };
@@ -51,7 +59,7 @@ struct	Context
 /**
  * @brief Function contained in Parser class. (Consult `Parser.hpp`)
  */
-typedef int	(Parser::*ActionFunction)(Context&);
+typedef ParserState	(Parser::*ActionFunction)(Context&);
 
 /**
  * @brief Structure that represents an action associated with a state
@@ -66,7 +74,6 @@ typedef int	(Parser::*ActionFunction)(Context&);
  */
 struct Action
 {
-    ParserState     nextState; /** next state in transition */
     ActionFunction  function; /** function to execute */
 };
 
@@ -91,7 +98,6 @@ class	StateMachine
 		~StateMachine();
 		void	addTransition(ParserState fromState,
 								ParserEvent event,
-								ParserState toState,
 								ActionFunction function);
 		Action	nextTransition(ParserState currentState, ParserEvent event);
 		void	handle(Context& ctx, Parser& parser, ParserEvent event);

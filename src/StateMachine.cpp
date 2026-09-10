@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/08 15:52:43 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/09 18:52:14 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/10 18:45:39 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,13 +33,11 @@ StateMachine::~StateMachine()
 
 void	StateMachine::addTransition(ParserState fromState,
 								ParserEvent event,
-								ParserState toState,
 								ActionFunction function)
 {
 	TransitionKey	key = std::make_pair(fromState, event);
 	Action			action;
 
-	action.nextState = toState;
 	action.function = function;
 	functions[key] = action;
 }
@@ -61,16 +59,16 @@ Action	StateMachine::nextTransition(ParserState currentState, ParserEvent event)
 void	StateMachine::handle(Context& ctx, Parser& parser, ParserEvent event)
 {
 	ParserState	currentState = getCurrentState();
-	Action	action = nextTransition(currentState, event);
-	int	answer;
+	Action		action = nextTransition(currentState, event);
+	ParserState	answer;
 
 	answer = (parser.*action.function)(ctx);
-	if (answer)
+	if (!answer)
 	{
 		setCurrentState(SINTAX_ERROR);
 		return ;
 	}
-	setCurrentState(action.nextState);
+	setCurrentState(answer);
 }
 
 void	StateMachine::setCurrentState(ParserState state)

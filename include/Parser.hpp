@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Parser.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:21 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/08 19:40:21 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/10 20:11:23 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,11 +18,11 @@
 
 struct	ServerConfig
 {
-	int							port;			/* listen port */
-	std::string					host;			/* interface, e.g. 0.0.0.0 or 127.0.0.1 */
-	std::string					serverName;		/* optional */
-	std::size_t					clientMaxBodySize; /* bytes */
-	std::map<int, std::string>	errorPages;		/* status -> file path */
+	int							port;				/* listen port */
+	std::string					host;				/* interface, e.g. 0.0.0.0 or 127.0.0.1 */
+	std::string					serverName;			/* optional */
+	std::map<int, std::string>	errorPages;			/* status -> file path */
+	std::size_t					clientMaxBodySize;	/* bytes */
 };
 
 struct	LocationConfig
@@ -39,10 +39,22 @@ struct	LocationConfig
 	std::vector<std::string>	allowedMethods;	/* GET POST DELETE */
 };
 
+typedef ParserState	(Parser::*ParseAction)(Context&);
+
 class	Parser
 {
+	private:
+		std::vector<std::string>	keyWords;
+		std::map<std::string, ParseAction> keywordDispatcher;
+		int							tokenIndex;
+		ParserState					parseListen(Context& ctx);
 	public:
-		int	balance(Context& ctx);
+		Parser();
+		~Parser();
+		ParserState	balance(Context& ctx);
+		ParserState	blockKeyWord(Context& ctx);
+		ParserState	insideBlock(Context& ctx);
+		ParserState	keyword(Context& ctx);
 };
 
 #endif
