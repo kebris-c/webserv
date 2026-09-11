@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/11 23:27:02 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/11 23:46:14 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 int main(int ac, char *av[])
 {
 	Context	ctx;
+	ctx.lineNumber = 0;
 
 	{
 		std::ifstream       file;
