@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 19:46:24 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/10 18:48:12 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/11 17:38:35 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,8 @@ enum ParserState
 	WORD,
 	LBRACET,
 	READING,
+	SUCCESS,
+	SEMICOLON,
 	RBRACET,
 	SINTAX_ERROR,
 	END
@@ -50,10 +52,10 @@ struct	Context
 	ParserState			state;
 	BlockType			blockContext;
 	std::string			error;
-	char				bracet;
 	std::string			currentWord;
 	std::vector<Token>	tokens;
 	bool				balance;
+	int					lineNumber;
 };
 
 /**

@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/10 18:49:37 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/11 19:00:23 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,36 +51,16 @@ int main(int ac, char *av[])
 		Parser			parser;
 	
 		stateMachine.addTransition(START, BALANCE, &Parser::balance);
-		stateMachine.addTransition(WORD, KEYWORD, &Parser::keyword);
+		stateMachine.addTransition(WORD, KEYWORD, &Parser::blockKeyWord);
 		stateMachine.addTransition(LBRACET, BEGIN_BLOCK, &Parser::insideBlock);
-		stateMachine.addTransition(READING, PARSE_CONTENT, &Parser::readBlockInfo);
+		stateMachine.addTransition(READING, PARSE_CONTENT, &Parser::keyword);
+		stateMachine.addTransition(SEMICOLON, CLOSE_BLOCK, &Parser::blockKeyWord);
 		stateMachine.handle(ctx, parser, BALANCE);
-		if (ctx.balance == true)
-			std::cout << "Sucess!" << std::endl;
-		else
-		{
-			std::cout << "Epic Fail!" << std::endl;
-			std::cout << ctx.error << std::endl;
-			return (1);
-		}
 		stateMachine.handle(ctx, parser, KEYWORD);
-		if (ctx.blockContext != 0)
-		{
-			std::cout << "Sucess!" << std::endl;
-			std::cout << ctx.blockContext << std::endl;
-		}
 		stateMachine.handle(ctx, parser, BEGIN_BLOCK);
-		if (ctx.bracet == '{')
-		{
-			std::cout << "Sucess!" << std::endl;
-			std::cout << ctx.bracet << std::endl;
-			return (0);
-		}
-		else
-		{
-			std::cout << "Epic Fail in method bracet!" << std::endl;
-			std::cout << ctx.error << std::endl;
+		stateMachine.handle(ctx, parser, PARSE_CONTENT);
+		if (ctx.error != "")
 			return (1);
-		}
+		return (0);
 	}
 }

@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:21 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/10 20:11:23 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/11 18:08:08 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,7 +47,14 @@ class	Parser
 		std::vector<std::string>	keyWords;
 		std::map<std::string, ParseAction> keywordDispatcher;
 		int							tokenIndex;
+		ServerConfig				serverContext;
 		ParserState					parseListen(Context& ctx);
+		ParserState					parseServerName(Context& ctx);
+		// ParserState					parseClienteSize(Context& ctx);
+		ParserState					checkNextElement(Context& ctx);
+		void						setError(std::string message, Context& ctx);
+		bool						isValidIP(std::string ip, Context& ctx);
+		bool						isValidPort(std::string port, Context& ctx);
 	public:
 		Parser();
 		~Parser();
@@ -55,6 +62,7 @@ class	Parser
 		ParserState	blockKeyWord(Context& ctx);
 		ParserState	insideBlock(Context& ctx);
 		ParserState	keyword(Context& ctx);
+		ParserState	error(Context& ctx);
 };
 
 #endif
