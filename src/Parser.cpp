@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/11 23:20:30 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/12 01:55:36 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@ Parser::Parser()
 	keyWords.push_back("location");
 	keywordDispatcher["listen"] = &Parser::parseListen;
 	keywordDispatcher["server_name"] = &Parser::parseServerName;
+	keywordDispatcher["client_max_body_size"] = &Parser::parseClienteSize;
 }
 
 Parser::~Parser()
@@ -208,7 +209,8 @@ ParserState	Parser::parseListen(Context& ctx)
 	std::string				port;
 	std::string::size_type	colon;
 
-	ctx.currentWord = ctx.tokens[++tokenIndex].value;
+	++tokenIndex;
+	ctx.currentWord = ctx.tokens[tokenIndex].value;
 	colon = ctx.currentWord.find(':');
 	if (colon == std::string::npos
 		|| colon != ctx.currentWord.rfind(':'))
@@ -228,7 +230,7 @@ ParserState	Parser::parseListen(Context& ctx)
 
 ParserState Parser::parseServerName(Context& ctx)
 {
-	if (static_cast<unsigned int>(tokenIndex)  + 1 >= ctx.tokens.size())
+	if (static_cast<unsigned int>(tokenIndex) + 1 >= ctx.tokens.size())
 	{
 		setError("Expected server name", ctx);
 		return (SINTAX_ERROR);
@@ -239,7 +241,51 @@ ParserState Parser::parseServerName(Context& ctx)
 	return (checkNextElement(ctx));
 }
 
-// ParserState	Parser::parseClienteSize(Context& ctx)
-// {
-// 	ctx.currentWord = ctx.tokens[tokenIndex].value;
-// }
+std::string::size_type	Parser::isValidClientSize(std::string word, Context& ctx)
+{
+	std::string::size_type	measure;
+
+	if (word == ";")
+	{
+		setError("Expected client size", ctx);
+		return (0);
+	}
+	if (word.empty())
+	{
+		setError("Mising number", ctx);
+		return (0);
+	}
+	measure = word.find_first_not_of("0123456789");
+	if (measure == 0)
+		setError("Missing number", ctx);
+	if (measure == std::string::npos)
+		setError("Missing unit", ctx);
+	return (measure);
+}
+
+ParserState	Parser::parseClienteSize(Context& ctx)
+{
+	char					sizeData;
+	std::string::size_type	measure;
+	int						number;
+
+	if (static_cast<unsigned int>(tokenIndex) + 1 >= ctx.tokens.size())
+	{
+		setError("Expected client size", ctx);
+		return (SINTAX_ERROR);
+	}
+	++tokenIndex;
+	ctx.currentWord = ctx.tokens[tokenIndex].value;
+	measure = isValidClientSize(ctx.currentWord, ctx);
+	if (!measure)
+		return (SINTAX_ERROR);
+	number = std::atoi(ctx.currentWord.substr(0, measure).c_str());
+	sizeData = ctx.currentWord[measure];
+	if (sizeData != 'K' && sizeData != 'M' && sizeData != 'G')
+	{
+		setError("Invalid size unit", ctx);
+		return (SINTAX_ERROR);
+	}
+	serverContext.clientMaxBodySize = number;
+	return (checkNextElement(ctx));
+}

@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:21 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/11 23:13:29 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/12 01:49:56 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,11 +50,12 @@ class	Parser
 		ServerConfig				serverContext;
 		ParserState					parseListen(Context& ctx);
 		ParserState					parseServerName(Context& ctx);
-		// ParserState					parseClienteSize(Context& ctx);
+		ParserState					parseClienteSize(Context& ctx);
 		ParserState					checkNextElement(Context& ctx);
 		void						setError(std::string message, Context& ctx);
 		bool						isValidIP(std::string ip, Context& ctx);
 		bool						isValidPort(std::string port, Context& ctx);
+		std::string::size_type		isValidClientSize(std::string word, Context& ctx);
 		
 	public:
 		Parser();
