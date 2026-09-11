@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/08 15:52:43 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/11 19:04:36 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/11 22:48:35 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,6 +68,7 @@ void	StateMachine::handle(Context& ctx, Parser& parser, ParserEvent event)
 		std::cerr << "In line "
 		<< ctx.tokens[ctx.lineNumber].lineNumber
 		<< ": " << ctx.error << std::endl;
+		setCurrentState(SINTAX_ERROR);
 		return ;
 	}
 	setCurrentState(answer);
@@ -81,4 +82,25 @@ void	StateMachine::setCurrentState(ParserState state)
 ParserState	StateMachine::getCurrentState()
 {
 	return (this->currentState);
+}
+
+ParserEvent StateMachine::getNextEvent(ParserState state)
+{
+	switch (state)
+	{
+		case START:
+			return (BALANCE);
+		case BLOCK_KEYWORD:
+			return (BLOCK_KEYWORD_EVENT);
+		case LBRACET:
+			return (BEGIN_BLOCK);
+		case READING:
+			return (DIRECTIVE_EVENT);
+		case DIRECTIVE:
+			return (DIRECTIVE_EVENT);
+		case SEMICOLON:
+			return (CLOSE_BLOCK);
+		default:
+			return (END_EVENT);
+	}
 }

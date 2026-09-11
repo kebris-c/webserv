@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/11 19:00:23 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/11 23:27:02 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,16 +49,23 @@ int main(int ac, char *av[])
 	{
 		StateMachine	stateMachine(START);
 		Parser			parser;
+		ParserState		state;
+		ParserEvent		event;
 	
 		stateMachine.addTransition(START, BALANCE, &Parser::balance);
-		stateMachine.addTransition(WORD, KEYWORD, &Parser::blockKeyWord);
+		stateMachine.addTransition(BLOCK_KEYWORD, BLOCK_KEYWORD_EVENT, &Parser::blockKeyWord);
 		stateMachine.addTransition(LBRACET, BEGIN_BLOCK, &Parser::insideBlock);
-		stateMachine.addTransition(READING, PARSE_CONTENT, &Parser::keyword);
-		stateMachine.addTransition(SEMICOLON, CLOSE_BLOCK, &Parser::blockKeyWord);
-		stateMachine.handle(ctx, parser, BALANCE);
-		stateMachine.handle(ctx, parser, KEYWORD);
-		stateMachine.handle(ctx, parser, BEGIN_BLOCK);
-		stateMachine.handle(ctx, parser, PARSE_CONTENT);
+		stateMachine.addTransition(READING, DIRECTIVE_EVENT, &Parser::keyword);
+		stateMachine.addTransition(DIRECTIVE, DIRECTIVE_EVENT, &Parser::keyword);
+		stateMachine.addTransition(SINTAX_ERROR, END_EVENT, &Parser::error);
+		// stateMachine.addTransition(SINTAX_ERROR, END_EVENT, &Parser::)
+		while (state != SINTAX_ERROR)
+		{
+			state = stateMachine.getCurrentState();
+			event = stateMachine.getNextEvent(state);
+			stateMachine.handle(ctx, parser, event);
+			state = stateMachine.getCurrentState();
+		}
 		if (ctx.error != "")
 			return (1);
 		return (0);

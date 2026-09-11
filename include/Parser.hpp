@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:21 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/11 18:08:08 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/11 23:13:29 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,6 +55,7 @@ class	Parser
 		void						setError(std::string message, Context& ctx);
 		bool						isValidIP(std::string ip, Context& ctx);
 		bool						isValidPort(std::string port, Context& ctx);
+		
 	public:
 		Parser();
 		~Parser();
@@ -63,6 +64,7 @@ class	Parser
 		ParserState	insideBlock(Context& ctx);
 		ParserState	keyword(Context& ctx);
 		ParserState	error(Context& ctx);
+		int			getTokenIndex();
 };
 
 #endif

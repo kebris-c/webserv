@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/11 18:57:34 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/11 23:20:30 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,10 +30,15 @@ void	Parser::setError(std::string message, Context& ctx)
 	ctx.lineNumber = tokenIndex;
 }
 
+int	Parser::getTokenIndex()
+{
+	return (this->tokenIndex);
+}
+
 ParserState	Parser::balance(Context& ctx)
 {
-	std::vector<Token>	tokens = ctx.tokens;
-	int	counter = 0;
+	const std::vector<Token>&	tokens = ctx.tokens;
+	int							counter = 0;
 
 	for (unsigned int i = 0; i < tokens.size(); i++)
 	{
@@ -52,12 +57,12 @@ ParserState	Parser::balance(Context& ctx)
 		}
 	}
 	ctx.balance = (counter == 0);
-	return (WORD);
+	return (BLOCK_KEYWORD);
 }
 
 ParserState	Parser::blockKeyWord(Context& ctx)
 {
-	std::vector<Token>	tokens = ctx.tokens;
+	std::vector<Token>& tokens = ctx.tokens;
 	std::string			word;
 
 	for (std::vector<Token>::iterator it = tokens.begin(); it != tokens.end(); it++)
@@ -83,34 +88,37 @@ ParserState	Parser::blockKeyWord(Context& ctx)
 	return (SINTAX_ERROR);
 }
 
-ParserState	Parser::checkNextElement(Context& ctx)
+ParserState Parser::checkNextElement(Context& ctx)
 {
-	unsigned int	i;
+	std::vector<Token>& tokens = ctx.tokens;
 
-	i = tokenIndex + 1;
-	if (ctx.tokens[tokenIndex].value == ";")
+	if (static_cast<unsigned int>(tokenIndex) + 1 >= tokens.size())
+		return (END);
+	if (tokens[tokenIndex + 1].value != ";")
 	{
-		if (ctx.tokens[tokenIndex].value == ";"
-			&& i < ctx.tokens.size())
-		{
-			tokenIndex++;
-			return (SUCCESS);
-		}
-		return (SEMICOLON);
+		setError("';' is missing", ctx);
+		return (SINTAX_ERROR);
 	}
-	--tokenIndex;
-	setError("; is missing", ctx);
-	return (SINTAX_ERROR);
+	++tokenIndex;
+	if (static_cast<unsigned int>(tokenIndex) + 1 >= tokens.size())
+		return (END);
+	++tokenIndex;
+	if (tokens[tokenIndex].value == "server"
+		|| tokens[tokenIndex].value == "location")
+		return (BLOCK_KEYWORD);
+	return (DIRECTIVE);
 }
 
 ParserState	Parser::insideBlock(Context& ctx)
 {
+	StateMachine	stateMachine;
+
 	if (ctx.tokens[tokenIndex].value == "{")
 	{
 		tokenIndex++;
-		return (READING);
+		return (DIRECTIVE);
 	}
-	if (ctx.state == SEMICOLON && ctx.tokens[tokenIndex].value == "}")
+	if (stateMachine.getCurrentState() == SEMICOLON && ctx.tokens[tokenIndex].value == "}")
 	{
 		tokenIndex++;
 		return (RBRACET);
@@ -123,18 +131,21 @@ ParserState	Parser::insideBlock(Context& ctx)
 ParserState Parser::keyword(Context& ctx)
 {
 	std::map<std::string, ParseAction>::iterator it;
+	it = keywordDispatcher.find(ctx.tokens[tokenIndex].value);
 
-	while (true)
+	if (it == keywordDispatcher.end())
 	{
-		it = keywordDispatcher.find(ctx.tokens[tokenIndex].value);
-		if (it == keywordDispatcher.end())
-			ctx.state = SINTAX_ERROR;
-		ctx.currentWord = ctx.tokens[++tokenIndex].value;
-		ctx.state = (this->*(it->second))(ctx);
-		if (ctx.state == END)
-			break ;
+		setError("Unknown keyword", ctx);
+		return (SINTAX_ERROR);
 	}
-	return (ctx.state);
+	ctx.currentWord = ctx.tokens[tokenIndex].value;
+	return ((this->*(it->second))(ctx));
+}
+
+ParserState	Parser::error(Context& ctx)
+{
+	(void)ctx;
+	return (SINTAX_ERROR);
 }
 
 bool	Parser::isValidIP(std::string ip, Context& ctx)
@@ -197,6 +208,7 @@ ParserState	Parser::parseListen(Context& ctx)
 	std::string				port;
 	std::string::size_type	colon;
 
+	ctx.currentWord = ctx.tokens[++tokenIndex].value;
 	colon = ctx.currentWord.find(':');
 	if (colon == std::string::npos
 		|| colon != ctx.currentWord.rfind(':'))
@@ -210,19 +222,21 @@ ParserState	Parser::parseListen(Context& ctx)
 		return (SINTAX_ERROR);
 	serverContext.host = ip;
 	serverContext.port = std::atoi(port.c_str());
-	tokenIndex++;
-	if (!checkNextElement(ctx))
-		return (END);
-	return (SUCCESS);
+	ctx.currentWord = ctx.tokens[tokenIndex].value;
+	return (checkNextElement(ctx));
 }
 
-ParserState	Parser::parseServerName(Context& ctx)
+ParserState Parser::parseServerName(Context& ctx)
 {
+	if (static_cast<unsigned int>(tokenIndex)  + 1 >= ctx.tokens.size())
+	{
+		setError("Expected server name", ctx);
+		return (SINTAX_ERROR);
+	}
+	++tokenIndex;
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
-	if (!checkNextElement(ctx))
-		return (END);
 	serverContext.serverName = ctx.currentWord;
-	return (SUCCESS);
+	return (checkNextElement(ctx));
 }
 
 // ParserState	Parser::parseClienteSize(Context& ctx)

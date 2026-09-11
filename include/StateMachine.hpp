@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 19:46:24 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/11 17:38:35 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/11 22:46:32 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,8 @@
 enum ParserState
 {
 	START,
-	WORD,
+	BLOCK_KEYWORD,
+	DIRECTIVE,
 	LBRACET,
 	READING,
 	SUCCESS,
@@ -32,11 +33,12 @@ enum ParserState
 enum ParserEvent
 {
 	BALANCE,
-	KEYWORD,
+	BLOCK_KEYWORD_EVENT,
 	BEGIN_BLOCK,
-	PARSE_CONTENT,
+	DIRECTIVE_EVENT,
 	CLOSE_BLOCK,
 	EOF_REACHED,
+	END_EVENT,
 	ERROR
 };
 
@@ -104,6 +106,7 @@ class	StateMachine
 		Action	nextTransition(ParserState currentState, ParserEvent event);
 		void	handle(Context& ctx, Parser& parser, ParserEvent event);
 		ParserState	getCurrentState();
+		ParserEvent	getNextEvent(ParserState parser);
 };
 
 #endif
