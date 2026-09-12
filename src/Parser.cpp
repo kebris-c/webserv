@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/12 01:55:36 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/12 02:42:40 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@ Parser::Parser()
 	keywordDispatcher["listen"] = &Parser::parseListen;
 	keywordDispatcher["server_name"] = &Parser::parseServerName;
 	keywordDispatcher["client_max_body_size"] = &Parser::parseClienteSize;
+	keywordDispatcher["error_page"] = &Parser::parseError;
 }
 
 Parser::~Parser()
@@ -287,5 +288,47 @@ ParserState	Parser::parseClienteSize(Context& ctx)
 		return (SINTAX_ERROR);
 	}
 	serverContext.clientMaxBodySize = number;
+	return (checkNextElement(ctx));
+}
+
+ParserState	Parser::parseError(Context& ctx)
+{
+	std::string::size_type	letter;
+	int						errorCode;
+	std::string				location;
+
+	if (static_cast<unsigned int>(tokenIndex) + 1 >= ctx.tokens.size())
+	{
+		setError("Expected error code", ctx);
+		return (SINTAX_ERROR);
+	}
+	++tokenIndex;
+	ctx.currentWord = ctx.tokens[tokenIndex].value;
+	letter = ctx.currentWord.find_first_not_of("0123456789");
+	if (letter != std::string::npos)
+	{
+		setError("Value is not a number", ctx);
+		return (SINTAX_ERROR);
+	}
+	if (ctx.currentWord.size() != 3)
+	{
+		setError("Invalid error code", ctx);
+		return (SINTAX_ERROR);
+	}
+	errorCode = std::atoi(ctx.currentWord.c_str());
+	if (errorCode < 400 || errorCode > 599)
+	{
+		setError("Invalid HTTP error code", ctx);
+		return (SINTAX_ERROR);
+	}
+	++tokenIndex;
+	if (static_cast<unsigned int>(tokenIndex) + 1 >= ctx.tokens.size())
+	{
+		setError("Expected error code", ctx);
+		return (SINTAX_ERROR);
+	}
+	ctx.currentWord = ctx.tokens[tokenIndex].value;
+	location = ctx.currentWord;
+	serverContext.errorPages[errorCode] = location;
 	return (checkNextElement(ctx));
 }
