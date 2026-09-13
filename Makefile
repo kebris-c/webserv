@@ -7,6 +7,7 @@ OBJ_DIR			=	obj
 SRC				= 	src/Lexer.cpp			\
 					src/Parser.cpp			\
 					src/StateMachine.cpp	\
+					src/Utils.cpp			\
 					main.cpp
 INCLUDES		=	include
 CPP				=	c++

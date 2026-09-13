@@ -6,20 +6,22 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/13 18:31:54 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/13 20:44:21 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Parser.hpp"
+#include "Utils.hpp"
 
 Parser::Parser()
 {
 	tokenIndex = 0;
+	locationIndex = 0;
 	keyWords.push_back("server");
 	keyWords.push_back("location");
 	keywordDispatcher["listen"] = &Parser::parseListen;
 	keywordDispatcher["server_name"] = &Parser::parseServerName;
-	keywordDispatcher["client_max_body_size"] = &Parser::parseClienteSize;
+	keywordDispatcher["client_max_body_size"] = &Parser::parseClientSize;
 	keywordDispatcher["error_page"] = &Parser::parseError;
 	keywordDispatcher["root"] = &Parser::parseRoot;
 	keywordDispatcher["index"] = &Parser::parseIndex;
@@ -28,15 +30,19 @@ Parser::Parser()
 Parser::~Parser()
 {}
 
-void	Parser::setError(std::string message, Context& ctx)
-{
-	ctx.error = message;
-	ctx.lineNumber = tokenIndex;
-}
-
 int	Parser::getTokenIndex()
 {
 	return (this->tokenIndex);
+}
+
+int	Parser::getLocationIndex()
+{
+		return (this->locationIndex);
+}
+
+void	Parser::flushLocationInVector()
+{
+	serverContext.location.push_back(locationConfig);
 }
 
 ParserState	Parser::balance(Context& ctx)
@@ -53,10 +59,8 @@ ParserState	Parser::balance(Context& ctx)
 		{
 			counter--;
 			if (counter < 0)
-			{
-				setError("Bracets are no balanced", ctx);
-				return (SINTAX_ERROR);
-			}
+				return (setError("Bracets are not balanced",
+					ctx, *this, SINTAX_ERROR), ctx.state);
 		}
 	}
 	return (BLOCK_KEYWORD);
@@ -81,21 +85,19 @@ ParserState	Parser::blockKeyWord(Context& ctx)
 		}
 		return (LBRACET);
 	}
-	setError("No keywords found in the current file", ctx);
-	return (SINTAX_ERROR);
+	return (setError("No keywords found in the current file",
+		ctx, *this, SINTAX_ERROR), ctx.state);
 }
 
 ParserState Parser::checkNextElement(Context& ctx)
 {
 	std::vector<Token>& tokens = ctx.tokens;
 
-	if (static_cast<unsigned int>(tokenIndex) + 1 >= tokens.size())
-		return (END);
+	if (checkEndFile(*this, ctx, END, ""))
+		return (ctx.state);
 	if (tokens[tokenIndex + 1].value != ";")
-	{
-		setError("';' is missing", ctx);
-		return (SINTAX_ERROR);
-	}
+		return (setError("';' is missing",
+			ctx, *this, SINTAX_ERROR), ctx.state);
 	++tokenIndex;
 	if (static_cast<unsigned int>(tokenIndex) + 1 >= tokens.size())
 		return (END);
@@ -115,14 +117,15 @@ ParserState	Parser::insideBlock(Context& ctx)
 		tokenIndex++;
 		return (DIRECTIVE);
 	}
-	if (stateMachine.getCurrentState() == LBRACET && ctx.tokens[tokenIndex + 1].value == "}")
+	if (stateMachine.getCurrentState() == LBRACET
+		&& ctx.tokens[tokenIndex + 1].value == "}")
 	{
 		tokenIndex++;
 		return (RBRACET);
 	}
 	--tokenIndex;
-	setError("Keyword (server or location) must a bracet format ({})", ctx);
-	return (SINTAX_ERROR);
+	return (setError("Keyword (server or location) must have a bracet format({})",
+		ctx, *this, SINTAX_ERROR), ctx.state);
 }
 
 ParserState Parser::keyword(Context& ctx)
@@ -131,10 +134,8 @@ ParserState Parser::keyword(Context& ctx)
 	it = keywordDispatcher.find(ctx.tokens[tokenIndex].value);
 
 	if (it == keywordDispatcher.end())
-	{
-		setError("Unknown keyword", ctx);
-		return (SINTAX_ERROR);
-	}
+		return (setError("Unknown keyword",
+			ctx, *this, SINTAX_ERROR), ctx.state);
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
 	return ((this->*(it->second))(ctx));
 }
@@ -145,79 +146,25 @@ ParserState	Parser::error(Context& ctx)
 	return (SINTAX_ERROR);
 }
 
-bool	Parser::isValidIP(std::string ip, Context& ctx)
-{
-	std::stringstream	ss(ip);
-	std::string			octect;
-	int					number;
-	int					count = 0;
-
-	while (std::getline(ss, octect, '.'))
-	{
-		if (octect.empty())
-		{
-			setError("IP: no octects (.)", ctx);
-			return (false);
-		}
-		for (std::string::size_type i = 0; i < octect.size(); ++i)
-		{
-			if (!std::isdigit(octect[i]))
-			{
-				setError("IP: does not have a valid data type", ctx);
-				return (false);
-			}
-		}
-		number = std::atoi(octect.c_str());
-		if (number < 0 || number > 255)
-		{
-			setError("IP: value must be between 0 & 255", ctx);
-			return (false);
-		}
-		++count;
-	}
-	return (count == 4);
-}
-
-bool	Parser::isValidPort(std::string port, Context& ctx)
-{
-	int	number;
-
-	for (std::string::size_type i = 0; i < port.size(); ++i)
-	{
-		if (!std::isdigit(port[i]))
-		{
-			setError("PORT: no valid data type", ctx);
-			return (false);
-		}
-		number = std::atoi(port.c_str());
-		if (number < 0 || number > 65535)
-		{
-			setError("PORT: value must be between 0 & 65535", ctx);
-			return (false);
-		}
-	}
-	return (true);
-}
-
 ParserState	Parser::parseListen(Context& ctx)
 {
 	std::string				ip;
 	std::string				port;
 	std::string::size_type	colon;
 
+	if (checkEndFile(*this, ctx, SINTAX_ERROR, "No IP:PORT defined"))
+		return (ctx.state);
 	++tokenIndex;
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
 	colon = ctx.currentWord.find(':');
 	if (colon == std::string::npos
 		|| colon != ctx.currentWord.rfind(':'))
-	{
-		setError("colon (:) does not exist", ctx);
-		return (SINTAX_ERROR);
-	}
+		return (setError("Colon (:) does not exist",
+			ctx, *this, SINTAX_ERROR), ctx.state);
 	ip = ctx.currentWord.substr(0, colon);
 	port = ctx.currentWord.substr(colon + 1);
-	if (!isValidIP(ip, ctx) || !isValidPort(port, ctx))
-		return (SINTAX_ERROR);
+	if (!isValidIP(ip, ctx, *this) || !isValidPort(port, ctx, *this))
+		return (ctx.state);
 	serverContext.host = ip;
 	serverContext.port = std::atoi(port.c_str());
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
@@ -226,62 +173,32 @@ ParserState	Parser::parseListen(Context& ctx)
 
 ParserState Parser::parseServerName(Context& ctx)
 {
-	if (static_cast<unsigned int>(tokenIndex) + 1 >= ctx.tokens.size())
-	{
-		setError("Expected server name", ctx);
-		return (SINTAX_ERROR);
-	}
+	if (checkEndFile(*this, ctx, SINTAX_ERROR, "Servername is not defined"))
+		return (ctx.state);
 	++tokenIndex;
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
 	serverContext.serverName = ctx.currentWord;
 	return (checkNextElement(ctx));
 }
 
-std::string::size_type	Parser::isValidClientSize(std::string word, Context& ctx)
+ParserState	Parser::parseClientSize(Context& ctx)
 {
-	std::string::size_type	measure;
-
-	if (word == ";")
-	{
-		setError("Expected client size", ctx);
-		return (0);
-	}
-	if (word.empty())
-	{
-		setError("Mising number", ctx);
-		return (0);
-	}
-	measure = word.find_first_not_of("0123456789");
-	if (measure == 0)
-		setError("Missing number", ctx);
-	if (measure == std::string::npos)
-		setError("Missing unit", ctx);
-	return (measure);
-}
-
-ParserState	Parser::parseClienteSize(Context& ctx)
-{
+	int						number;
 	char					sizeData;
 	std::string::size_type	measure;
-	int						number;
 
-	if (static_cast<unsigned int>(tokenIndex) + 1 >= ctx.tokens.size())
-	{
-		setError("Expected client size", ctx);
-		return (SINTAX_ERROR);
-	}
+	if (checkEndFile(*this, ctx, SINTAX_ERROR, "Expected client size"))
+		return (ctx.state);
 	++tokenIndex;
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
-	measure = isValidClientSize(ctx.currentWord, ctx);
+	measure = isValidClientSize(ctx.currentWord, ctx, *this);
 	if (!measure)
-		return (SINTAX_ERROR);
+		return (ctx.state);
 	number = std::atoi(ctx.currentWord.substr(0, measure).c_str());
 	sizeData = ctx.currentWord[measure];
 	if (sizeData != 'K' && sizeData != 'M' && sizeData != 'G')
-	{
-		setError("Invalid size unit", ctx);
-		return (SINTAX_ERROR);
-	}
+		return (setError("Invalid size unit",
+			ctx, *this, SINTAX_ERROR), ctx.state);
 	serverContext.clientMaxBodySize = number;
 	return (checkNextElement(ctx));
 }
@@ -292,36 +209,24 @@ ParserState	Parser::parseError(Context& ctx)
 	int						errorCode;
 	std::string				location;
 
-	if (static_cast<unsigned int>(tokenIndex) + 1 >= ctx.tokens.size())
-	{
-		setError("Expected error code", ctx);
-		return (ERROR_STATE);
-	}
+	if (checkEndFile(*this, ctx, SINTAX_ERROR, "Expected error code"))
+		return (ctx.state);
 	++tokenIndex;
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
 	letter = ctx.currentWord.find_first_not_of("0123456789");
 	if (letter != std::string::npos)
-	{
-		setError("Value is not a number", ctx);
-		return (SINTAX_ERROR);
-	}
+		return (setError("Invalid size unit",
+			ctx, *this, SINTAX_ERROR), ctx.state);
 	if (ctx.currentWord.size() != 3)
-	{
-		setError("Invalid error code", ctx);
-		return (SINTAX_ERROR);
-	}
+		return (setError("Invalid error code",
+			ctx, *this, SINTAX_ERROR), ctx.state);
 	errorCode = std::atoi(ctx.currentWord.c_str());
 	if (errorCode < 300 || errorCode > 599)
-	{
-		setError("Invalid HTTP error code", ctx);
-		return (SINTAX_ERROR);
-	}
+		return (setError("Invalid HTTP error code",
+			ctx, *this, SINTAX_ERROR), ctx.state);
 	++tokenIndex;
-	if (static_cast<unsigned int>(tokenIndex) + 1 >= ctx.tokens.size())
-	{
-		setError("Expected error code", ctx);
-		return (SINTAX_ERROR);
-	}
+	if (checkEndFile(*this, ctx, SINTAX_ERROR, "Expected error location"))
+		return (ctx.state);
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
 	location = ctx.currentWord;
 	serverContext.errorPages[errorCode] = location;
@@ -330,15 +235,12 @@ ParserState	Parser::parseError(Context& ctx)
 
 ParserState	Parser::parseRoot(Context& ctx)
 {
-	if (static_cast<unsigned int>(tokenIndex) + 1 >= ctx.tokens.size())
-	{
-		setError("Root definition expected", ctx);
-		return (ERROR_STATE);
-	}
+	if (checkEndFile(*this, ctx, SINTAX_ERROR, "Root definition expected"))
+		return (ctx.state);
 	++tokenIndex;
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
 	if (ctx.currentWord == "www")
-		serverContext.location[0].root = ctx.tokens[tokenIndex].value;
+		locationConfig.root = ctx.tokens[tokenIndex].value;
 	return (checkNextElement(ctx));
 }
 
@@ -346,19 +248,14 @@ ParserState	Parser::parseIndex(Context& ctx)
 {
 	std::string::size_type	dot;
 
-	if (static_cast<unsigned int>(tokenIndex) + 1 >= ctx.tokens.size())
-	{
-		setError("Index definition expected", ctx);
-		return (ERROR_STATE);
-	}
+	if (checkEndFile(*this, ctx, SINTAX_ERROR, "Root definition expected"))
+		return (ctx.state);
 	++tokenIndex;
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
 	dot = ctx.currentWord.find('.');
-	if (dot != std::string::npos)
-	{
-		setError("The index does not have html format", ctx);
-		return (SINTAX_ERROR);
-	}
-	serverContext.location[0].index = ctx.currentWord;
+	if (dot == std::string::npos)
+		return (setError("The index does not have html format",
+			ctx, *this, SINTAX_ERROR), ctx.state);
+	locationConfig.index = ctx.currentWord;
 	return (checkNextElement(ctx));
 }

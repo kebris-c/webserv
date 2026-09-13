@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 19:46:24 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/13 18:03:44 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/13 20:42:29 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,6 @@ enum ParserState
 	DIRECTIVE,
 	LBRACET,
 	READING,
-	SUCCESS,
 	SEMICOLON,
 	RBRACET,
 	SINTAX_ERROR,
