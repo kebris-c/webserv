@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:21 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/13 20:37:01 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/13 21:31:51 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,20 +45,19 @@ typedef ParserState	(Parser::*ParseAction)(Context&);
 class	Parser
 {
 	private:
-		std::vector<std::string>	keyWords;
-		std::map<std::string, ParseAction> keywordDispatcher;
-		int							tokenIndex;
-		int							locationIndex;
-		ServerConfig				serverContext;
-		LocationConfig				locationConfig;
-		void						flushLocationInVector();
-		ParserState					parseListen(Context& ctx);
-		ParserState					parseServerName(Context& ctx);
-		ParserState					parseClientSize(Context& ctx);
-		ParserState					parseError(Context& ctx);
-		ParserState					parseRoot(Context& ctx);
-		ParserState					parseIndex(Context& ctx);
-		ParserState					checkNextElement(Context& ctx);
+		std::vector<std::string>			keyWords;
+		std::map<std::string, ParseAction>	keywordDispatcher;
+		int									tokenIndex;
+		int									locationIndex;
+		ServerConfig						serverContext;
+		LocationConfig						locationConfig;
+		void								flushLocationInVector();
+		ParserState							parseListen(Context& ctx);
+		ParserState							parseServerName(Context& ctx);
+		ParserState							parseClientSize(Context& ctx);
+		ParserState							parseError(Context& ctx);
+		ParserState							parseRoot(Context& ctx);
+		ParserState							parseIndex(Context& ctx);
 	public:
 		Parser();
 		~Parser();
@@ -69,6 +68,7 @@ class	Parser
 		ParserState	error(Context& ctx);
 		int			getTokenIndex();
 		int			getLocationIndex();
+		void		setTokenIndex(int tokenIndex);
 };
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/13 18:44:51 by kjroydev          #+#    #+#             */
-/*   Updated: 2026/09/13 20:03:57 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/13 21:23:16 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,4 +88,26 @@ int	checkEndFile(Parser& parser, Context& ctx, ParserState state, std::string me
 	if (static_cast<unsigned int>(parser.getTokenIndex()) + 1 >= ctx.tokens.size())
 		return (setError(message, ctx, parser, state), 1);
 	return (0);
+}
+
+ParserState checkNextElement(Context& ctx, Parser& parser)
+{
+	int					tokenIndex;
+	std::vector<Token>& tokens = ctx.tokens;
+
+	tokenIndex = parser.getTokenIndex();
+	if (tokens[tokenIndex + 1].value != ";")
+		return (setError("';' is missing",
+			ctx, parser, SINTAX_ERROR), ctx.state);
+	if (checkEndFile(parser, ctx, END, ""))
+		return (ctx.state);
+	++tokenIndex;
+	if (static_cast<unsigned int>(tokenIndex) + 1 >= tokens.size())
+		return (parser.setTokenIndex(tokenIndex), END);
+	++tokenIndex;
+	if (tokens[tokenIndex].value == "server"
+		|| tokens[tokenIndex].value == "location")
+		return (parser.setTokenIndex(tokenIndex), BLOCK_KEYWORD);
+	parser.setTokenIndex(tokenIndex);
+	return (DIRECTIVE);
 }

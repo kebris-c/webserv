@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/13 20:44:21 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/13 21:33:37 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,12 @@ int	Parser::getTokenIndex()
 
 int	Parser::getLocationIndex()
 {
-		return (this->locationIndex);
+	return (this->locationIndex);
+}
+
+void	Parser::setTokenIndex(int tokenIndex)
+{
+	this->tokenIndex = tokenIndex;
 }
 
 void	Parser::flushLocationInVector()
@@ -89,36 +94,14 @@ ParserState	Parser::blockKeyWord(Context& ctx)
 		ctx, *this, SINTAX_ERROR), ctx.state);
 }
 
-ParserState Parser::checkNextElement(Context& ctx)
-{
-	std::vector<Token>& tokens = ctx.tokens;
-
-	if (checkEndFile(*this, ctx, END, ""))
-		return (ctx.state);
-	if (tokens[tokenIndex + 1].value != ";")
-		return (setError("';' is missing",
-			ctx, *this, SINTAX_ERROR), ctx.state);
-	++tokenIndex;
-	if (static_cast<unsigned int>(tokenIndex) + 1 >= tokens.size())
-		return (END);
-	++tokenIndex;
-	if (tokens[tokenIndex].value == "server"
-		|| tokens[tokenIndex].value == "location")
-		return (BLOCK_KEYWORD);
-	return (DIRECTIVE);
-}
-
 ParserState	Parser::insideBlock(Context& ctx)
 {
-	StateMachine	stateMachine;
-
 	if (ctx.tokens[tokenIndex].value == "{")
 	{
 		tokenIndex++;
 		return (DIRECTIVE);
 	}
-	if (stateMachine.getCurrentState() == LBRACET
-		&& ctx.tokens[tokenIndex + 1].value == "}")
+	if (ctx.tokens[tokenIndex + 1].value == "}")
 	{
 		tokenIndex++;
 		return (RBRACET);
@@ -159,7 +142,7 @@ ParserState	Parser::parseListen(Context& ctx)
 	colon = ctx.currentWord.find(':');
 	if (colon == std::string::npos
 		|| colon != ctx.currentWord.rfind(':'))
-		return (setError("Colon (:) does not exist",
+		return (setError("PORT: (:) does not exist",
 			ctx, *this, SINTAX_ERROR), ctx.state);
 	ip = ctx.currentWord.substr(0, colon);
 	port = ctx.currentWord.substr(colon + 1);
@@ -167,8 +150,7 @@ ParserState	Parser::parseListen(Context& ctx)
 		return (ctx.state);
 	serverContext.host = ip;
 	serverContext.port = std::atoi(port.c_str());
-	ctx.currentWord = ctx.tokens[tokenIndex].value;
-	return (checkNextElement(ctx));
+	return (checkNextElement(ctx, *this));
 }
 
 ParserState Parser::parseServerName(Context& ctx)
@@ -178,7 +160,7 @@ ParserState Parser::parseServerName(Context& ctx)
 	++tokenIndex;
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
 	serverContext.serverName = ctx.currentWord;
-	return (checkNextElement(ctx));
+	return (checkNextElement(ctx, *this));
 }
 
 ParserState	Parser::parseClientSize(Context& ctx)
@@ -200,7 +182,7 @@ ParserState	Parser::parseClientSize(Context& ctx)
 		return (setError("Invalid size unit",
 			ctx, *this, SINTAX_ERROR), ctx.state);
 	serverContext.clientMaxBodySize = number;
-	return (checkNextElement(ctx));
+	return (checkNextElement(ctx, *this));
 }
 
 ParserState	Parser::parseError(Context& ctx)
@@ -215,22 +197,19 @@ ParserState	Parser::parseError(Context& ctx)
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
 	letter = ctx.currentWord.find_first_not_of("0123456789");
 	if (letter != std::string::npos)
-		return (setError("Invalid size unit",
-			ctx, *this, SINTAX_ERROR), ctx.state);
+		return (setError("Invalid size unit", ctx, *this, SINTAX_ERROR), ctx.state);
 	if (ctx.currentWord.size() != 3)
-		return (setError("Invalid error code",
-			ctx, *this, SINTAX_ERROR), ctx.state);
+		return (setError("Invalid error code", ctx, *this, SINTAX_ERROR), ctx.state);
 	errorCode = std::atoi(ctx.currentWord.c_str());
 	if (errorCode < 300 || errorCode > 599)
-		return (setError("Invalid HTTP error code",
-			ctx, *this, SINTAX_ERROR), ctx.state);
+		return (setError("Invalid HTTP error code", ctx, *this, SINTAX_ERROR), ctx.state);
 	++tokenIndex;
 	if (checkEndFile(*this, ctx, SINTAX_ERROR, "Expected error location"))
 		return (ctx.state);
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
 	location = ctx.currentWord;
 	serverContext.errorPages[errorCode] = location;
-	return (checkNextElement(ctx));
+	return (checkNextElement(ctx, *this));
 }
 
 ParserState	Parser::parseRoot(Context& ctx)
@@ -241,7 +220,7 @@ ParserState	Parser::parseRoot(Context& ctx)
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
 	if (ctx.currentWord == "www")
 		locationConfig.root = ctx.tokens[tokenIndex].value;
-	return (checkNextElement(ctx));
+	return (checkNextElement(ctx, *this));
 }
 
 ParserState	Parser::parseIndex(Context& ctx)
@@ -257,5 +236,5 @@ ParserState	Parser::parseIndex(Context& ctx)
 		return (setError("The index does not have html format",
 			ctx, *this, SINTAX_ERROR), ctx.state);
 	locationConfig.index = ctx.currentWord;
-	return (checkNextElement(ctx));
+	return (checkNextElement(ctx, *this));
 }
