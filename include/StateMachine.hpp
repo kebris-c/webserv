@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 19:46:24 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/11 22:46:32 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/13 18:03:44 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@ enum ParserState
 	SEMICOLON,
 	RBRACET,
 	SINTAX_ERROR,
+	ERROR_STATE,
 	END
 };
 
@@ -42,21 +43,12 @@ enum ParserEvent
 	ERROR
 };
 
-enum BlockType
-{
-	NONE,
-	SERVER,
-	LOCATION
-};
-
 struct	Context
 {
 	ParserState			state;
-	BlockType			blockContext;
 	std::string			error;
 	std::string			currentWord;
 	std::vector<Token>	tokens;
-	bool				balance;
 	int					lineNumber;
 };
 

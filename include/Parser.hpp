@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:21 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/12 02:41:44 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/13 18:03:03 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,15 +15,6 @@
 
 # include "Webserv.hpp"
 # include "StateMachine.hpp"
-
-struct	ServerConfig
-{
-	int							port;				/* listen port */
-	std::string					host;				/* interface, e.g. 0.0.0.0 or 127.0.0.1 */
-	std::string					serverName;			/* optional */
-	std::map<int, std::string>	errorPages;			/* status -> file path */
-	std::size_t					clientMaxBodySize;	/* bytes */
-};
 
 struct	LocationConfig
 {
@@ -39,6 +30,16 @@ struct	LocationConfig
 	std::vector<std::string>	allowedMethods;	/* GET POST DELETE */
 };
 
+struct	ServerConfig
+{
+	int							port;				/* listen port */
+	std::string					host;				/* interface, e.g. 0.0.0.0 or 127.0.0.1 */
+	std::string					serverName;			/* optional */
+	std::size_t					clientMaxBodySize;	/* bytes */
+	std::map<int, std::string>	errorPages;			/* status -> file path */
+	std::vector<LocationConfig>	location;
+};
+
 typedef ParserState	(Parser::*ParseAction)(Context&);
 
 class	Parser
@@ -48,16 +49,18 @@ class	Parser
 		std::map<std::string, ParseAction> keywordDispatcher;
 		int							tokenIndex;
 		ServerConfig				serverContext;
+		LocationConfig				locationConfig;
 		ParserState					parseListen(Context& ctx);
 		ParserState					parseServerName(Context& ctx);
 		ParserState					parseClienteSize(Context& ctx);
 		ParserState					parseError(Context& ctx);
+		ParserState					parseRoot(Context& ctx);
+		ParserState					parseIndex(Context& ctx);
 		ParserState					checkNextElement(Context& ctx);
 		void						setError(std::string message, Context& ctx);
 		bool						isValidIP(std::string ip, Context& ctx);
 		bool						isValidPort(std::string port, Context& ctx);
 		std::string::size_type		isValidClientSize(std::string word, Context& ctx);
-		
 	public:
 		Parser();
 		~Parser();

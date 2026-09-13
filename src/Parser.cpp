@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/12 02:42:40 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/13 18:31:54 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,8 @@ Parser::Parser()
 	keywordDispatcher["server_name"] = &Parser::parseServerName;
 	keywordDispatcher["client_max_body_size"] = &Parser::parseClienteSize;
 	keywordDispatcher["error_page"] = &Parser::parseError;
+	keywordDispatcher["root"] = &Parser::parseRoot;
+	keywordDispatcher["index"] = &Parser::parseIndex;
 }
 
 Parser::~Parser()
@@ -52,39 +54,32 @@ ParserState	Parser::balance(Context& ctx)
 			counter--;
 			if (counter < 0)
 			{
-				ctx.balance = false;
-				ctx.error = "File bracet unbalanced";
+				setError("Bracets are no balanced", ctx);
 				return (SINTAX_ERROR);
 			}
 		}
 	}
-	ctx.balance = (counter == 0);
 	return (BLOCK_KEYWORD);
 }
 
 ParserState	Parser::blockKeyWord(Context& ctx)
 {
 	std::vector<Token>& tokens = ctx.tokens;
-	std::string			word;
 
-	for (std::vector<Token>::iterator it = tokens.begin(); it != tokens.end(); it++)
+	if (tokens[tokenIndex].value == "server")
 	{
-		if (it->value != keyWords[tokenIndex])
-			continue ;
-		else
+		++tokenIndex;
+		return (LBRACET);
+	}
+	if (tokens[tokenIndex].value == "location")
+	{
+		++tokenIndex;
+		if (tokens[tokenIndex].value[0] == '/')
 		{
-			tokenIndex++;
-			if (it->value == "server")
-			{
-				ctx.blockContext = SERVER;
-				return (LBRACET);
-			}
-			if (it->value == "location")
-			{
-				ctx.blockContext = LOCATION;
-				return (LBRACET);
-			}
+			locationConfig.path = tokens[tokenIndex].value;
+			++tokenIndex;
 		}
+		return (LBRACET);
 	}
 	setError("No keywords found in the current file", ctx);
 	return (SINTAX_ERROR);
@@ -120,7 +115,7 @@ ParserState	Parser::insideBlock(Context& ctx)
 		tokenIndex++;
 		return (DIRECTIVE);
 	}
-	if (stateMachine.getCurrentState() == SEMICOLON && ctx.tokens[tokenIndex].value == "}")
+	if (stateMachine.getCurrentState() == LBRACET && ctx.tokens[tokenIndex + 1].value == "}")
 	{
 		tokenIndex++;
 		return (RBRACET);
@@ -300,7 +295,7 @@ ParserState	Parser::parseError(Context& ctx)
 	if (static_cast<unsigned int>(tokenIndex) + 1 >= ctx.tokens.size())
 	{
 		setError("Expected error code", ctx);
-		return (SINTAX_ERROR);
+		return (ERROR_STATE);
 	}
 	++tokenIndex;
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
@@ -316,7 +311,7 @@ ParserState	Parser::parseError(Context& ctx)
 		return (SINTAX_ERROR);
 	}
 	errorCode = std::atoi(ctx.currentWord.c_str());
-	if (errorCode < 400 || errorCode > 599)
+	if (errorCode < 300 || errorCode > 599)
 	{
 		setError("Invalid HTTP error code", ctx);
 		return (SINTAX_ERROR);
@@ -330,5 +325,40 @@ ParserState	Parser::parseError(Context& ctx)
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
 	location = ctx.currentWord;
 	serverContext.errorPages[errorCode] = location;
+	return (checkNextElement(ctx));
+}
+
+ParserState	Parser::parseRoot(Context& ctx)
+{
+	if (static_cast<unsigned int>(tokenIndex) + 1 >= ctx.tokens.size())
+	{
+		setError("Root definition expected", ctx);
+		return (ERROR_STATE);
+	}
+	++tokenIndex;
+	ctx.currentWord = ctx.tokens[tokenIndex].value;
+	if (ctx.currentWord == "www")
+		serverContext.location[0].root = ctx.tokens[tokenIndex].value;
+	return (checkNextElement(ctx));
+}
+
+ParserState	Parser::parseIndex(Context& ctx)
+{
+	std::string::size_type	dot;
+
+	if (static_cast<unsigned int>(tokenIndex) + 1 >= ctx.tokens.size())
+	{
+		setError("Index definition expected", ctx);
+		return (ERROR_STATE);
+	}
+	++tokenIndex;
+	ctx.currentWord = ctx.tokens[tokenIndex].value;
+	dot = ctx.currentWord.find('.');
+	if (dot != std::string::npos)
+	{
+		setError("The index does not have html format", ctx);
+		return (SINTAX_ERROR);
+	}
+	serverContext.location[0].index = ctx.currentWord;
 	return (checkNextElement(ctx));
 }
