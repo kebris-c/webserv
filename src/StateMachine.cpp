@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/08 15:52:43 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/13 19:31:58 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/14 21:06:10 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -94,6 +94,8 @@ ParserEvent StateMachine::getNextEvent(ParserState state)
 			return (BLOCK_KEYWORD_EVENT);
 		case LBRACET:
 			return (BEGIN_BLOCK);
+		case RBRACET:
+			return (CLOSE_BLOCK);
 		case READING:
 			return (DIRECTIVE_EVENT);
 		case DIRECTIVE:

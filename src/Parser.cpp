@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/13 21:33:37 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/14 21:25:46 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,6 @@
 Parser::Parser()
 {
 	tokenIndex = 0;
-	locationIndex = 0;
 	keyWords.push_back("server");
 	keyWords.push_back("location");
 	keywordDispatcher["listen"] = &Parser::parseListen;
@@ -25,6 +24,9 @@ Parser::Parser()
 	keywordDispatcher["error_page"] = &Parser::parseError;
 	keywordDispatcher["root"] = &Parser::parseRoot;
 	keywordDispatcher["index"] = &Parser::parseIndex;
+	keywordDispatcher["allowed_methods"] = &Parser::parseAllowedMethods;
+	keywordDispatcher["autoindex"] = &Parser::parseAutoIndex;
+	keywordDispatcher["upload_store"] = &Parser::parseRoot;
 }
 
 Parser::~Parser()
@@ -33,11 +35,6 @@ Parser::~Parser()
 int	Parser::getTokenIndex()
 {
 	return (this->tokenIndex);
-}
-
-int	Parser::getLocationIndex()
-{
-	return (this->locationIndex);
 }
 
 void	Parser::setTokenIndex(int tokenIndex)
@@ -101,7 +98,7 @@ ParserState	Parser::insideBlock(Context& ctx)
 		tokenIndex++;
 		return (DIRECTIVE);
 	}
-	if (ctx.tokens[tokenIndex + 1].value == "}")
+	if (ctx.tokens[tokenIndex].value == "}")
 	{
 		tokenIndex++;
 		return (RBRACET);
@@ -109,6 +106,14 @@ ParserState	Parser::insideBlock(Context& ctx)
 	--tokenIndex;
 	return (setError("Keyword (server or location) must have a bracet format({})",
 		ctx, *this, SINTAX_ERROR), ctx.state);
+}
+
+ParserState	Parser::outsideBlock(Context& ctx)
+{
+	(void)ctx;
+	serverContext.location.push_back(locationConfig);
+	++tokenIndex;
+	return (BLOCK_KEYWORD);
 }
 
 ParserState Parser::keyword(Context& ctx)
@@ -135,7 +140,7 @@ ParserState	Parser::parseListen(Context& ctx)
 	std::string				port;
 	std::string::size_type	colon;
 
-	if (checkEndFile(*this, ctx, SINTAX_ERROR, "No IP:PORT defined"))
+	if (checkNextValue(*this, ctx, SINTAX_ERROR, "No IP:PORT defined"))
 		return (ctx.state);
 	++tokenIndex;
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
@@ -155,7 +160,7 @@ ParserState	Parser::parseListen(Context& ctx)
 
 ParserState Parser::parseServerName(Context& ctx)
 {
-	if (checkEndFile(*this, ctx, SINTAX_ERROR, "Servername is not defined"))
+	if (checkNextValue(*this, ctx, SINTAX_ERROR, "Servername is not defined"))
 		return (ctx.state);
 	++tokenIndex;
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
@@ -169,7 +174,7 @@ ParserState	Parser::parseClientSize(Context& ctx)
 	char					sizeData;
 	std::string::size_type	measure;
 
-	if (checkEndFile(*this, ctx, SINTAX_ERROR, "Expected client size"))
+	if (checkNextValue(*this, ctx, SINTAX_ERROR, "Expected client size"))
 		return (ctx.state);
 	++tokenIndex;
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
@@ -191,22 +196,23 @@ ParserState	Parser::parseError(Context& ctx)
 	int						errorCode;
 	std::string				location;
 
-	if (checkEndFile(*this, ctx, SINTAX_ERROR, "Expected error code"))
+	if (checkNextValue(*this, ctx, SINTAX_ERROR, "Expected error code"))
 		return (ctx.state);
 	++tokenIndex;
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
-	letter = ctx.currentWord.find_first_not_of("0123456789");
-	if (letter != std::string::npos)
-		return (setError("Invalid size unit", ctx, *this, SINTAX_ERROR), ctx.state);
-	if (ctx.currentWord.size() != 3)
-		return (setError("Invalid error code", ctx, *this, SINTAX_ERROR), ctx.state);
+	if (!isValidErrorCode(ctx.currentWord, ctx, *this))
+		return (ctx.state);
 	errorCode = std::atoi(ctx.currentWord.c_str());
 	if (errorCode < 300 || errorCode > 599)
-		return (setError("Invalid HTTP error code", ctx, *this, SINTAX_ERROR), ctx.state);
+		return (setError("Invalid HTTP error code",
+			ctx, *this, SINTAX_ERROR), ctx.state);
 	++tokenIndex;
 	if (checkEndFile(*this, ctx, SINTAX_ERROR, "Expected error location"))
 		return (ctx.state);
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
+	letter = ctx.currentWord.find('.');
+	if (!isValidHTML(ctx.currentWord.substr(letter + 1), ctx, *this))
+		return (ctx.state);
 	location = ctx.currentWord;
 	serverContext.errorPages[errorCode] = location;
 	return (checkNextElement(ctx, *this));
@@ -214,20 +220,22 @@ ParserState	Parser::parseError(Context& ctx)
 
 ParserState	Parser::parseRoot(Context& ctx)
 {
-	if (checkEndFile(*this, ctx, SINTAX_ERROR, "Root definition expected"))
+	if (checkNextValue(*this, ctx, SINTAX_ERROR, "Root definition expected"))
 		return (ctx.state);
 	++tokenIndex;
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
-	if (ctx.currentWord == "www")
-		locationConfig.root = ctx.tokens[tokenIndex].value;
+	if (!isValidRoot(ctx.currentWord, ctx, *this))
+		return (ctx.state);
+	locationConfig.root = ctx.tokens[tokenIndex].value;
 	return (checkNextElement(ctx, *this));
 }
 
 ParserState	Parser::parseIndex(Context& ctx)
 {
 	std::string::size_type	dot;
+	std::string				htmlFile;
 
-	if (checkEndFile(*this, ctx, SINTAX_ERROR, "Root definition expected"))
+	if (checkNextValue(*this, ctx, SINTAX_ERROR, "Root definition expected"))
 		return (ctx.state);
 	++tokenIndex;
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
@@ -235,6 +243,48 @@ ParserState	Parser::parseIndex(Context& ctx)
 	if (dot == std::string::npos)
 		return (setError("The index does not have html format",
 			ctx, *this, SINTAX_ERROR), ctx.state);
+	htmlFile = ctx.currentWord.substr(dot + 1);
+	if (!isValidHTML(htmlFile, ctx, *this))
+		return (ctx.state);
 	locationConfig.index = ctx.currentWord;
+	return (checkNextElement(ctx, *this));
+}
+
+ParserState	Parser::parseAllowedMethods(Context& ctx)
+{
+	if (checkNextValue(*this, ctx, SINTAX_ERROR, "Method definition expected"))
+		return (ctx.state);
+	++tokenIndex;
+	ctx.currentWord = ctx.tokens[tokenIndex].value;
+	while (ctx.currentWord != ";")
+	{
+		if (!isValidMethod(ctx.currentWord, ctx, *this))
+			return (ctx.state);
+		else
+			locationConfig.allowedMethods.push_back(ctx.currentWord);
+		ctx.currentWord = ctx.tokens[++tokenIndex].value;
+	}
+	--tokenIndex;
+	return (checkNextElement(ctx, *this));
+}
+
+ParserState	Parser::parseAutoIndex(Context& ctx)
+{
+	if (checkNextValue(*this, ctx, SINTAX_ERROR, "Autoindex definition expected"))
+		return (ctx.state);
+	++tokenIndex;
+	ctx.currentWord = ctx.tokens[tokenIndex].value;
+	for (unsigned int i = 0; i < ctx.currentWord.size(); i++)
+	{
+		if (!islower(ctx.currentWord[i]))
+			return (setError("autoindex definition has wrong format",
+			ctx, *this, SINTAX_ERROR), ctx.state);
+	}
+	if (ctx.currentWord == "off" || ctx.currentWord == "on")
+	{
+		if (ctx.currentWord == "off")
+			locationConfig.autoindex = false;
+		locationConfig.autoindex = true;
+	}
 	return (checkNextElement(ctx, *this));
 }

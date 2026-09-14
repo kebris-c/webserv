@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/13 17:17:00 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/14 21:16:35 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,18 +33,6 @@ int main(int ac, char *av[])
 		if (lexical_analisys.tokenVectorization(file))
 			return (1);
 		tokens = lexical_analisys.getTokens();
-		
-		for (unsigned long i = 0; i < tokens.size(); i++)
-		{
-			std::cout << "Token Type: "
-					<< tokens[i].typeText
-					<< ". "
-					<< "Token Value: "
-					<< tokens[i].value
-					<< " Line number: "
-					<< tokens[i].lineNumber
-					<< std::endl;
-		}
 		ctx.tokens = tokens;
 	}
 	{
@@ -56,10 +44,12 @@ int main(int ac, char *av[])
 		stateMachine.addTransition(START, BALANCE, &Parser::balance);
 		stateMachine.addTransition(BLOCK_KEYWORD, BLOCK_KEYWORD_EVENT, &Parser::blockKeyWord);
 		stateMachine.addTransition(LBRACET, BEGIN_BLOCK, &Parser::insideBlock);
+		stateMachine.addTransition(RBRACET, CLOSE_BLOCK, &Parser::outsideBlock);
 		stateMachine.addTransition(READING, DIRECTIVE_EVENT, &Parser::keyword);
 		stateMachine.addTransition(DIRECTIVE, DIRECTIVE_EVENT, &Parser::keyword);
 		stateMachine.addTransition(SINTAX_ERROR, END_EVENT, &Parser::error);
 		stateMachine.addTransition(ERROR_STATE, END_EVENT, &Parser::error);
+		stateMachine.addTransition(END, END_EVENT, &Parser::error);
 		state = stateMachine.getCurrentState();
 		while (state != SINTAX_ERROR)
 		{

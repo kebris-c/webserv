@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:21 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/13 21:31:51 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/14 21:19:29 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,22 +48,24 @@ class	Parser
 		std::vector<std::string>			keyWords;
 		std::map<std::string, ParseAction>	keywordDispatcher;
 		int									tokenIndex;
-		int									locationIndex;
 		ServerConfig						serverContext;
 		LocationConfig						locationConfig;
 		void								flushLocationInVector();
+		ParserState							parseRoot(Context& ctx);
+		ParserState							parseError(Context& ctx);
+		ParserState							parseIndex(Context& ctx);
 		ParserState							parseListen(Context& ctx);
 		ParserState							parseServerName(Context& ctx);
 		ParserState							parseClientSize(Context& ctx);
-		ParserState							parseError(Context& ctx);
-		ParserState							parseRoot(Context& ctx);
-		ParserState							parseIndex(Context& ctx);
+		ParserState							parseAutoIndex(Context& ctx);
+		ParserState							parseAllowedMethods(Context& ctx);
 	public:
 		Parser();
 		~Parser();
 		ParserState	balance(Context& ctx);
 		ParserState	blockKeyWord(Context& ctx);
 		ParserState	insideBlock(Context& ctx);
+		ParserState	outsideBlock(Context& ctx);
 		ParserState	keyword(Context& ctx);
 		ParserState	error(Context& ctx);
 		int			getTokenIndex();
