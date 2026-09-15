@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/15 21:47:07 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/15 21:59:13 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -99,12 +99,12 @@ ParserState	Parser::insideBlock(Context& ctx)
 {
 	if (ctx.tokens[tokenIndex].value == "{")
 	{
-		tokenIndex++;
+		++tokenIndex;
 		return (DIRECTIVE);
 	}
 	if (ctx.tokens[tokenIndex].value == "}")
 	{
-		tokenIndex++;
+		++tokenIndex;
 		return (RBRACET);
 	}
 	--tokenIndex;
