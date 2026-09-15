@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/14 21:16:35 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/15 23:01:44 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,7 @@ int main(int ac, char *av[])
 {
 	Context	ctx;
 	ctx.lineNumber = 0;
+	ctx.bracet = 0;
 
 	{
 		std::ifstream       file;
@@ -45,17 +46,19 @@ int main(int ac, char *av[])
 		stateMachine.addTransition(BLOCK_KEYWORD, BLOCK_KEYWORD_EVENT, &Parser::blockKeyWord);
 		stateMachine.addTransition(LBRACET, BEGIN_BLOCK, &Parser::insideBlock);
 		stateMachine.addTransition(RBRACET, CLOSE_BLOCK, &Parser::outsideBlock);
-		stateMachine.addTransition(READING, DIRECTIVE_EVENT, &Parser::keyword);
 		stateMachine.addTransition(DIRECTIVE, DIRECTIVE_EVENT, &Parser::keyword);
 		stateMachine.addTransition(SINTAX_ERROR, END_EVENT, &Parser::error);
 		stateMachine.addTransition(ERROR_STATE, END_EVENT, &Parser::error);
 		stateMachine.addTransition(END, END_EVENT, &Parser::error);
 		state = stateMachine.getCurrentState();
-		while (state != SINTAX_ERROR)
+		while (state != END)
 		{
 			event = stateMachine.getNextEvent(state);
 			stateMachine.handle(ctx, parser, event);
 			state = stateMachine.getCurrentState();
+			ctx.lineNumber = parser.getTokenIndex();
+			if (state == SINTAX_ERROR)
+				break ;
 		}
 		if (ctx.error != "")
 			return (1);

@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 19:46:24 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/13 20:42:29 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/15 22:57:48 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,8 +22,6 @@ enum ParserState
 	BLOCK_KEYWORD,
 	DIRECTIVE,
 	LBRACET,
-	READING,
-	SEMICOLON,
 	RBRACET,
 	SINTAX_ERROR,
 	ERROR_STATE,
@@ -37,7 +35,6 @@ enum ParserEvent
 	BEGIN_BLOCK,
 	DIRECTIVE_EVENT,
 	CLOSE_BLOCK,
-	EOF_REACHED,
 	END_EVENT,
 	ERROR
 };
@@ -49,6 +46,7 @@ struct	Context
 	std::string			currentWord;
 	std::vector<Token>	tokens;
 	int					lineNumber;
+	int					bracet;
 };
 
 /**

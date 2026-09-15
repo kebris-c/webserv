@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:21 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/15 21:45:14 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/15 22:56:38 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,11 +46,11 @@ class	Parser
 {
 	private:
 		std::vector<std::string>			keyWords;
+		std::vector<ServerConfig>			servers;
 		std::map<std::string, ParseAction>	keywordDispatcher;
 		int									tokenIndex;
 		ServerConfig						serverContext;
 		LocationConfig						locationConfig;
-		void								flushLocationInVector();
 		ParserState							parseRoot(Context& ctx);
 		ParserState							parseError(Context& ctx);
 		ParserState							parseIndex(Context& ctx);

@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/15 21:59:13 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/15 22:56:42 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,11 +45,6 @@ void	Parser::setTokenIndex(int tokenIndex)
 	this->tokenIndex = tokenIndex;
 }
 
-void	Parser::flushLocationInVector()
-{
-	serverContext.location.push_back(locationConfig);
-}
-
 ParserState	Parser::balance(Context& ctx)
 {
 	const std::vector<Token>&	tokens = ctx.tokens;
@@ -75,8 +70,16 @@ ParserState	Parser::blockKeyWord(Context& ctx)
 {
 	std::vector<Token>& tokens = ctx.tokens;
 
+	if (tokens[tokenIndex].value == "}")
+    {
+		if (static_cast<unsigned int>(tokenIndex) + 1 > tokens.size())
+			outsideBlock(ctx);
+        ++tokenIndex;
+        return (RBRACET);
+    }
 	if (tokens[tokenIndex].value == "server")
 	{
+		serverContext = ServerConfig();
 		++tokenIndex;
 		return (LBRACET);
 	}
@@ -99,11 +102,13 @@ ParserState	Parser::insideBlock(Context& ctx)
 {
 	if (ctx.tokens[tokenIndex].value == "{")
 	{
+		++ctx.bracet;
 		++tokenIndex;
 		return (DIRECTIVE);
 	}
 	if (ctx.tokens[tokenIndex].value == "}")
 	{
+		--ctx.bracet;
 		++tokenIndex;
 		return (RBRACET);
 	}
@@ -114,10 +119,25 @@ ParserState	Parser::insideBlock(Context& ctx)
 
 ParserState	Parser::outsideBlock(Context& ctx)
 {
-	(void)ctx;
-	serverContext.location.push_back(locationConfig);
-	++tokenIndex;
-	return (BLOCK_KEYWORD);
+    if (ctx.bracet == 2)
+    {
+        --ctx.bracet;
+        serverContext.location.push_back(locationConfig);
+        ++tokenIndex;
+        return (BLOCK_KEYWORD);
+    }
+    if (ctx.bracet == 1)
+    {
+        --ctx.bracet;
+        servers.push_back(serverContext);
+		if (ctx.tokens[tokenIndex].value == "server")
+			return (BLOCK_KEYWORD);
+		if (tokenIndex == static_cast<int>(ctx.tokens.size()))
+            return (END);
+        ++tokenIndex;
+        return (BLOCK_KEYWORD);
+    }
+    return (setError("Unexpected }", ctx, *this, SINTAX_ERROR), ctx.state);
 }
 
 ParserState Parser::keyword(Context& ctx)
