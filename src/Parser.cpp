@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/14 21:25:46 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/15 21:47:07 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,9 @@ Parser::Parser()
 	keywordDispatcher["allowed_methods"] = &Parser::parseAllowedMethods;
 	keywordDispatcher["autoindex"] = &Parser::parseAutoIndex;
 	keywordDispatcher["upload_store"] = &Parser::parseRoot;
+	keywordDispatcher["return"] = &Parser::parseReturn;
+	keywordDispatcher["cgi_extension"] = &Parser::parseCGI;
+	keywordDispatcher["cgi_pass"] = &Parser::parseCGI;
 }
 
 Parser::~Parser()
@@ -79,6 +82,7 @@ ParserState	Parser::blockKeyWord(Context& ctx)
 	}
 	if (tokens[tokenIndex].value == "location")
 	{
+		locationConfig = LocationConfig();
 		++tokenIndex;
 		if (tokens[tokenIndex].value[0] == '/')
 		{
@@ -286,5 +290,57 @@ ParserState	Parser::parseAutoIndex(Context& ctx)
 			locationConfig.autoindex = false;
 		locationConfig.autoindex = true;
 	}
+	return (checkNextElement(ctx, *this));
+}
+
+ParserState	Parser::parseReturn(Context& ctx)
+{
+	int	code;
+
+	if (checkNextValue(*this, ctx, SINTAX_ERROR, "Code and direction expected"))
+		return (ctx.state);
+	++tokenIndex;
+	ctx.currentWord = ctx.tokens[tokenIndex].value;
+	if (ctx.currentWord.size() != 3)
+		return (setError("RETURN: terms must have only three digits",
+			ctx, *this, SINTAX_ERROR), ctx.state);
+	for (unsigned int i = 0; i < ctx.currentWord.size(); i++)
+	{
+		if (!isdigit(ctx.currentWord[i]))
+			return (setError("RETURN: code must have numbers only",
+				ctx, *this, SINTAX_ERROR), ctx.state);
+	}
+	code = std::atoi(ctx.currentWord.c_str());
+	if (code < 300 || code > 599)
+		return (setError("RETURN: code value not valid",
+			ctx, *this, SINTAX_ERROR), ctx.state);
+	locationConfig.redirectCode = code;
+	++tokenIndex;
+	ctx.currentWord = ctx.tokens[tokenIndex].value;
+	if (ctx.currentWord[0] == '/')
+		locationConfig.redirect = ctx.currentWord;
+	else
+		return (setError("RETURN: path is not valid", ctx, *this, SINTAX_ERROR), ctx.state);
+	return (checkNextElement(ctx, *this));
+}
+
+ParserState	Parser::parseCGI(Context& ctx)
+{
+	std::string::size_type	separator;
+	std::string				criteria;
+
+	if (checkNextValue(*this, ctx, SINTAX_ERROR, "CGI incomplete: extension and pass required"))
+		return (ctx.state);
+	
+	separator = ctx.currentWord.find("_");
+	if (!separator)
+		return (setError("CGI: the character '_' must be present",
+			ctx, *this, SINTAX_ERROR), ctx.state);
+	criteria = ctx.currentWord.substr(separator + 1);
+	++tokenIndex;
+	if (criteria == "extension" && ctx.tokens[tokenIndex].value == ".py")
+		locationConfig.cgiExtension = ctx.tokens[tokenIndex].value;
+	if (criteria == "pass" && ctx.tokens[tokenIndex].value[0] == '/')
+		locationConfig.cgiPass = ctx.tokens[tokenIndex].value;
 	return (checkNextElement(ctx, *this));
 }
