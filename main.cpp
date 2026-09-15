@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/15 23:01:44 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/15 23:04:01 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,7 +49,6 @@ int main(int ac, char *av[])
 		stateMachine.addTransition(DIRECTIVE, DIRECTIVE_EVENT, &Parser::keyword);
 		stateMachine.addTransition(SINTAX_ERROR, END_EVENT, &Parser::error);
 		stateMachine.addTransition(ERROR_STATE, END_EVENT, &Parser::error);
-		stateMachine.addTransition(END, END_EVENT, &Parser::error);
 		state = stateMachine.getCurrentState();
 		while (state != END)
 		{
