@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/15 22:56:42 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/15 23:17:15 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,9 +58,12 @@ ParserState	Parser::balance(Context& ctx)
 		else if (tokens[i].value == "}")
 		{
 			counter--;
-			if (counter < 0)
-				return (setError("Bracets are not balanced",
-					ctx, *this, SINTAX_ERROR), ctx.state);
+			if (i == tokens.size() - 1)
+			{
+				if (counter != 0)
+					return (setError("Bracets are not balanced",
+						ctx, *this, SINTAX_ERROR), ctx.state);
+			}
 		}
 	}
 	return (BLOCK_KEYWORD);
