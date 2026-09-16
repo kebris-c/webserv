@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/13 18:44:51 by kjroydev          #+#    #+#             */
-/*   Updated: 2026/09/16 14:28:30 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/16 14:52:47 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -184,6 +184,7 @@ int	checkFileExistence(const std::string& path, Context& ctx)
 {
 	struct stat	fileInfo;
 
+	
 	if (stat(path.c_str(), &fileInfo) == -1)
 		return (setError("FILE: does not exist", ctx, ERROR), 1);
 	if (!S_ISREG(fileInfo.st_mode))
@@ -195,6 +196,8 @@ int	checkDirectoryExistence(const std::string& path, Context& ctx)
 {
 	struct stat	fileInfo;
 
+	if (ctx.directoryExist[path])
+		return (0);
 	if (stat(path.c_str(), &fileInfo) == -1)
 		return (setError("DIRECTORY: does not exist", ctx, ERROR), 1);
 	if (!S_ISDIR(fileInfo.st_mode))

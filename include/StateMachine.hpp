@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 19:46:24 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/16 14:27:01 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/16 14:47:28 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,6 +44,7 @@ struct	Context
 	std::string			error;
 	std::string			currentWord;
 	std::vector<Token>	tokens;
+	std::map<std::string, bool>	directoryExist;
 	int					bracet;
 	int					lineNumber;
 };

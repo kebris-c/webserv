@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/16 14:28:58 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/16 15:18:06 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -93,7 +93,11 @@ ParserState	Parser::blockKeyWord(Context& ctx)
 		setTokenIndex(++tokenIndex, ctx);
 		if (tokens[tokenIndex].value[0] == '/')
 		{
+			if (tokens[tokenIndex].value.size() != 2
+				&& checkDirectoryExistence("www" + tokens[tokenIndex].value, ctx))
+				return (ctx.state);
 			locationConfig.path = tokens[tokenIndex].value;
+			ctx.directoryExist[tokens[tokenIndex].value] = true;
 			setTokenIndex(++tokenIndex, ctx);
 		}
 		return (LBRACET);
@@ -241,25 +245,36 @@ ParserState	Parser::parseError(Context& ctx)
 	if (!isValidHTML(ctx.currentWord.substr(letter + 1), ctx))
 		return (ctx.state);
 	location = ctx.currentWord;
+	if (checkDirectoryExistence("www", ctx)
+		&& checkFileExistence("www" + location, ctx))
+		return (ctx.state);
+	ctx.directoryExist["www"] = true;
 	serverContext.errorPages[errorCode] = location;
 	return (checkNextElement(ctx, *this));
 }
 
 ParserState	Parser::parseRoot(Context& ctx)
 {
+	std::string	root;
+
 	if (checkNextValue(ctx, SINTAX_ERROR, "Root definition expected"))
 		return (ctx.state);
 	setTokenIndex(++tokenIndex, ctx);
 	ctx.currentWord = ctx.tokens[tokenIndex].value;
 	if (!isValidRoot(ctx.currentWord, ctx))
 		return (ctx.state);
-	locationConfig.root = ctx.tokens[tokenIndex].value;
+	root = ctx.currentWord;
+	if (checkDirectoryExistence(root, ctx))
+		return (ctx.state);
+	locationConfig.root = root;
+	ctx.directoryExist[root] = true;
 	return (checkNextElement(ctx, *this));
 }
 
 ParserState	Parser::parseIndex(Context& ctx)
 {
 	std::string::size_type	dot;
+	std::string				extension;
 	std::string				htmlFile;
 
 	if (checkNextValue(ctx, SINTAX_ERROR, "Root definition expected"))
@@ -270,8 +285,11 @@ ParserState	Parser::parseIndex(Context& ctx)
 	if (dot == std::string::npos)
 		return (setError("The index does not have html format",
 			ctx, SINTAX_ERROR), ctx.state);
-	htmlFile = ctx.currentWord.substr(dot + 1);
-	if (!isValidHTML(htmlFile, ctx))
+	extension = ctx.currentWord.substr(dot + 1);
+	if (!isValidHTML(extension, ctx))
+		return (ctx.state);
+	htmlFile = ctx.currentWord;
+	if (checkFileExistence("www/" + htmlFile, ctx))
 		return (ctx.state);
 	locationConfig.index = ctx.currentWord;
 	return (checkNextElement(ctx, *this));
@@ -311,7 +329,8 @@ ParserState	Parser::parseAutoIndex(Context& ctx)
 	{
 		if (ctx.currentWord == "off")
 			locationConfig.autoindex = false;
-		locationConfig.autoindex = true;
+		else
+			locationConfig.autoindex = true;
 	}
 	return (checkNextElement(ctx, *this));
 }
@@ -354,6 +373,8 @@ ParserState	Parser::parseCGI(Context& ctx)
 
 	if (checkNextValue(ctx, SINTAX_ERROR, "CGI incomplete: extension and pass required"))
 		return (ctx.state);
+	setTokenIndex(tokenIndex, ctx);
+	ctx.currentWord = ctx.tokens[tokenIndex].value;
 	separator = ctx.currentWord.find("_");
 	if (!separator)
 		return (setError("CGI: the character '_' must be present",
@@ -363,6 +384,10 @@ ParserState	Parser::parseCGI(Context& ctx)
 	if (criteria == "extension" && ctx.tokens[tokenIndex].value == ".py")
 		locationConfig.cgiExtension = ctx.tokens[tokenIndex].value;
 	if (criteria == "pass" && ctx.tokens[tokenIndex].value[0] == '/')
+	{
+		if (checkFileExistence(ctx.tokens[tokenIndex].value, ctx))
+			return (ctx.state);
 		locationConfig.cgiPass = ctx.tokens[tokenIndex].value;
+	}
 	return (checkNextElement(ctx, *this));
 }
