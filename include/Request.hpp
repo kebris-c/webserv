@@ -17,7 +17,8 @@
 
 #include "Webserv.hpp"
 
-enum RequestParseState {
+enum RequestParseState
+{
 	REQ_LINE,
 	REQ_HEADERS,
 	REQ_BODY,
@@ -25,39 +26,47 @@ enum RequestParseState {
 	REQ_ERROR
 };
 
+enum	RequestParseEvent
+{
+	REQ_READ,
+	REQ_KEYWORD,
+	
+};
+
 class Request {
-public:
-	Request();
-	~Request();
+	private:
+		RequestParseState				_state;
+		std::string						_method;
+		std::string						_target;
+		std::string						_query;
+		std::string						_version;
+		std::map<std::string, std::string>	_headers;
+		std::string						_body;
+		std::size_t						_contentLength;
+		bool							_chunked;
+		int								_errorCode;
+	public:
+		Request();
+		~Request();
 
-	void	reset();
+		void	reset();
 
-	/* Feed available bytes; returns true when REQ_COMPLETE or REQ_ERROR. */
-	bool	parse(std::string &buffer);
+		/* Feed available bytes; returns true when REQ_COMPLETE or REQ_ERROR. */
+		bool	parse(std::string &buffer);
 
-	RequestParseState				state() const;
-	const std::string				&method() const;
-	const std::string				&target() const;		/* path (+ query later) */
-	const std::string				&query() const;
-	const std::string				&version() const;
-	const std::map<std::string, std::string>	&headers() const;
-	const std::string				&body() const;
-	int								errorCode() const;	/* if REQ_ERROR */
+		RequestParseState				state() const;
+		const std::string				&method() const;
+		const std::string				&target() const;		/* path (+ query later) */
+		const std::string				&query() const;
+		const std::string				&version() const;
+		const std::map<std::string, std::string>	&headers() const;
+		const std::string				&body() const;
+		int								errorCode() const;	/* if REQ_ERROR */
+		bool							feed(const std::string& data);
+		void							print();
 
-	/* Optional: case-insensitive header lookup. */
-	std::string	header(const std::string &name) const;
-
-private:
-	RequestParseState				_state;
-	std::string						_method;
-	std::string						_target;
-	std::string						_query;
-	std::string						_version;
-	std::map<std::string, std::string>	_headers;
-	std::string						_body;
-	std::size_t						_contentLength;
-	bool							_chunked;
-	int								_errorCode;
+		/* Optional: case-insensitive header lookup. */
+		std::string	header(const std::string &name) const;
 
 	/*
 	 * PSEUDOCODE — OWNER kmarrero
