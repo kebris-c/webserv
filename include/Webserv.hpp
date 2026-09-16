@@ -21,6 +21,8 @@
 #include <cstring>
 #include <cerrno>
 #include <ctime>
+#include <memory>
+#include <stdexcept>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -50,10 +52,11 @@
 #endif
 
 /* Forward declarations — flesh out in owning headers. */
-class Config;
-class Server;
-class Connection;
-class Request;
-class Response;
+class	Config;
+class	Server;
+class	Connection;
+class	Request;
+class	Response;
+class	Parser;
 
 #endif /* WEBSERV_HPP */
