@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/16 15:18:06 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/16 15:37:16 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,6 +38,11 @@ Parser::~Parser()
 int	Parser::getTokenIndex()
 {
 	return (this->tokenIndex);
+}
+
+std::vector<ServerConfig>	Parser::getServer()
+{
+	return (this->servers);
 }
 
 void	Parser::setTokenIndex(int index, Context& ctx)

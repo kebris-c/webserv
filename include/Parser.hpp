@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:21 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/16 13:58:13 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/16 15:36:35 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,6 +70,7 @@ class	Parser
 		ParserState	outsideBlock(Context& ctx);
 		ParserState	keyword(Context& ctx);
 		int			getTokenIndex();
+		std::vector<ServerConfig> getServer();
 		void		setTokenIndex(int index, Context& ctx);
 };
 

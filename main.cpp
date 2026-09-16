@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/16 14:31:09 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/16 15:37:25 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,6 +32,7 @@ int main(int ac, char *av[])
 	ParserEvent			event;
 	Parser				parser;
 	StateMachine		stateMachine(START);
+	std::vector<ServerConfig>	servers;
 
 	ctx.bracet = 0;
 	ctx.lineNumber = 0;
@@ -59,5 +60,6 @@ int main(int ac, char *av[])
 	}
 	if (ctx.error != "")
 		return (1);
+	servers = parser.getServer();
 	return (0);
 }
