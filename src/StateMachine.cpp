@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/08 15:52:43 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/15 22:59:14 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/16 13:21:04 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,7 +63,7 @@ void	StateMachine::handle(Context& ctx, Parser& parser, ParserEvent event)
 	ParserState	answer;
 
 	answer = (parser.*action.function)(ctx);
-	if (answer == SINTAX_ERROR)
+	if (answer == SINTAX_ERROR || answer == ERROR)
 	{
 		std::cerr << "In line "
 		<< ctx.tokens[ctx.lineNumber].lineNumber

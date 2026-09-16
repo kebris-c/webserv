@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/15 23:04:01 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/16 14:31:09 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,53 +14,50 @@
 #include "StateMachine.hpp"
 #include "Parser.hpp"
 
+void	transitions(StateMachine& stateMachine)
+{
+	stateMachine.addTransition(START, BALANCE, &Parser::balance);
+	stateMachine.addTransition(BLOCK_KEYWORD, BLOCK_KEYWORD_EVENT, &Parser::blockKeyWord);
+	stateMachine.addTransition(LBRACET, BEGIN_BLOCK, &Parser::insideBlock);
+	stateMachine.addTransition(RBRACET, CLOSE_BLOCK, &Parser::outsideBlock);
+	stateMachine.addTransition(DIRECTIVE, DIRECTIVE_EVENT, &Parser::keyword);	
+}
+
 int main(int ac, char *av[])
 {
-	Context	ctx;
-	ctx.lineNumber = 0;
+	Context				ctx;
+	std::ifstream		file;
+	Lexer				lexer;
+	ParserState			state;
+	ParserEvent			event;
+	Parser				parser;
+	StateMachine		stateMachine(START);
+
 	ctx.bracet = 0;
-
+	ctx.lineNumber = 0;
+	if (ac != 2)
 	{
-		std::ifstream       file;
-		Lexer               lexical_analisys;
-		std::vector<Token>  tokens;
-
-		if (ac != 2)
-		{
-			std::cout << "No valid use. You need to pass a .conf file" << std::endl;
-			return (1);
-		}
-		lexical_analisys.obtainInfile(file, av[1]);
-		if (lexical_analisys.tokenVectorization(file))
-			return (1);
-		tokens = lexical_analisys.getTokens();
-		ctx.tokens = tokens;
+		std::cout << "No valid use. You need to pass a .conf file" << std::endl;
+		return (1);
 	}
+	if (lexer.obtainInfile(file, av[1]))
+		return (1);
+	if (lexer.checkFileContent(file))
+		return (1);
+	if (lexer.tokenVectorization(file))
+		return (1);
+	ctx.tokens = lexer.getTokens();
+	transitions(stateMachine);
+	state = stateMachine.getCurrentState();
+	while (state != END)
 	{
-		StateMachine	stateMachine(START);
-		Parser			parser;
-		ParserState		state;
-		ParserEvent		event;
-	
-		stateMachine.addTransition(START, BALANCE, &Parser::balance);
-		stateMachine.addTransition(BLOCK_KEYWORD, BLOCK_KEYWORD_EVENT, &Parser::blockKeyWord);
-		stateMachine.addTransition(LBRACET, BEGIN_BLOCK, &Parser::insideBlock);
-		stateMachine.addTransition(RBRACET, CLOSE_BLOCK, &Parser::outsideBlock);
-		stateMachine.addTransition(DIRECTIVE, DIRECTIVE_EVENT, &Parser::keyword);
-		stateMachine.addTransition(SINTAX_ERROR, END_EVENT, &Parser::error);
-		stateMachine.addTransition(ERROR_STATE, END_EVENT, &Parser::error);
+		event = stateMachine.getNextEvent(state);
+		stateMachine.handle(ctx, parser, event);
 		state = stateMachine.getCurrentState();
-		while (state != END)
-		{
-			event = stateMachine.getNextEvent(state);
-			stateMachine.handle(ctx, parser, event);
-			state = stateMachine.getCurrentState();
-			ctx.lineNumber = parser.getTokenIndex();
-			if (state == SINTAX_ERROR)
-				break ;
-		}
-		if (ctx.error != "")
-			return (1);
-		return (0);
+		if (state == SINTAX_ERROR || state == ERROR)
+			break ;
 	}
+	if (ctx.error != "")
+		return (1);
+	return (0);
 }

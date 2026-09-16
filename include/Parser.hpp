@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:21 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/15 22:56:38 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/16 13:58:13 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,12 +45,12 @@ typedef ParserState	(Parser::*ParseAction)(Context&);
 class	Parser
 {
 	private:
-		std::vector<std::string>			keyWords;
 		std::vector<ServerConfig>			servers;
+		std::vector<std::string>			keyWords;
 		std::map<std::string, ParseAction>	keywordDispatcher;
-		int									tokenIndex;
 		ServerConfig						serverContext;
 		LocationConfig						locationConfig;
+		int									tokenIndex;
 		ParserState							parseRoot(Context& ctx);
 		ParserState							parseError(Context& ctx);
 		ParserState							parseIndex(Context& ctx);
@@ -69,10 +69,8 @@ class	Parser
 		ParserState	insideBlock(Context& ctx);
 		ParserState	outsideBlock(Context& ctx);
 		ParserState	keyword(Context& ctx);
-		ParserState	error(Context& ctx);
 		int			getTokenIndex();
-		int			getLocationIndex();
-		void		setTokenIndex(int tokenIndex);
+		void		setTokenIndex(int index, Context& ctx);
 };
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/03 18:15:01 by kjroydev          #+#    #+#             */
-/*   Updated: 2026/09/13 20:48:06 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/16 12:50:41 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,26 @@ Lexer::Lexer()
 	tokenTypeText[TOKEN_RBRACE] = "TOKEN_RBRACE";
 	tokenTypeText[TOKEN_WORD] = "TOKEN_WORD";
 	lineNumber = 1;
+}
+
+TokenType	Lexer::getTokenType(int vectorIndex)
+{
+	return (this->tokens.at(vectorIndex).type);
+}
+
+std::string	Lexer::getTokenValue(int vectorIndex)
+{
+	return (this->tokens.at(vectorIndex).value);
+}
+
+std::string	Lexer::getTokenTypeText(int vectorIndex)
+{
+	return (this->tokens.at(vectorIndex).typeText);
+}
+
+const std::vector<Token>&	Lexer::getTokens()
+{
+	return (this->tokens);
 }
 
 Lexer::Lexer(const Lexer& other)
@@ -41,13 +61,61 @@ Lexer&	Lexer::operator=(const Lexer& other)
 }
 
 Lexer::~Lexer()
+{}
+
+int	Lexer::obtainInfile(std::ifstream& file, const std::string& userConfig)
 {
-	std::cout << "Destructor of Lexer called" << std::endl;
+	if (userConfig.size() < 5
+		|| userConfig.substr(userConfig.size() - 5) != ".conf")
+	{
+		std::cerr << "Invalid type of file. Must be a .conf" << std::endl;
+		return (1);
+	}
+	file.open(userConfig.c_str());
+	if (!file)
+	{
+		std::cerr << "The given file does not exist" << std::endl;
+		return (1);
+	}
+	file.seekg(0, std::ios::end);
+	if (file.tellg() == 0)
+	{
+		std::cerr << "The configuration file is empty" << std::endl;
+		return (1);
+	}
+	file.seekg(0, std::ios::beg);
+	return (0);
 }
 
-void	Lexer::obtainInfile(std::ifstream& file, const std::string& userConfig) const
+void	Lexer::ignoreComments(std::ifstream& userConfig)
 {
-	file.open(userConfig.c_str());
+	char	c;
+
+	while (userConfig.get(c) && c != '\n')
+		;
+}
+
+int		Lexer::checkFileContent(std::ifstream& file)
+{
+	char	c;
+
+	while (file.get(c))
+	{
+		if (c == '#')
+		{
+			ignoreComments(file);
+			continue ;
+		}
+		if (c != ' ' && c != '\n' && c != '\r')
+		{
+			file.clear();
+			file.seekg(0, std::ios::beg);
+			return (0);
+		}
+	}
+	file.clear();
+	file.seekg(0, std::ios::beg);
+	return (1);
 }
 
 void	Lexer::saveInfoInVector()
@@ -101,14 +169,6 @@ bool	Lexer::checkSpecialTokens(char c)
 	return (this->specialTokens.find(c) != this->specialTokens.end());
 }
 
-void	Lexer::ignoreComments(std::ifstream& userConfig)
-{
-	char	c;
-
-	while (userConfig.get(c) && c != '\n')
-		;
-}
-
 int	Lexer::tokenVectorization(std::ifstream& userConfig)
 {
 	std::string	line;
@@ -148,24 +208,4 @@ int	Lexer::tokenVectorization(std::ifstream& userConfig)
 	}
 	userConfig.close();
 	return (0);
-}
-
-TokenType	Lexer::getTokenType(int vectorIndex)
-{
-	return (this->tokens.at(vectorIndex).type);
-}
-
-std::string	Lexer::getTokenValue(int vectorIndex)
-{
-	return (this->tokens.at(vectorIndex).value);
-}
-
-std::string	Lexer::getTokenTypeText(int vectorIndex)
-{
-	return (this->tokens.at(vectorIndex).typeText);
-}
-
-const std::vector<Token>&	Lexer::getTokens()
-{
-	return (this->tokens);
 }

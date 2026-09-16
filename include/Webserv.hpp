@@ -22,7 +22,6 @@
 #include <cerrno>
 #include <ctime>
 #include <memory>
-#include <cstdlib>
 #include <stdexcept>
 
 #include <sys/types.h>
