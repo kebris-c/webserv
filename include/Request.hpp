@@ -13,29 +13,14 @@
  * ************************************************************************** */
 
 #ifndef REQUEST_HPP
-#define REQUEST_HPP
+# define REQUEST_HPP
 
-#include "Webserv.hpp"
-
-enum RequestParseState
-{
-	REQ_LINE,
-	REQ_HEADERS,
-	REQ_BODY,
-	REQ_COMPLETE,
-	REQ_ERROR
-};
-
-enum	RequestParseEvent
-{
-	REQ_READ,
-	REQ_KEYWORD,
-	
-};
+# include "Webserv.hpp"
+# include "RStateMachine.hpp"
 
 class Request {
 	private:
-		RequestParseState				_state;
+		RequestState					_state;
 		std::string						_method;
 		std::string						_target;
 		std::string						_query;
@@ -54,7 +39,7 @@ class Request {
 		/* Feed available bytes; returns true when REQ_COMPLETE or REQ_ERROR. */
 		bool	parse(std::string &buffer);
 
-		RequestParseState				state() const;
+		RequestState					state() const;
 		const std::string				&method() const;
 		const std::string				&target() const;		/* path (+ query later) */
 		const std::string				&query() const;

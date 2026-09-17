@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   StateMachine.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 19:46:24 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/16 14:47:28 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/17 16:27:26 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,13 +40,13 @@ enum ParserEvent
 
 struct	Context
 {
-	ParserState			state;
-	std::string			error;
-	std::string			currentWord;
-	std::vector<Token>	tokens;
+	ParserState					state;
+	std::string					error;
+	std::string					currentWord;
+	std::vector<Token>			tokens;
 	std::map<std::string, bool>	directoryExist;
-	int					bracet;
-	int					lineNumber;
+	int							bracet;
+	int							lineNumber;
 };
 
 /**
@@ -80,20 +80,20 @@ typedef std::pair<ParserState, ParserEvent>	TransitionKey;
 class	StateMachine
 {
 	private:
-		ParserState	initialState;
-		ParserState	currentState;
+		ParserState						initialState;
+		ParserState						currentState;
 		std::map<TransitionKey, Action>	functions;
-		void	setCurrentState(ParserState state);
+		void							setCurrentState(ParserState state);
 	public:
 		StateMachine();
 		StateMachine(ParserState initialState);
 		StateMachine(const StateMachine& other);
 		~StateMachine();
-		void	addTransition(ParserState fromState,
-								ParserEvent event,
-								ActionFunction function);
-		Action	nextTransition(ParserState currentState, ParserEvent event);
-		void	handle(Context& ctx, Parser& parser, ParserEvent event);
+		void		addTransition(ParserState fromState,
+									ParserEvent event,
+									ActionFunction function);
+		Action		nextTransition(ParserState currentState, ParserEvent event);
+		void		handle(Context& ctx, Parser& parser, ParserEvent event);
 		ParserState	getCurrentState();
 		ParserEvent	getNextEvent(ParserState parser);
 };
