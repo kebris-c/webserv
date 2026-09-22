@@ -30,28 +30,30 @@ class Request {
 		std::map<std::string, std::string>	_headers;
 		bool								_chunked;
 		int									_errorCode;
+		std::vector<std::string>			split(const std::string& str, char delimeter);
+		std::vector<std::string>			headerSplit(const std::string& str, char delimeter);
+		void								parseTarget(std::string& target);
 	public:
 		Request();
 		~Request();
-
-		void	reset();
-
-		/* Feed available bytes; returns true when REQ_COMPLETE or REQ_ERROR. */
-		bool	parse(std::string &buffer);
-
-		RequestState					state() const;
-		const std::string				&method() const;
-		const std::string				&target() const;		/* path (+ query later) */
-		const std::string				&query() const;
-		const std::string				&version() const;
+		void										reset();
+		RequestState								requestLine(Context& ctx);
+		RequestState								requestHeader(Context& ctx);
+		void										setError(RequestState state, int errorCode);
+		RequestState								state() const;
+		const std::string							&method() const;
+		const std::string							&target() const;		/* path (+ query later) */
+		const std::string							&query() const;
+		const std::string							&version() const;
 		const std::map<std::string, std::string>	&headers() const;
-		const std::string				&body() const;
-		int								errorCode() const;	/* if REQ_ERROR */
-		bool							feed(const std::string& data);
-		void							print();
+		const std::string							&body() const;
+		int											errorCode() const;	/* if REQ_ERROR */
+		void										feed(const std::string& data, Context& ctx);
+		void										print(Context& ctx);
+		RequestState								getCurrentState();
 
 		/* Optional: case-insensitive header lookup. */
-		std::string	header(const std::string &name) const;
+		std::string									header(const std::string &name) const;
 
 	/*
 	 * PSEUDOCODE — OWNER kmarrero

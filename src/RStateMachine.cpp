@@ -6,14 +6,14 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/17 17:07:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/17 17:44:36 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/22 18:21:20 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "RStateMachine.hpp"
 
 RStateMachine::RStateMachine()
-	:initialState(REQ_FEED)
+	:initialState(REQ_LINE), currentState(REQ_LINE)
 {}
 
 RStateMachine::RStateMachine(RequestState initialState)
@@ -35,6 +35,11 @@ RequestState	RStateMachine::getCurrentState()
 	return (this->currentState);
 }
 
+void			RStateMachine::setCurrentState(RequestState state)
+{
+	this->currentState = state;
+}
+
 RequestEvent	RStateMachine::getNextEvent(RequestState fromState)
 {
 	switch (fromState)
@@ -42,7 +47,7 @@ RequestEvent	RStateMachine::getNextEvent(RequestState fromState)
 		case REQ_FEED:
 			return (REQ_READ);
 		case REQ_LINE:
-			return (REQ_KEYWORD);
+			return (REQ_GET_REQUEST);
 		default:
 			return (END_EVENT);
 	}
@@ -61,7 +66,6 @@ RStateMachine&	RStateMachine::operator=(const RStateMachine& other)
 
 void	RStateMachine::addTransition(RequestState fromState,
 										RequestEvent event,
-										RequestEvent toState,
 										ActionFunction function)
 {
 	TransitionKey	key = std::make_pair(fromState, event);

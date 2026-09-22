@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RStateMachine.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/17 16:31:07 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/22 12:53:54 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/22 19:32:09 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,8 @@ enum RequestState
 enum	RequestEvent
 {
 	REQ_READ,
-	REQ_KEYWORD,
+	REQ_GET_REQUEST,
+	REQ_GET_HEADERS,
 	END_EVENT
 };
 
@@ -63,7 +64,6 @@ class	RStateMachine
 		RStateMachine&	operator=(const RStateMachine& other);
 		void			addTransition(RequestState fromState,
 								RequestEvent event,
-								RequestEvent toState,
 								ActionFunction function);
 		Action			nextTransition(RequestState fromState, RequestEvent event);
 		void			handle(Context& ctx, Request& request, RequestEvent event);

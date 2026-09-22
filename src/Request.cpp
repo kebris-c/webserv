@@ -4,9 +4,10 @@
  * ************************************************************************** */
 
 #include "Request.hpp"
+#include "RequestUtils.hpp"
 
 Request::Request()
-	: _state(REQ_FEED), _contentLength(0), _chunked(false), _errorCode(0)
+	:_state(REQ_FEED), _contentLength(0), _chunked(false), _errorCode(0)
 {}
 
 Request::~Request()
@@ -26,15 +27,113 @@ void	Request::reset()
 	_errorCode = 0;
 }
 
-bool	Request::parse(std::string &buffer)
+RequestState	Request::getCurrentState()
 {
-	/*
-	 * TODO(kmarrero): incremental parser — see PSEUDOCODE in Request.hpp
-	 * INVESTIGATE: CRLF rules, header folding (you can reject obsolete folding),
-	 *              chunked coding, absolute-form targets from proxies (optional)
-	 */
-	(void)buffer;
-	return (false);
+	return (this->_state);
+}
+
+void	Request::print(Context& ctx)
+{
+	std::cout << ctx.buffer << std::endl;
+}
+
+void	Request::setError(RequestState state, int errorCode)
+{
+	_state = state;
+	_errorCode = errorCode;
+}
+
+void	Request::feed(const std::string& data, Context& ctx)
+{
+	ctx.buffer += data;
+}
+
+std::vector<std::string>	Request::split(const std::string& str, char delimiter)
+{
+	std::vector<std::string>	result;
+	std::string::size_type		start = 0;
+	std::string::size_type		pos;
+
+	while ((pos = str.find(delimiter, start)) != std::string::npos)
+	{
+		result.push_back(str.substr(start, pos - start));
+		start = pos + 1;
+	}
+	result.push_back(str.substr(start));
+	return (result);
+}
+
+void	Request::parseTarget(std::string& target)
+{
+	std::string::size_type	pos;
+
+	_query.clear();
+	pos = target.find("?");
+	if (pos != std::string::npos)
+		_query = target.substr(pos + 1);
+	else
+		return ;
+}
+
+RequestState	Request::requestLine(Context& ctx)
+{
+	std::string::size_type		pos;
+	std::vector<std::string>	line;
+	std::string					requestLine;
+
+	pos = ctx.buffer.find("\r\n");
+	requestLine = ctx.buffer.substr(0, pos);
+	line = split(requestLine, ' ');
+	if (line.size() != 3)
+		return (setError(REQ_ERROR, 400), REQ_ERROR);
+	_method = line[0];
+	if (!checkMethod(_method))
+		return (setError(REQ_ERROR, 400), REQ_ERROR);
+	_target = line[1];
+	if (!checkTarget(_target))
+		return (setError(REQ_ERROR, 400), REQ_ERROR);
+	parseTarget(_target);
+	_version = line[2];
+	if (!checkVersion(_version))
+		setError(REQ_ERROR, 400);
+	_state = REQ_HEADERS;
+	ctx.buffer.erase(0, pos + 2);
+	return (REQ_HEADERS);
+}
+
+std::vector<std::string>	headerSplit(const std::string& str)
+{
+	std::vector<std::string>	result;
+	std::string::size_type		start = 0;
+	std::string::size_type		pos;
+
+	while ((pos = str.find("\r\n", start)) != std::string::npos)
+	{
+		result.push_back(str.substr(start, pos - start));
+		start += pos + 2;
+	}
+	if (start < str.size())
+		result.push_back(str.substr(start));
+	return (result);
+}
+
+RequestState	Request::requestHeader(Context& ctx)
+{
+	std::string	name;
+	std::string	value;
+	std::string	headerLines;
+	std::vector<std::string> line;
+	std::string::size_type	pos;
+	std::string::size_type	colon;
+
+	pos = ctx.buffer.find("\r\n\r\n");
+	headerLines = ctx.buffer.substr(0, pos);
+	line = headerSplit(headerLines, ' ');
+	for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); ++it)
+	{
+		colon = it->find(":");
+		/** to be done */
+	}
 }
 
 RequestState	Request::state() const { return (_state); }
