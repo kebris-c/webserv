@@ -20,16 +20,16 @@
 
 class Request {
 	private:
-		RequestState					_state;
-		std::string						_method;
-		std::string						_target;
-		std::string						_query;
-		std::string						_version;
+		RequestState						_state;
+		std::string							_method;
+		std::string							_target;
+		std::string							_query;
+		std::string							_version;
+		std::string							_body;
+		std::size_t							_contentLength;
 		std::map<std::string, std::string>	_headers;
-		std::string						_body;
-		std::size_t						_contentLength;
-		bool							_chunked;
-		int								_errorCode;
+		bool								_chunked;
+		int									_errorCode;
 	public:
 		Request();
 		~Request();

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RStateMachine.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/17 16:31:07 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/17 17:44:39 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/22 12:53:54 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,12 +61,12 @@ class	RStateMachine
 		RStateMachine(const RStateMachine& other);
 		~RStateMachine();
 		RStateMachine&	operator=(const RStateMachine& other);
-		void	addTransition(RequestState fromState,
+		void			addTransition(RequestState fromState,
 								RequestEvent event,
 								RequestEvent toState,
 								ActionFunction function);
-		Action	nextTransition(RequestState fromState, RequestEvent event);
-		void	handle(Context& ctx, Request& request, RequestEvent event);
+		Action			nextTransition(RequestState fromState, RequestEvent event);
+		void			handle(Context& ctx, Request& request, RequestEvent event);
 		RequestState	getCurrentState();
 		RequestEvent	getNextEvent(RequestState fromState);
 };

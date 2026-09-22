@@ -6,15 +6,15 @@
 #include "Request.hpp"
 
 Request::Request()
-	: _state(REQ_LINE), _contentLength(0), _chunked(false), _errorCode(0)
-{
-}
+	: _state(REQ_FEED), _contentLength(0), _chunked(false), _errorCode(0)
+{}
 
-Request::~Request() {}
+Request::~Request()
+{}
 
 void	Request::reset()
 {
-	_state = REQ_LINE;
+	_state = REQ_FEED;
 	_method.clear();
 	_target.clear();
 	_query.clear();
@@ -37,7 +37,7 @@ bool	Request::parse(std::string &buffer)
 	return (false);
 }
 
-RequestParseState	Request::state() const { return (_state); }
+RequestState	Request::state() const { return (_state); }
 const std::string	&Request::method() const { return (_method); }
 const std::string	&Request::target() const { return (_target); }
 const std::string	&Request::query() const { return (_query); }
