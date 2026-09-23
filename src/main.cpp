@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/22 19:42:28 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/23 17:07:03 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,10 +24,14 @@ int	main()
 
 	stateMachine.addTransition(REQ_LINE, REQ_GET_REQUEST, &Request::requestLine);
 	stateMachine.addTransition(REQ_HEADERS, REQ_GET_HEADERS, &Request::requestHeader);
+	stateMachine.addTransition(REQ_BODY, REQ_GET_BODY, &Request::requestBody);
 	
 	while (ctx.state != REQ_LINE)
 	{
 		request.feed("GET /index.html HTTP/1.1\r\n", ctx);
+		request.feed("Host: localhost:8080\r\n", ctx);
+		request.feed("Transfer-Encoding: chunked\r\n", ctx);
+		request.feed("Connection: close\r\n", ctx);
 		request.feed("\r\n", ctx);
 		request.feed("hello", ctx);
 	}

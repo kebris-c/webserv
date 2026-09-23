@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RStateMachine.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/17 17:07:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/22 18:21:20 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/23 16:57:38 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,6 +48,10 @@ RequestEvent	RStateMachine::getNextEvent(RequestState fromState)
 			return (REQ_READ);
 		case REQ_LINE:
 			return (REQ_GET_REQUEST);
+		case REQ_HEADERS:
+			return (REQ_GET_HEADERS);
+		case REQ_BODY:
+			return (REQ_GET_BODY);
 		default:
 			return (END_EVENT);
 	}
@@ -85,7 +89,6 @@ Action	RStateMachine::nextTransition(RequestState fromState, RequestEvent event)
 		return (it->second);
 	else
 	{
-		std::cerr << "Invalid transition" << std::endl;
 		invalid.function = NULL;
 		return (invalid);
 	}
@@ -97,12 +100,17 @@ void	RStateMachine::handle(Context& ctx, Request& request, RequestEvent event)
 	RequestState	currentState = this->getCurrentState();
 	Action			action = this->nextTransition(currentState, event);
 
+	if (action.function == NULL)
+	{
+		std::cerr << "Invalid transition" << std::endl;
+		setCurrentState(REQ_ERROR);
+		return ;
+	}
 	answer = (request.*action.function)(ctx);
 	if (answer == REQ_ERROR)
 	{
-		std::cerr << "In the line: "
-		<< ctx.buffer
-		<<  " " << ctx.error << std::endl;
+		std::cerr << "In: " << ctx.buffer << std::endl;
+		std::cerr << ctx.error << std::endl;
 		setCurrentState(REQ_ERROR);
 	}
 	setCurrentState(answer);

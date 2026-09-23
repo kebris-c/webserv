@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/22 18:42:41 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/23 14:11:50 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/23 16:41:55 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,16 +14,8 @@
 
 bool	checkVersion(std::string& word)
 {
-	std::string::size_type	pos;
-	std::string				version;
-
-	pos = word.find("/");
-	version = word.substr(pos + 1);
-	for (size_t i = 0; i < version.size(); i++)
-	{
-		if (!isdigit(version[i]))
-			return (false);
-	}
+	if (word != "HTTP/1.1")
+		return (false);
 	return (true);
 }
 
@@ -65,14 +57,16 @@ bool	checkValueHeader(std::string& value, Context& ctx)
 
 	while (!value.empty() && (value[0] == ' ' || value[0] == '\t'))
 		value.erase(0, 1);
-	while (!value.empty() && (value[value.size() - 1] == ' ' || value[value.size() - 1 == '\t']))
-		value.erase(value[value.size() - 1]);
+	while (!value.empty() && (value[value.size() - 1] == ' ' || value[value.size() - 1] == '\t'))
+		value.erase(value.size() - 1);
 	for (std::string::const_iterator it = value.begin(); it != value.end(); ++it)
 	{
 		c = static_cast<unsigned char>(*it);
 		if (c < 32 || c == 127)
-		ctx.error += "Header value contains invalid characters";
-		return (false);
+		{
+			ctx.error += "Header value contains invalid characters";
+			return (false);
+		}
 	}
 	return (true);
 }
@@ -81,9 +75,25 @@ RequestState	contentLenghtHeader(std::string& header, Context& ctx, Request& req
 {
 	for (size_t i = 0; i < header.size(); ++i)
 	{
-		if (!isalnum(header[i]))
+		if (!std::isdigit(static_cast<unsigned char>(header[i])))
 			return (request.setError("HEADER -> Content-Length: format not valid",
 					ctx, REQ_ERROR, 400), REQ_BODY);
 	}
-	
+	return (REQ_BODY);
+}
+
+RequestState	transferEncodingHeader(std::string& header, Context& ctx, Request& request)
+{
+	if (header == "chunked")
+		return (REQ_BODY);
+	return (request.setError("HEADER -> Transfer-Encoding: unsupported encoding",
+			ctx, REQ_ERROR, 400), REQ_ERROR);
+}
+
+RequestState	connectionHeader(std::string& header, Context& ctx, Request& request)
+{
+	if (header == "keep-alive" || header == "close")
+		return (REQ_BODY);
+	return (request.setError("Header -> Connection-Header: invalid status",
+			ctx, REQ_ERROR, 400), REQ_ERROR);
 }

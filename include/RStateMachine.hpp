@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RStateMachine.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/17 16:31:07 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/22 19:32:09 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/23 16:50:35 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,6 +30,9 @@ enum	RequestEvent
 	REQ_READ,
 	REQ_GET_REQUEST,
 	REQ_GET_HEADERS,
+	REQ_GET_BODY,
+	REQ_GET_VALUE,
+	REQ_GET_INFO,
 	END_EVENT
 };
 
@@ -38,6 +41,7 @@ struct	Context
 	RequestState	state;
 	std::string		buffer;
 	std::string		error;
+	std::string		line;
 };
 
 typedef	RequestState	(Request::*ActionFunction)(Context&);

@@ -54,6 +54,14 @@ void	Request::setError(std::string message, Context& ctx, RequestState state, in
 void	Request::feed(const std::string& data, Context& ctx)
 {
 	ctx.buffer += data;
+	if (ctx.buffer.find("\r\n\r\n") != std::string::npos)
+	{
+		ctx.state = REQ_LINE;
+		_state = REQ_LINE;
+		return ;
+	}
+	ctx.state = REQ_FEED;
+	_state = REQ_FEED;
 }
 
 std::vector<std::string>	Request::split(const std::string& str, char delimiter)
@@ -109,7 +117,7 @@ RequestState	Request::requestLine(Context& ctx)
 	return (REQ_HEADERS);
 }
 
-std::vector<std::string>	headerSplit(const std::string& str)
+std::vector<std::string>	Request::headerSplit(const std::string& str)
 {
 	std::vector<std::string>	result;
 	std::string::size_type		start = 0;
@@ -118,43 +126,47 @@ std::vector<std::string>	headerSplit(const std::string& str)
 	while ((pos = str.find("\r\n", start)) != std::string::npos)
 	{
 		result.push_back(str.substr(start, pos - start));
-		start += pos + 2;
+		start = pos + 2;
 	}
 	if (start < str.size())
 		result.push_back(str.substr(start));
 	return (result);
 }
 
-void	Request::parseHeaders(Context& ctx)
+RequestState	Request::parseHeaders(Context& ctx)
 {
-	RequestState	answer;
-	std::map<std::string, Function>::iterator	loc;
+	RequestState									answer;
+	std::map<std::string, Function>::iterator		loc;
 	std::map<std::string, std::string>::iterator	host;
 
 	host = _headers.find("Host");
 	if (host == _headers.end())
-	{
-		setError("HEADER: Host not found", ctx, REQ_ERROR, 400);
-		return ;
-	}
+		return (setError("HEADER: Host not found",
+				ctx, REQ_ERROR, 400), REQ_ERROR);
 	for (std::map<std::string, std::string>::iterator it = _headers.begin();
 			it != _headers.end(); ++it)
 	{
-		loc = headerHelpers.find(_headers[it->first]);
+		loc = headerHelpers.find(it->first);
 		if (loc == headerHelpers.end())
 			continue ;
-		answer = loc->second(it->second, ctx);
+		answer = loc->second(it->second, ctx, *this);
+		if (answer != REQ_ERROR)
+			continue ;
+		else
+			break ;
 	}
+	return (answer);
 }
 
 RequestState	Request::requestHeader(Context& ctx)
 {
-	std::string	name;
-	std::string	value;
-	std::string	headerLines;
-	std::vector<std::string> line;
-	std::string::size_type	pos;
-	std::string::size_type	colon;
+	std::string					name;
+	std::string					value;
+	std::string					headerLines;
+	std::vector<std::string>	line;
+	std::string::size_type		pos;
+	std::string::size_type		colon;
+	RequestState				answer;
 
 	pos = ctx.buffer.find("\r\n\r\n");
 	headerLines = ctx.buffer.substr(0, pos);
@@ -162,8 +174,14 @@ RequestState	Request::requestHeader(Context& ctx)
 	for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); ++it)
 	{
 		colon = it->find(":");
-		if (colon == 0 || (*it)[colon - 1] == ' ' || colon == std::string::npos)
+		if (colon == std::string::npos)
 			return (setError("HEADER: colon (:) not found", ctx, REQ_ERROR, 400), REQ_ERROR);
+		if (colon == 0)
+			return (setError("HEADER: colon (:) not found", ctx, REQ_ERROR, 400), REQ_ERROR);
+		if ((*it)[colon - 1] == ' ')
+			return (setError("HEADER: extra space not valid", ctx, REQ_ERROR, 400), REQ_ERROR);
+		if ((*it)[colon - 1] == '\t')
+			return (setError("HEADER: invalir character", ctx, REQ_ERROR, 400), REQ_ERROR);
 		name = it->substr(0, colon);
 		if (!checkNameHeader(name, ctx))
 			return (setError("HEADER NAME: ", ctx, REQ_ERROR, 400), REQ_ERROR);
@@ -172,8 +190,28 @@ RequestState	Request::requestHeader(Context& ctx)
 			return (setError("HEADER VALUE: ", ctx, REQ_ERROR, 400), REQ_ERROR);
 		_headers[name] = value;
 	}
-	parseHeaders(ctx);
-	return (REQ_BODY);
+	answer = parseHeaders(ctx);
+	if (answer == REQ_ERROR)
+		return (answer);
+	ctx.buffer.erase(0, pos + 4);
+	return (answer);
+}
+
+RequestState	Request::requestBody(Context& ctx)
+{
+	(void)ctx;
+	return (REQ_COMPLETE);
+}
+
+bool	Request::parse(std::string &buffer)
+{
+	/*
+	 * TODO(kmarrero): incremental parser — see PSEUDOCODE in Request.hpp
+	 * INVESTIGATE: CRLF rules, header folding (you can reject obsolete folding),
+	 *              chunked coding, absolute-form targets from proxies (optional)
+	 */
+	(void)buffer;
+	return (false);
 }
 
 RequestState	Request::state() const { return (_state); }

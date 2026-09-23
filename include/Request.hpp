@@ -18,7 +18,7 @@
 # include "Webserv.hpp"
 # include "RStateMachine.hpp"
 
-typedef	RequestState	(*Function)(std::string&, Context&);
+typedef	RequestState	(*Function)(std::string&, Context&, Request&);
 
 class Request {
 	private:
@@ -36,13 +36,15 @@ class Request {
 		std::vector<std::string>			split(const std::string& str, char delimeter);
 		std::vector<std::string>			headerSplit(const std::string& str);
 		void								parseTarget(std::string& target);
-		void								parseHeaders(Context& ctx);
+		RequestState						parseHeaders(Context& ctx);
 	public:
 		Request();
 		~Request();
 		void										reset();
+		bool										parse(std::string &buffer);
 		RequestState								requestLine(Context& ctx);
 		RequestState								requestHeader(Context& ctx);
+		RequestState								requestBody(Context& ctx);
 		void										setError(std::string message, Context& ctx, RequestState state, int errorCode);
 		RequestState								state() const;
 		const std::string							&method() const;

@@ -7,7 +7,7 @@ NAME		= webserv
 # Subject: compile with c++ and -Wall -Wextra -Werror; must accept -std=c++98.
 # If your environment's `c++` is broken, override: make CXX=g++
 CXX			= c++
-CXXFLAGS	= -Wall -Wextra -Werror -std=c++98
+CXXFLAGS	= -Wall -Wextra -Werror -std=c++98 -g
 CPPFLAGS	= -Iinclude
 
 SRC_DIR		= src
