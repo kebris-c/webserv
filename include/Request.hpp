@@ -18,6 +18,8 @@
 # include "Webserv.hpp"
 # include "RStateMachine.hpp"
 
+typedef	RequestState	(*Function)(std::string&, Context&);
+
 class Request {
 	private:
 		RequestState						_state;
@@ -28,18 +30,20 @@ class Request {
 		std::string							_body;
 		std::size_t							_contentLength;
 		std::map<std::string, std::string>	_headers;
+		std::map<std::string, Function>		headerHelpers;
 		bool								_chunked;
 		int									_errorCode;
 		std::vector<std::string>			split(const std::string& str, char delimeter);
-		std::vector<std::string>			headerSplit(const std::string& str, char delimeter);
+		std::vector<std::string>			headerSplit(const std::string& str);
 		void								parseTarget(std::string& target);
+		void								parseHeaders(Context& ctx);
 	public:
 		Request();
 		~Request();
 		void										reset();
 		RequestState								requestLine(Context& ctx);
 		RequestState								requestHeader(Context& ctx);
-		void										setError(RequestState state, int errorCode);
+		void										setError(std::string message, Context& ctx, RequestState state, int errorCode);
 		RequestState								state() const;
 		const std::string							&method() const;
 		const std::string							&target() const;		/* path (+ query later) */

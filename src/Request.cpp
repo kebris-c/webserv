@@ -8,7 +8,11 @@
 
 Request::Request()
 	:_state(REQ_FEED), _contentLength(0), _chunked(false), _errorCode(0)
-{}
+{
+	headerHelpers["Content-Lenght"] = &contentLenghtHeader;
+	headerHelpers["Transfer-Encoding"] = &transferEncodingHeader;
+	headerHelpers["Connection"] = &connectionHeader;
+}
 
 Request::~Request()
 {}
@@ -37,10 +41,14 @@ void	Request::print(Context& ctx)
 	std::cout << ctx.buffer << std::endl;
 }
 
-void	Request::setError(RequestState state, int errorCode)
+void	Request::setError(std::string message, Context& ctx, RequestState state, int errorCode)
 {
 	_state = state;
 	_errorCode = errorCode;
+	if (ctx.error.empty())
+		ctx.error = message;
+	else
+		ctx.error = message + ctx.error;
 }
 
 void	Request::feed(const std::string& data, Context& ctx)
@@ -85,17 +93,17 @@ RequestState	Request::requestLine(Context& ctx)
 	requestLine = ctx.buffer.substr(0, pos);
 	line = split(requestLine, ' ');
 	if (line.size() != 3)
-		return (setError(REQ_ERROR, 400), REQ_ERROR);
+		return (setError("Invalid header", ctx, REQ_ERROR, 400), REQ_ERROR);
 	_method = line[0];
 	if (!checkMethod(_method))
-		return (setError(REQ_ERROR, 400), REQ_ERROR);
+		return (setError("No valid method", ctx, REQ_ERROR, 400), REQ_ERROR);
 	_target = line[1];
 	if (!checkTarget(_target))
-		return (setError(REQ_ERROR, 400), REQ_ERROR);
+		return (setError("Invalid target format", ctx, REQ_ERROR, 400), REQ_ERROR);
 	parseTarget(_target);
 	_version = line[2];
 	if (!checkVersion(_version))
-		setError(REQ_ERROR, 400);
+		return (setError("version error", ctx, REQ_ERROR, 400), REQ_ERROR);
 	_state = REQ_HEADERS;
 	ctx.buffer.erase(0, pos + 2);
 	return (REQ_HEADERS);
@@ -117,6 +125,28 @@ std::vector<std::string>	headerSplit(const std::string& str)
 	return (result);
 }
 
+void	Request::parseHeaders(Context& ctx)
+{
+	RequestState	answer;
+	std::map<std::string, Function>::iterator	loc;
+	std::map<std::string, std::string>::iterator	host;
+
+	host = _headers.find("Host");
+	if (host == _headers.end())
+	{
+		setError("HEADER: Host not found", ctx, REQ_ERROR, 400);
+		return ;
+	}
+	for (std::map<std::string, std::string>::iterator it = _headers.begin();
+			it != _headers.end(); ++it)
+	{
+		loc = headerHelpers.find(_headers[it->first]);
+		if (loc == headerHelpers.end())
+			continue ;
+		answer = loc->second(it->second, ctx);
+	}
+}
+
 RequestState	Request::requestHeader(Context& ctx)
 {
 	std::string	name;
@@ -128,12 +158,22 @@ RequestState	Request::requestHeader(Context& ctx)
 
 	pos = ctx.buffer.find("\r\n\r\n");
 	headerLines = ctx.buffer.substr(0, pos);
-	line = headerSplit(headerLines, ' ');
+	line = headerSplit(headerLines);
 	for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); ++it)
 	{
 		colon = it->find(":");
-		/** to be done */
+		if (colon == 0 || (*it)[colon - 1] == ' ' || colon == std::string::npos)
+			return (setError("HEADER: colon (:) not found", ctx, REQ_ERROR, 400), REQ_ERROR);
+		name = it->substr(0, colon);
+		if (!checkNameHeader(name, ctx))
+			return (setError("HEADER NAME: ", ctx, REQ_ERROR, 400), REQ_ERROR);
+		value = it->substr(colon + 1);
+		if (!checkValueHeader(value, ctx))
+			return (setError("HEADER VALUE: ", ctx, REQ_ERROR, 400), REQ_ERROR);
+		_headers[name] = value;
 	}
+	parseHeaders(ctx);
+	return (REQ_BODY);
 }
 
 RequestState	Request::state() const { return (_state); }

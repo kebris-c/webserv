@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RequestUtils.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/22 18:43:24 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/22 19:20:52 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/23 14:05:27 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,5 +19,10 @@
 bool	checkVersion(std::string& word);
 bool	checkMethod(std::string& word);
 bool	checkTarget(std::string& word);
+bool	checkNameHeader(std::string& name, Context& ctx);
+bool	checkValueHeader(std::string& value, Context& ctx);
+RequestState	contentLenghtHeader(std::string& header, Context& ctx);
+RequestState	transferEncodingHeader(std::string& header, Context& ctx);
+RequestState	connectionHeader(std::string& header, Context& ctx);
 
 #endif
