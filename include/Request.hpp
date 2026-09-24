@@ -33,8 +33,10 @@ class Request {
 		std::map<std::string, Function>		headerHelpers;
 		bool								_chunked;
 		int									_errorCode;
-		std::vector<std::string>			split(const std::string& str, char delimeter);
+		std::vector<std::string>			_chunkedBody;
+		std::vector<std::string>			bodyChunkConstruct(Context& ctx);
 		std::vector<std::string>			headerSplit(const std::string& str);
+		std::vector<std::string>			split(const std::string& str, char delimeter);
 		void								parseTarget(std::string& target);
 		RequestState						parseHeaders(Context& ctx);
 	public:

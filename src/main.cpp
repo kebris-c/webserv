@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/23 17:07:03 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/24 16:34:29 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,9 +31,17 @@ int	main()
 		request.feed("GET /index.html HTTP/1.1\r\n", ctx);
 		request.feed("Host: localhost:8080\r\n", ctx);
 		request.feed("Transfer-Encoding: chunked\r\n", ctx);
-		request.feed("Connection: close\r\n", ctx);
 		request.feed("\r\n", ctx);
-		request.feed("hello", ctx);
+		request.feed("4\r\n", ctx);
+		request.feed("Wiki\r\n", ctx);
+		request.feed("5\r\n", ctx);
+		request.feed("pedia\r\n", ctx);
+		request.feed("E\r\n", ctx);
+		request.feed(" in\r\n", ctx);
+		request.feed("\r\n", ctx);
+		request.feed("chunks.\r\n", ctx);
+		request.feed("0\r\n", ctx);
+		request.feed("\r\n", ctx);
 	}
 	state = stateMachine.getCurrentState();
 	while (state != REQ_COMPLETE)

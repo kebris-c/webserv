@@ -56,6 +56,13 @@ void	Request::feed(const std::string& data, Context& ctx)
 	ctx.buffer += data;
 	if (ctx.buffer.find("\r\n\r\n") != std::string::npos)
 	{
+		if (ctx.buffer.find("Transfer-Encoding") != std::string::npos
+			&& ctx.buffer.find("0\r\n\r\n") == std::string::npos)
+		{
+			ctx.state = REQ_FEED;
+			_state = REQ_FEED;
+			return ;
+		}
 		ctx.state = REQ_LINE;
 		_state = REQ_LINE;
 		return ;
@@ -197,9 +204,57 @@ RequestState	Request::requestHeader(Context& ctx)
 	return (answer);
 }
 
+std::vector<std::string>	Request::bodyChunkConstruct(Context& ctx)
+{
+	std::vector<std::string>	body;
+	std::string					info;
+	std::string					chunkSize;
+	const std::string			hex = "0123456789abcdefABCDEF";
+	std::string::size_type		pos;
+	std::string::size_type		dataEnd;
+	std::string::size_type		start = 0;
+	std::string::size_type		dataStart;
+
+	while ((pos = ctx.buffer.find("\r\n", start)) != std::string::npos)
+	{
+		chunkSize = ctx.buffer.substr(start, pos - start);
+		if (chunkSize.empty())
+			break ;
+		for (std::string::size_type i; i < hex.size(); i++)
+		{
+			if (hex.find(chunkSize[i]) == std::string::npos)
+				return (body);
+		}
+		if (chunkSize == "0")
+			break ;
+		dataStart = pos + 2;
+		std::stringstream	ss;
+		std::size_t			size;
+		ss << std::hex << chunkSize;
+		ss >> size;
+		if (dataStart + size > ctx.buffer.size())
+			break ;
+		info = ctx.buffer.substr(dataStart, size);
+		body.push_back(info);
+		dataEnd = dataStart +size;
+		if (ctx.buffer.substr(dataEnd, 2) != "\r\n")
+			break ;
+		start = dataEnd + 2;
+	}
+	return (body);
+}
+
 RequestState	Request::requestBody(Context& ctx)
 {
-	(void)ctx;
+	std::map<std::string, std::string>::iterator	it;
+
+	it = _headers.find("Transfer-Encoding");
+	if (it->second == "chunked")
+		_chunked = true;
+	if (_chunked)
+		_chunkedBody = bodyChunkConstruct(ctx);
+	else
+		_body = ctx.buffer;
 	return (REQ_COMPLETE);
 }
 
