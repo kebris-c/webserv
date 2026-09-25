@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RStateMachine.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/17 16:31:07 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/23 16:50:35 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/25 17:42:06 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,7 @@ enum	RequestEvent
 	END_EVENT
 };
 
-struct	Context
+struct	RequestContext
 {
 	RequestState	state;
 	std::string		buffer;
@@ -44,11 +44,11 @@ struct	Context
 	std::string		line;
 };
 
-typedef	RequestState	(Request::*ActionFunction)(Context&);
+typedef	RequestState	(RequestParser::*RFunction)(RequestContext&, Request&);
 
 struct	Action
 {
-	ActionFunction	function;
+	RFunction	function;
 };
 
 typedef	std::pair<RequestState, RequestEvent>	TransitionKey;
@@ -68,9 +68,9 @@ class	RStateMachine
 		RStateMachine&	operator=(const RStateMachine& other);
 		void			addTransition(RequestState fromState,
 								RequestEvent event,
-								ActionFunction function);
+								RFunction function);
 		Action			nextTransition(RequestState fromState, RequestEvent event);
-		void			handle(Context& ctx, Request& request, RequestEvent event);
+		void			handle(RequestContext& ctx, RequestParser& parser, Request& request, RequestEvent event);
 		RequestState	getCurrentState();
 		RequestEvent	getNextEvent(RequestState fromState);
 };

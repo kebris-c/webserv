@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RequestUtils.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/22 18:42:41 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/23 16:41:55 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/25 18:23:33 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@ bool	checkVersion(std::string& word)
 	return (true);
 }
 
-bool	checkMethod(std::string& word)
+bool	checkMethod(const std::string& word)
 {
 	if (word != "GET" && word != "POST" && word != "DELETE")
 		return (false);
@@ -33,7 +33,7 @@ bool	checkTarget(std::string& word)
 	return (false);
 }
 
-bool	checkNameHeader(std::string& name, Context& ctx)
+bool	checkNameHeader(std::string& name, RequestContext& ctx)
 {
 	if (name.empty())
 	{
@@ -51,7 +51,7 @@ bool	checkNameHeader(std::string& name, Context& ctx)
 	return (true);
 }
 
-bool	checkValueHeader(std::string& value, Context& ctx)
+bool	checkValueHeader(std::string& value, RequestContext& ctx)
 {
 	unsigned char	c;
 
@@ -71,18 +71,41 @@ bool	checkValueHeader(std::string& value, Context& ctx)
 	return (true);
 }
 
-RequestState	contentLenghtHeader(std::string& header, Context& ctx, Request& request)
+void	prepareTarget(const std::string& target, Request& request)
 {
+	std::string::size_type	pos;
+	std::string	objective;
+
+	pos = target.find("?");
+	if (pos != std::string::npos)
+	{
+		objective = target.substr(pos + 1);
+		request.setQuery(objective);
+	}
+	else
+		return ;
+}
+
+RequestState	contentLengthHeader(const std::string& header, RequestContext& ctx, Request& request)
+{
+	unsigned long	value;
+	char			*end;
+	errno = 0;
+
 	for (size_t i = 0; i < header.size(); ++i)
 	{
 		if (!std::isdigit(static_cast<unsigned char>(header[i])))
 			return (request.setError("HEADER -> Content-Length: format not valid",
 					ctx, REQ_ERROR, 400), REQ_BODY);
 	}
+	value = std::strtoul(header.c_str(), &end, 10);
+	if (errno == ERANGE || *end != '\0')
+		return (request.setError("Content-Length VALUE -> there was an error in value",
+			ctx, REQ_ERROR, 400), REQ_ERROR);
 	return (REQ_BODY);
 }
 
-RequestState	transferEncodingHeader(std::string& header, Context& ctx, Request& request)
+RequestState	transferEncodingHeader(const std::string& header, RequestContext& ctx, Request& request)
 {
 	if (header == "chunked")
 		return (REQ_BODY);
@@ -90,7 +113,7 @@ RequestState	transferEncodingHeader(std::string& header, Context& ctx, Request& 
 			ctx, REQ_ERROR, 400), REQ_ERROR);
 }
 
-RequestState	connectionHeader(std::string& header, Context& ctx, Request& request)
+RequestState	connectionHeader(const std::string& header, RequestContext& ctx, Request& request)
 {
 	if (header == "keep-alive" || header == "close")
 		return (REQ_BODY);

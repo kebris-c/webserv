@@ -18,8 +18,6 @@
 # include "Webserv.hpp"
 # include "RStateMachine.hpp"
 
-typedef	RequestState	(*Function)(std::string&, Context&, Request&);
-
 class Request {
 	private:
 		RequestState						_state;
@@ -30,24 +28,26 @@ class Request {
 		std::string							_body;
 		std::size_t							_contentLength;
 		std::map<std::string, std::string>	_headers;
-		std::map<std::string, Function>		headerHelpers;
 		bool								_chunked;
 		int									_errorCode;
 		std::vector<std::string>			_chunkedBody;
-		std::vector<std::string>			bodyChunkConstruct(Context& ctx);
-		std::vector<std::string>			headerSplit(const std::string& str);
-		std::vector<std::string>			split(const std::string& str, char delimeter);
-		void								parseTarget(std::string& target);
-		RequestState						parseHeaders(Context& ctx);
 	public:
 		Request();
 		~Request();
 		void										reset();
 		bool										parse(std::string &buffer);
-		RequestState								requestLine(Context& ctx);
-		RequestState								requestHeader(Context& ctx);
-		RequestState								requestBody(Context& ctx);
-		void										setError(std::string message, Context& ctx, RequestState state, int errorCode);
+		void										setCurrentState(RequestState state);
+		void										setError(std::string message, RequestContext& ctx, RequestState state, int errorCode);
+		void										setMethod(std::string& method);
+		void										setTarget(std::string& target);
+		void										setQuery(std::string& query);
+		void										setVersion(std::string& version);
+		void										setBody(std::string& body);
+		void										setContentLength(std::size_t& length);
+		void										setHeaders(std::string name, std::string value, RequestContext& ctx);
+		void										setChunked(bool& answer);
+		void										setErrorCode(int& code);
+		void										setChunkedBody(std::vector<std::string>& chunk);
 		RequestState								state() const;
 		const std::string							&method() const;
 		const std::string							&target() const;		/* path (+ query later) */
@@ -56,10 +56,9 @@ class Request {
 		const std::map<std::string, std::string>	&headers() const;
 		const std::string							&body() const;
 		int											errorCode() const;	/* if REQ_ERROR */
-		void										feed(const std::string& data, Context& ctx);
-		void										print(Context& ctx);
+		void										feed(const std::string& data, RequestContext& ctx);
+		void										print(RequestContext& ctx);
 		RequestState								getCurrentState();
-
 		/* Optional: case-insensitive header lookup. */
 		std::string									header(const std::string &name) const;
 

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RStateMachine.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/17 17:07:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/23 16:57:38 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/25 17:53:47 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,7 +70,7 @@ RStateMachine&	RStateMachine::operator=(const RStateMachine& other)
 
 void	RStateMachine::addTransition(RequestState fromState,
 										RequestEvent event,
-										ActionFunction function)
+										RFunction function)
 {
 	TransitionKey	key = std::make_pair(fromState, event);
 	Action			action;
@@ -94,7 +94,7 @@ Action	RStateMachine::nextTransition(RequestState fromState, RequestEvent event)
 	}
 }
 
-void	RStateMachine::handle(Context& ctx, Request& request, RequestEvent event)
+void	RStateMachine::handle(RequestContext& ctx, RequestParser& parser, Request& request, RequestEvent event)
 {
 	RequestState	answer;
 	RequestState	currentState = this->getCurrentState();
@@ -106,7 +106,7 @@ void	RStateMachine::handle(Context& ctx, Request& request, RequestEvent event)
 		setCurrentState(REQ_ERROR);
 		return ;
 	}
-	answer = (request.*action.function)(ctx);
+	answer = (parser.*action.function)(ctx, request);
 	if (answer == REQ_ERROR)
 	{
 		std::cerr << "In: " << ctx.buffer << std::endl;

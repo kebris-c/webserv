@@ -19,6 +19,7 @@
 #include <fstream>
 #include <cstdlib>
 #include <cstring>
+#include <climits>
 #include <cerrno>
 #include <ctime>
 #include <memory>
@@ -58,5 +59,7 @@ class	Connection;
 class	Request;
 class	Response;
 class	Parser;
+class	Request;
+class	RequestParser;
 
 #endif /* WEBSERV_HPP */

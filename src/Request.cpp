@@ -4,15 +4,11 @@
  * ************************************************************************** */
 
 #include "Request.hpp"
-#include "RequestUtils.hpp"
+#include "RequestParser.hpp"
 
 Request::Request()
 	:_state(REQ_FEED), _contentLength(0), _chunked(false), _errorCode(0)
-{
-	headerHelpers["Content-Lenght"] = &contentLenghtHeader;
-	headerHelpers["Transfer-Encoding"] = &transferEncodingHeader;
-	headerHelpers["Connection"] = &connectionHeader;
-}
+{}
 
 Request::~Request()
 {}
@@ -36,12 +32,26 @@ RequestState	Request::getCurrentState()
 	return (this->_state);
 }
 
-void	Request::print(Context& ctx)
+void	Request::setHeaders(std::string name, std::string value, RequestContext& ctx)
+{
+	if (_headers.find(name) == _headers.end())
+	{
+		_headers[name] = value;
+		return ;
+	}
+	else
+	{
+		setError("HEADER " + name + ": already exist in map", ctx, REQ_ERROR, 400);
+		return ;
+	}
+}
+
+void	Request::print(RequestContext& ctx)
 {
 	std::cout << ctx.buffer << std::endl;
 }
 
-void	Request::setError(std::string message, Context& ctx, RequestState state, int errorCode)
+void	Request::setError(std::string message, RequestContext& ctx, RequestState state, int errorCode)
 {
 	_state = state;
 	_errorCode = errorCode;
@@ -51,211 +61,17 @@ void	Request::setError(std::string message, Context& ctx, RequestState state, in
 		ctx.error = message + ctx.error;
 }
 
-void	Request::feed(const std::string& data, Context& ctx)
+void	Request::feed(const std::string& data, RequestContext& ctx)
 {
 	ctx.buffer += data;
 	if (ctx.buffer.find("\r\n\r\n") != std::string::npos)
 	{
-		if (ctx.buffer.find("Transfer-Encoding") != std::string::npos
-			&& ctx.buffer.find("0\r\n\r\n") == std::string::npos)
-		{
-			ctx.state = REQ_FEED;
-			_state = REQ_FEED;
-			return ;
-		}
 		ctx.state = REQ_LINE;
 		_state = REQ_LINE;
 		return ;
 	}
 	ctx.state = REQ_FEED;
 	_state = REQ_FEED;
-}
-
-std::vector<std::string>	Request::split(const std::string& str, char delimiter)
-{
-	std::vector<std::string>	result;
-	std::string::size_type		start = 0;
-	std::string::size_type		pos;
-
-	while ((pos = str.find(delimiter, start)) != std::string::npos)
-	{
-		result.push_back(str.substr(start, pos - start));
-		start = pos + 1;
-	}
-	result.push_back(str.substr(start));
-	return (result);
-}
-
-void	Request::parseTarget(std::string& target)
-{
-	std::string::size_type	pos;
-
-	_query.clear();
-	pos = target.find("?");
-	if (pos != std::string::npos)
-		_query = target.substr(pos + 1);
-	else
-		return ;
-}
-
-RequestState	Request::requestLine(Context& ctx)
-{
-	std::string::size_type		pos;
-	std::vector<std::string>	line;
-	std::string					requestLine;
-
-	pos = ctx.buffer.find("\r\n");
-	requestLine = ctx.buffer.substr(0, pos);
-	line = split(requestLine, ' ');
-	if (line.size() != 3)
-		return (setError("Invalid header", ctx, REQ_ERROR, 400), REQ_ERROR);
-	_method = line[0];
-	if (!checkMethod(_method))
-		return (setError("No valid method", ctx, REQ_ERROR, 400), REQ_ERROR);
-	_target = line[1];
-	if (!checkTarget(_target))
-		return (setError("Invalid target format", ctx, REQ_ERROR, 400), REQ_ERROR);
-	parseTarget(_target);
-	_version = line[2];
-	if (!checkVersion(_version))
-		return (setError("version error", ctx, REQ_ERROR, 400), REQ_ERROR);
-	_state = REQ_HEADERS;
-	ctx.buffer.erase(0, pos + 2);
-	return (REQ_HEADERS);
-}
-
-std::vector<std::string>	Request::headerSplit(const std::string& str)
-{
-	std::vector<std::string>	result;
-	std::string::size_type		start = 0;
-	std::string::size_type		pos;
-
-	while ((pos = str.find("\r\n", start)) != std::string::npos)
-	{
-		result.push_back(str.substr(start, pos - start));
-		start = pos + 2;
-	}
-	if (start < str.size())
-		result.push_back(str.substr(start));
-	return (result);
-}
-
-RequestState	Request::parseHeaders(Context& ctx)
-{
-	RequestState									answer;
-	std::map<std::string, Function>::iterator		loc;
-	std::map<std::string, std::string>::iterator	host;
-
-	host = _headers.find("Host");
-	if (host == _headers.end())
-		return (setError("HEADER: Host not found",
-				ctx, REQ_ERROR, 400), REQ_ERROR);
-	for (std::map<std::string, std::string>::iterator it = _headers.begin();
-			it != _headers.end(); ++it)
-	{
-		loc = headerHelpers.find(it->first);
-		if (loc == headerHelpers.end())
-			continue ;
-		answer = loc->second(it->second, ctx, *this);
-		if (answer != REQ_ERROR)
-			continue ;
-		else
-			break ;
-	}
-	return (answer);
-}
-
-RequestState	Request::requestHeader(Context& ctx)
-{
-	std::string					name;
-	std::string					value;
-	std::string					headerLines;
-	std::vector<std::string>	line;
-	std::string::size_type		pos;
-	std::string::size_type		colon;
-	RequestState				answer;
-
-	pos = ctx.buffer.find("\r\n\r\n");
-	headerLines = ctx.buffer.substr(0, pos);
-	line = headerSplit(headerLines);
-	for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); ++it)
-	{
-		colon = it->find(":");
-		if (colon == std::string::npos)
-			return (setError("HEADER: colon (:) not found", ctx, REQ_ERROR, 400), REQ_ERROR);
-		if (colon == 0)
-			return (setError("HEADER: colon (:) not found", ctx, REQ_ERROR, 400), REQ_ERROR);
-		if ((*it)[colon - 1] == ' ')
-			return (setError("HEADER: extra space not valid", ctx, REQ_ERROR, 400), REQ_ERROR);
-		if ((*it)[colon - 1] == '\t')
-			return (setError("HEADER: invalir character", ctx, REQ_ERROR, 400), REQ_ERROR);
-		name = it->substr(0, colon);
-		if (!checkNameHeader(name, ctx))
-			return (setError("HEADER NAME: ", ctx, REQ_ERROR, 400), REQ_ERROR);
-		value = it->substr(colon + 1);
-		if (!checkValueHeader(value, ctx))
-			return (setError("HEADER VALUE: ", ctx, REQ_ERROR, 400), REQ_ERROR);
-		_headers[name] = value;
-	}
-	answer = parseHeaders(ctx);
-	if (answer == REQ_ERROR)
-		return (answer);
-	ctx.buffer.erase(0, pos + 4);
-	return (answer);
-}
-
-std::vector<std::string>	Request::bodyChunkConstruct(Context& ctx)
-{
-	std::vector<std::string>	body;
-	std::string					info;
-	std::string					chunkSize;
-	const std::string			hex = "0123456789abcdefABCDEF";
-	std::string::size_type		pos;
-	std::string::size_type		dataEnd;
-	std::string::size_type		start = 0;
-	std::string::size_type		dataStart;
-
-	while ((pos = ctx.buffer.find("\r\n", start)) != std::string::npos)
-	{
-		chunkSize = ctx.buffer.substr(start, pos - start);
-		if (chunkSize.empty())
-			break ;
-		for (std::string::size_type i; i < hex.size(); i++)
-		{
-			if (hex.find(chunkSize[i]) == std::string::npos)
-				return (body);
-		}
-		if (chunkSize == "0")
-			break ;
-		dataStart = pos + 2;
-		std::stringstream	ss;
-		std::size_t			size;
-		ss << std::hex << chunkSize;
-		ss >> size;
-		if (dataStart + size > ctx.buffer.size())
-			break ;
-		info = ctx.buffer.substr(dataStart, size);
-		body.push_back(info);
-		dataEnd = dataStart +size;
-		if (ctx.buffer.substr(dataEnd, 2) != "\r\n")
-			break ;
-		start = dataEnd + 2;
-	}
-	return (body);
-}
-
-RequestState	Request::requestBody(Context& ctx)
-{
-	std::map<std::string, std::string>::iterator	it;
-
-	it = _headers.find("Transfer-Encoding");
-	if (it->second == "chunked")
-		_chunked = true;
-	if (_chunked)
-		_chunkedBody = bodyChunkConstruct(ctx);
-	else
-		_body = ctx.buffer;
-	return (REQ_COMPLETE);
 }
 
 bool	Request::parse(std::string &buffer)

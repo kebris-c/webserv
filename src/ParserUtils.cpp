@@ -3,22 +3,22 @@
 /*                                                        :::      ::::::::   */
 /*   ParserUtils.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/13 18:44:51 by kjroydev          #+#    #+#             */
-/*   Updated: 2026/09/16 14:52:47 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/25 17:47:19 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ParserUtils.hpp"
 
-void	setError(std::string message, Context& ctx, ParserState state)
+void	setError(std::string message, ParserContext& ctx, ParserState state)
 {
 	ctx.error = message +  " -> " + ctx.tokens[ctx.lineNumber].value;
 	ctx.state = state;
 }
 
-bool	isValidPort(std::string port, Context& ctx)
+bool	isValidPort(std::string port, ParserContext& ctx)
 {
 	int	number;
 
@@ -35,7 +35,7 @@ bool	isValidPort(std::string port, Context& ctx)
 	return (true);
 }
 
-bool	isValidIP(std::string ip, Context& ctx)
+bool	isValidIP(std::string ip, ParserContext& ctx)
 {
 	std::stringstream	ss(ip);
 	std::string			octect;
@@ -62,7 +62,7 @@ bool	isValidIP(std::string ip, Context& ctx)
 	return (count == 4);
 }
 
-bool	isValidErrorCode(std::string error, Context& ctx)
+bool	isValidErrorCode(std::string error, ParserContext& ctx)
 {
 	std::string::size_type	letter;
 
@@ -74,7 +74,7 @@ bool	isValidErrorCode(std::string error, Context& ctx)
 	return (true);
 }
 
-bool	isValidHTML(std::string htmlFileName, Context& ctx)
+bool	isValidHTML(std::string htmlFileName, ParserContext& ctx)
 {
 	if (htmlFileName.size() != 4)
 		return (setError("HTML: not valid extension format",
@@ -84,7 +84,7 @@ bool	isValidHTML(std::string htmlFileName, Context& ctx)
 	return (false);
 }
 
-bool	isValidRoot(std::string prefix, Context& ctx)
+bool	isValidRoot(std::string prefix, ParserContext& ctx)
 {
 	std::string::size_type	c;
 	std::string				word;
@@ -99,7 +99,7 @@ bool	isValidRoot(std::string prefix, Context& ctx)
 	return (false);
 }
 
-bool	isValidMethod(std::string method, Context& ctx)
+bool	isValidMethod(std::string method, ParserContext& ctx)
 {
 	for (unsigned int i = 0; i < method.size(); i++)
 	{
@@ -116,7 +116,7 @@ bool	isValidMethod(std::string method, Context& ctx)
 			ctx, SINTAX_ERROR), false);
 }
 
-std::string::size_type	isValidClientSize(std::string word, Context& ctx)
+std::string::size_type	isValidClientSize(std::string word, ParserContext& ctx)
 {
 	std::string::size_type	measure;
 
@@ -136,7 +136,17 @@ std::string::size_type	isValidClientSize(std::string word, Context& ctx)
 	return (measure);
 }
 
-int	checkEndFile(Context& ctx, ParserState state, std::string message)
+size_t	converToBytes(size_t number, char size)
+{
+	if (size == 'K')
+		number = number * 1024;
+	if (size == 'M')
+		number = number * 1024 * 1024;
+	if (size == 'G')
+		number = number * 1024 * 1024 * 1024;
+}
+
+int	checkEndFile(ParserContext& ctx, ParserState state, std::string message)
 {
 	unsigned int	i;
 
@@ -146,7 +156,7 @@ int	checkEndFile(Context& ctx, ParserState state, std::string message)
 	return (0);
 }
 
-int	checkNextValue(Context& ctx, ParserState state, std::string message)
+int	checkNextValue(ParserContext& ctx, ParserState state, std::string message)
 {
 	unsigned int	i;
 
@@ -156,7 +166,7 @@ int	checkNextValue(Context& ctx, ParserState state, std::string message)
 	return (0);
 }
 
-ParserState checkNextElement(Context& ctx, Parser& parser)
+ParserState checkNextElement(ParserContext& ctx, Parser& parser)
 {
 	int					tokenIndex;
 	std::vector<Token>& tokens = ctx.tokens;
@@ -180,7 +190,7 @@ ParserState checkNextElement(Context& ctx, Parser& parser)
 	return (DIRECTIVE);
 }
 
-int	checkFileExistence(const std::string& path, Context& ctx)
+int	checkFileExistence(const std::string& path, ParserContext& ctx)
 {
 	struct stat	fileInfo;
 
@@ -192,7 +202,7 @@ int	checkFileExistence(const std::string& path, Context& ctx)
 	return (0);
 }
 
-int	checkDirectoryExistence(const std::string& path, Context& ctx)
+int	checkDirectoryExistence(const std::string& path, ParserContext& ctx)
 {
 	struct stat	fileInfo;
 

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Parser.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:21 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/16 15:36:35 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/25 17:46:32 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,7 @@ struct	ServerConfig
 	std::vector<LocationConfig>	location;
 };
 
-typedef ParserState	(Parser::*ParseAction)(Context&);
+typedef ParserState	(Parser::*ParseAction)(ParserContext&);
 
 class	Parser
 {
@@ -51,27 +51,27 @@ class	Parser
 		ServerConfig						serverContext;
 		LocationConfig						locationConfig;
 		int									tokenIndex;
-		ParserState							parseRoot(Context& ctx);
-		ParserState							parseError(Context& ctx);
-		ParserState							parseIndex(Context& ctx);
-		ParserState							parseListen(Context& ctx);
-		ParserState							parseServerName(Context& ctx);
-		ParserState							parseClientSize(Context& ctx);
-		ParserState							parseAutoIndex(Context& ctx);
-		ParserState							parseAllowedMethods(Context& ctx);
-		ParserState							parseReturn(Context& ctx);
-		ParserState							parseCGI(Context& ctx);
+		ParserState							parseRoot(ParserContext& ctx);
+		ParserState							parseError(ParserContext& ctx);
+		ParserState							parseIndex(ParserContext& ctx);
+		ParserState							parseListen(ParserContext& ctx);
+		ParserState							parseServerName(ParserContext& ctx);
+		ParserState							parseClientSize(ParserContext& ctx);
+		ParserState							parseAutoIndex(ParserContext& ctx);
+		ParserState							parseAllowedMethods(ParserContext& ctx);
+		ParserState							parseReturn(ParserContext& ctx);
+		ParserState							parseCGI(ParserContext& ctx);
 	public:
 		Parser();
 		~Parser();
-		ParserState	balance(Context& ctx);
-		ParserState	blockKeyWord(Context& ctx);
-		ParserState	insideBlock(Context& ctx);
-		ParserState	outsideBlock(Context& ctx);
-		ParserState	keyword(Context& ctx);
+		ParserState	balance(ParserContext& ctx);
+		ParserState	blockKeyWord(ParserContext& ctx);
+		ParserState	insideBlock(ParserContext& ctx);
+		ParserState	outsideBlock(ParserContext& ctx);
+		ParserState	keyword(ParserContext& ctx);
 		int			getTokenIndex();
 		std::vector<ServerConfig> getServer();
-		void		setTokenIndex(int index, Context& ctx);
+		void		setTokenIndex(int index, ParserContext& ctx);
 };
 
 #endif

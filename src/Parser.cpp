@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Parser.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/16 15:37:16 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/25 17:46:10 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,13 +45,13 @@ std::vector<ServerConfig>	Parser::getServer()
 	return (this->servers);
 }
 
-void	Parser::setTokenIndex(int index, Context& ctx)
+void	Parser::setTokenIndex(int index, ParserContext& ctx)
 {
 	this->tokenIndex = index;
 	ctx.lineNumber = index;
 }
 
-ParserState	Parser::balance(Context& ctx)
+ParserState	Parser::balance(ParserContext& ctx)
 {
 	const std::vector<Token>&	tokens = ctx.tokens;
 	int							counter = 0;
@@ -75,7 +75,7 @@ ParserState	Parser::balance(Context& ctx)
 	return (BLOCK_KEYWORD);
 }
 
-ParserState	Parser::blockKeyWord(Context& ctx)
+ParserState	Parser::blockKeyWord(ParserContext& ctx)
 {
 	std::vector<Token>& tokens = ctx.tokens;
 
@@ -111,7 +111,7 @@ ParserState	Parser::blockKeyWord(Context& ctx)
 		ctx, SINTAX_ERROR), ctx.state);
 }
 
-ParserState	Parser::insideBlock(Context& ctx)
+ParserState	Parser::insideBlock(ParserContext& ctx)
 {
 	if (ctx.tokens[tokenIndex].value == "{")
 	{
@@ -131,7 +131,7 @@ ParserState	Parser::insideBlock(Context& ctx)
 		ctx, SINTAX_ERROR), ctx.state);
 }
 
-ParserState	Parser::outsideBlock(Context& ctx)
+ParserState	Parser::outsideBlock(ParserContext& ctx)
 {
     if (ctx.bracet == 2)
     {
@@ -154,7 +154,7 @@ ParserState	Parser::outsideBlock(Context& ctx)
     return (setError("Unexpected }", ctx, SINTAX_ERROR), ctx.state);
 }
 
-ParserState Parser::keyword(Context& ctx)
+ParserState Parser::keyword(ParserContext& ctx)
 {
 	std::map<std::string, ParseAction>::iterator it;
 	it = keywordDispatcher.find(ctx.tokens[tokenIndex].value);
@@ -168,7 +168,7 @@ ParserState Parser::keyword(Context& ctx)
 	return (this->*(it->second))(ctx);
 }
 
-ParserState	Parser::parseListen(Context& ctx)
+ParserState	Parser::parseListen(ParserContext& ctx)
 {
 	std::string				ip;
 	std::string				port;
@@ -194,7 +194,7 @@ ParserState	Parser::parseListen(Context& ctx)
 	return (checkNextElement(ctx, *this));
 }
 
-ParserState Parser::parseServerName(Context& ctx)
+ParserState Parser::parseServerName(ParserContext& ctx)
 {
 	if (checkNextValue(ctx, SINTAX_ERROR, "Servername is not defined"))
 		return (ctx.state);
@@ -204,9 +204,9 @@ ParserState Parser::parseServerName(Context& ctx)
 	return (checkNextElement(ctx, *this));
 }
 
-ParserState	Parser::parseClientSize(Context& ctx)
+ParserState	Parser::parseClientSize(ParserContext& ctx)
 {
-	int						number;
+	size_t					number;
 	char					sizeData;
 	std::string::size_type	measure;
 
@@ -222,11 +222,12 @@ ParserState	Parser::parseClientSize(Context& ctx)
 	if (sizeData != 'K' && sizeData != 'M' && sizeData != 'G')
 		return (setError("Invalid size unit",
 			ctx, SINTAX_ERROR), ctx.state);
+	number = convertToBytes(number, sizeData);
 	serverContext.clientMaxBodySize = number;
 	return (checkNextElement(ctx, *this));
 }
 
-ParserState	Parser::parseError(Context& ctx)
+ParserState	Parser::parseError(ParserContext& ctx)
 {
 	std::string::size_type	letter;
 	int						errorCode;
@@ -258,7 +259,7 @@ ParserState	Parser::parseError(Context& ctx)
 	return (checkNextElement(ctx, *this));
 }
 
-ParserState	Parser::parseRoot(Context& ctx)
+ParserState	Parser::parseRoot(ParserContext& ctx)
 {
 	std::string	root;
 
@@ -276,7 +277,7 @@ ParserState	Parser::parseRoot(Context& ctx)
 	return (checkNextElement(ctx, *this));
 }
 
-ParserState	Parser::parseIndex(Context& ctx)
+ParserState	Parser::parseIndex(ParserContext& ctx)
 {
 	std::string::size_type	dot;
 	std::string				extension;
@@ -300,7 +301,7 @@ ParserState	Parser::parseIndex(Context& ctx)
 	return (checkNextElement(ctx, *this));
 }
 
-ParserState	Parser::parseAllowedMethods(Context& ctx)
+ParserState	Parser::parseAllowedMethods(ParserContext& ctx)
 {
 	if (checkNextValue(ctx, SINTAX_ERROR, "Method definition expected"))
 		return (ctx.state);
@@ -318,7 +319,7 @@ ParserState	Parser::parseAllowedMethods(Context& ctx)
 	return (checkNextElement(ctx, *this));
 }
 
-ParserState	Parser::parseAutoIndex(Context& ctx)
+ParserState	Parser::parseAutoIndex(ParserContext& ctx)
 {
 	if (checkNextValue(ctx, SINTAX_ERROR, "Autoindex definition expected"))
 		return (ctx.state);
@@ -340,7 +341,7 @@ ParserState	Parser::parseAutoIndex(Context& ctx)
 	return (checkNextElement(ctx, *this));
 }
 
-ParserState	Parser::parseReturn(Context& ctx)
+ParserState	Parser::parseReturn(ParserContext& ctx)
 {
 	int	code;
 
@@ -371,7 +372,7 @@ ParserState	Parser::parseReturn(Context& ctx)
 	return (checkNextElement(ctx, *this));
 }
 
-ParserState	Parser::parseCGI(Context& ctx)
+ParserState	Parser::parseCGI(ParserContext& ctx)
 {
 	std::string::size_type	separator;
 	std::string				criteria;

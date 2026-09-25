@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   StateMachine.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/08 15:52:43 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/16 13:21:04 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/25 17:54:50 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@ StateMachine::~StateMachine()
 
 void	StateMachine::addTransition(ParserState fromState,
 								ParserEvent event,
-								ActionFunction function)
+								ParseFunction function)
 {
 	TransitionKey	key = std::make_pair(fromState, event);
 	Action			action;
@@ -56,7 +56,7 @@ Action	StateMachine::nextTransition(ParserState currentState, ParserEvent event)
 	}
 }
 
-void	StateMachine::handle(Context& ctx, Parser& parser, ParserEvent event)
+void	StateMachine::handle(ParserContext& ctx, Parser& parser, ParserEvent event)
 {
 	ParserState	currentState = getCurrentState();
 	Action		action = nextTransition(currentState, event);
