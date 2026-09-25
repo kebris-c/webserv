@@ -6,13 +6,13 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/22 18:42:41 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/25 18:23:33 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/25 21:17:31 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "RequestUtils.hpp"
 
-bool	checkVersion(std::string& word)
+bool	checkVersion(const std::string& word)
 {
 	if (word != "HTTP/1.1")
 		return (false);
@@ -26,7 +26,7 @@ bool	checkMethod(const std::string& word)
 	return (true);
 }
 
-bool	checkTarget(std::string& word)
+bool	checkTarget(const std::string& word)
 {
 	if (word[0] == '/')
 		return (true);

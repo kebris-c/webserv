@@ -21,6 +21,7 @@ SRCS		= \
 	$(SRC_DIR)/Connection.cpp \
 	$(SRC_DIR)/Request.cpp \
 	$(SRC_DIR)/RStateMachine.cpp \
+	$(SRC_DIR)/RequestParser.cpp \
 	$(SRC_DIR)/RequestUtils.cpp \
 	$(SRC_DIR)/Response.cpp \
 	$(SRC_DIR)/Router.cpp \

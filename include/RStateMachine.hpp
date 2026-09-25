@@ -6,7 +6,7 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/17 16:31:07 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/25 17:42:06 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/25 21:45:23 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,43 +22,43 @@ enum RequestState
 	REQ_HEADERS,
 	REQ_BODY,
 	REQ_COMPLETE,
-	REQ_ERROR
+	REQ_ERROR,
+	REQ_WAIT
 };
 
 enum	RequestEvent
 {
-	REQ_READ,
+	REQ_WAIT_INFO,
 	REQ_GET_REQUEST,
 	REQ_GET_HEADERS,
 	REQ_GET_BODY,
 	REQ_GET_VALUE,
 	REQ_GET_INFO,
-	END_EVENT
+	REQUEST_END_EVENT
 };
 
 struct	RequestContext
 {
-	RequestState	state;
 	std::string		buffer;
 	std::string		error;
 	std::string		line;
 };
 
-typedef	RequestState	(RequestParser::*RFunction)(RequestContext&, Request&);
+typedef	RequestState	(RequestParser::*RequestFunction)(RequestContext&, Request&);
 
-struct	Action
+struct	RequestAction
 {
-	RFunction	function;
+	RequestFunction	function;
 };
 
-typedef	std::pair<RequestState, RequestEvent>	TransitionKey;
+typedef	std::pair<RequestState, RequestEvent>	RequestTransitionKey;
 
 class	RStateMachine
 {
 	private:
 		RequestState	initialState;
 		RequestState	currentState;
-		std::map<TransitionKey, Action>	functions;
+		std::map<RequestTransitionKey, RequestAction>	functions;
 		void			setCurrentState(RequestState state);
 	public:
 		RStateMachine();
@@ -68,8 +68,8 @@ class	RStateMachine
 		RStateMachine&	operator=(const RStateMachine& other);
 		void			addTransition(RequestState fromState,
 								RequestEvent event,
-								RFunction function);
-		Action			nextTransition(RequestState fromState, RequestEvent event);
+								RequestFunction function);
+		RequestAction	nextTransition(RequestState fromState, RequestEvent event);
 		void			handle(RequestContext& ctx, RequestParser& parser, Request& request, RequestEvent event);
 		RequestState	getCurrentState();
 		RequestEvent	getNextEvent(RequestState fromState);

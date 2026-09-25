@@ -6,7 +6,7 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/07 19:46:24 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/25 17:45:02 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/25 20:31:32 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,7 @@ enum ParserEvent
 	BEGIN_BLOCK,
 	DIRECTIVE_EVENT,
 	CLOSE_BLOCK,
-	END_EVENT,
+	PARSER_END_EVENT,
 };
 
 struct	ParserContext
@@ -65,7 +65,7 @@ typedef ParserState	(Parser::*ParseFunction)(ParserContext&);
  * 
  * - ActionFunction: the function to execute during the transition.
  */
-struct Action
+struct ParseAction
 {
     ParseFunction  function; /** function to execute */
 };
@@ -75,14 +75,14 @@ struct Action
  * `enums`, servers as keys in order to find the corresponding Action
  * in the `std::map<TransitionKey, Action>`
  */
-typedef std::pair<ParserState, ParserEvent>	TransitionKey;
+typedef std::pair<ParserState, ParserEvent>	ParseTransitionKey;
 
 class	StateMachine
 {
 	private:
 		ParserState						initialState;
 		ParserState						currentState;
-		std::map<TransitionKey, Action>	functions;
+		std::map<ParseTransitionKey, ParseAction>	functions;
 		void							setCurrentState(ParserState state);
 	public:
 		StateMachine();
@@ -92,7 +92,7 @@ class	StateMachine
 		void		addTransition(ParserState fromState,
 									ParserEvent event,
 									ParseFunction function);
-		Action		nextTransition(ParserState currentState, ParserEvent event);
+		ParseAction		nextTransition(ParserState currentState, ParserEvent event);
 		void		handle(ParserContext& ctx, Parser& parser, ParserEvent event);
 		ParserState	getCurrentState();
 		ParserEvent	getNextEvent(ParserState parser);

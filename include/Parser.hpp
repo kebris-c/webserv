@@ -6,7 +6,7 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:21 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/25 17:46:32 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/25 21:02:52 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,14 +40,14 @@ struct	ServerConfig
 	std::vector<LocationConfig>	location;
 };
 
-typedef ParserState	(Parser::*ParseAction)(ParserContext&);
+typedef ParserState	(Parser::*ParseFunction)(ParserContext&);
 
 class	Parser
 {
 	private:
 		std::vector<ServerConfig>			servers;
 		std::vector<std::string>			keyWords;
-		std::map<std::string, ParseAction>	keywordDispatcher;
+		std::map<std::string, ParseFunction>	keywordDispatcher;
 		ServerConfig						serverContext;
 		LocationConfig						locationConfig;
 		int									tokenIndex;

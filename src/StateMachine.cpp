@@ -6,7 +6,7 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/08 15:52:43 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/25 17:54:50 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/25 20:31:53 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,18 +35,18 @@ void	StateMachine::addTransition(ParserState fromState,
 								ParserEvent event,
 								ParseFunction function)
 {
-	TransitionKey	key = std::make_pair(fromState, event);
-	Action			action;
+	ParseTransitionKey	key = std::make_pair(fromState, event);
+	ParseAction			action;
 
 	action.function = function;
 	functions[key] = action;
 }
 
-Action	StateMachine::nextTransition(ParserState currentState, ParserEvent event)
+ParseAction	StateMachine::nextTransition(ParserState currentState, ParserEvent event)
 {
-	TransitionKey	key = std::make_pair(currentState, event);
+	ParseTransitionKey	key = std::make_pair(currentState, event);
 
-	std::map<TransitionKey, Action>::iterator it = functions.find(key);
+	std::map<ParseTransitionKey, ParseAction>::iterator it = functions.find(key);
 	if (it != functions.end())
 		return (it->second);
 	else
@@ -59,7 +59,7 @@ Action	StateMachine::nextTransition(ParserState currentState, ParserEvent event)
 void	StateMachine::handle(ParserContext& ctx, Parser& parser, ParserEvent event)
 {
 	ParserState	currentState = getCurrentState();
-	Action		action = nextTransition(currentState, event);
+	ParseAction		action = nextTransition(currentState, event);
 	ParserState	answer;
 
 	answer = (parser.*action.function)(ctx);
@@ -99,6 +99,6 @@ ParserEvent StateMachine::getNextEvent(ParserState state)
 		case DIRECTIVE:
 			return (DIRECTIVE_EVENT);
 		default:
-			return (END_EVENT);
+			return (PARSER_END_EVENT);
 	}
 }

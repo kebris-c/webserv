@@ -6,14 +6,14 @@
 /*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/17 17:07:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/25 17:53:47 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/25 21:45:29 by kmarrero         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "RStateMachine.hpp"
 
 RStateMachine::RStateMachine()
-	:initialState(REQ_LINE), currentState(REQ_LINE)
+	:initialState(REQ_FEED), currentState(REQ_FEED)
 {}
 
 RStateMachine::RStateMachine(RequestState initialState)
@@ -45,7 +45,7 @@ RequestEvent	RStateMachine::getNextEvent(RequestState fromState)
 	switch (fromState)
 	{
 		case REQ_FEED:
-			return (REQ_READ);
+			return (REQ_WAIT_INFO);
 		case REQ_LINE:
 			return (REQ_GET_REQUEST);
 		case REQ_HEADERS:
@@ -53,7 +53,7 @@ RequestEvent	RStateMachine::getNextEvent(RequestState fromState)
 		case REQ_BODY:
 			return (REQ_GET_BODY);
 		default:
-			return (END_EVENT);
+			return (REQUEST_END_EVENT);
 	}
 }
 
@@ -70,21 +70,21 @@ RStateMachine&	RStateMachine::operator=(const RStateMachine& other)
 
 void	RStateMachine::addTransition(RequestState fromState,
 										RequestEvent event,
-										RFunction function)
+										RequestFunction function)
 {
-	TransitionKey	key = std::make_pair(fromState, event);
-	Action			action;
+	RequestTransitionKey	key = std::make_pair(fromState, event);
+	RequestAction			action;
 
 	action.function = function;
 	this->functions[key] = action;
 }
 
-Action	RStateMachine::nextTransition(RequestState fromState, RequestEvent event)
+RequestAction	RStateMachine::nextTransition(RequestState fromState, RequestEvent event)
 {
-	TransitionKey	key = std::make_pair(fromState, event);
-	Action			invalid;
+	RequestTransitionKey	key = std::make_pair(fromState, event);
+	RequestAction			invalid;
 
-	std::map<TransitionKey, Action>::iterator it = functions.find(key);
+	std::map<RequestTransitionKey, RequestAction>::iterator it = functions.find(key);
 	if (it != functions.end())
 		return (it->second);
 	else
@@ -98,7 +98,7 @@ void	RStateMachine::handle(RequestContext& ctx, RequestParser& parser, Request& 
 {
 	RequestState	answer;
 	RequestState	currentState = this->getCurrentState();
-	Action			action = this->nextTransition(currentState, event);
+	RequestAction	action = this->nextTransition(currentState, event);
 
 	if (action.function == NULL)
 	{

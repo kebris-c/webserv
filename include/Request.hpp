@@ -21,6 +21,8 @@
 class Request {
 	private:
 		RequestState						_state;
+		RequestContext						_ctx;
+		RStateMachine						_stateMachine;
 		std::string							_method;
 		std::string							_target;
 		std::string							_query;
@@ -56,7 +58,8 @@ class Request {
 		const std::map<std::string, std::string>	&headers() const;
 		const std::string							&body() const;
 		int											errorCode() const;	/* if REQ_ERROR */
-		void										feed(const std::string& data, RequestContext& ctx);
+		bool										feed(const std::string& data, RequestParser& parser);
+		bool										isComplete();
 		void										print(RequestContext& ctx);
 		RequestState								getCurrentState();
 		/* Optional: case-insensitive header lookup. */
