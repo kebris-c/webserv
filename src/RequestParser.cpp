@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RequestParser.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/25 16:17:35 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/25 22:53:44 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/27 16:30:06 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,10 +40,28 @@ std::vector<std::string>	RequestParser::requestSplit(const std::string& str, cha
 
 RequestState	RequestParser::checkFeed(RequestContext& ctx, Request& request)
 {
-	if (ctx.buffer.find("\r\n") == std::string::npos)
-		return (REQ_WAIT);
-	if (ctx.buffer.find("\r\n\r\n") == std::string::npos)
-		return (REQ_WAIT);
+	RequestState	state = request.getStateMachineState();
+	RequestState	requestState = request.getCurrentState();
+
+	if (state == requestState)
+	{
+		if (ctx.buffer.find("\r\n") != std::string::npos)
+			return (REQ_LINE);
+		else
+			return (REQ_WAIT);
+	}
+	else if (state == REQ_WAIT)
+	{
+		if (requestState == REQ_HEADERS)
+		{
+			if (ctx.buffer.find("\r\n\r\n") != std::string::npos)
+				return (REQ_HEADERS);
+			else if (ctx.buffer == "\r\n")
+				return (REQ_ERROR);
+			else
+				return (REQ_WAIT);
+		}
+	}
 	return (request.state());
 }
 

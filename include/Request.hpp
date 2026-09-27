@@ -37,7 +37,7 @@ class Request {
 		Request();
 		~Request();
 		void										reset();
-		bool										parse(std::string &buffer);
+		void										print(RequestContext& ctx);
 		void										setCurrentState(RequestState state);
 		void										setError(std::string message, RequestContext& ctx, RequestState state, int errorCode);
 		void										setMethod(std::string& method);
@@ -58,10 +58,11 @@ class Request {
 		const std::map<std::string, std::string>	&headers() const;
 		const std::string							&body() const;
 		int											errorCode() const;	/* if REQ_ERROR */
-		bool										feed(const std::string& data, RequestParser& parser);
 		bool										isComplete();
-		void										print(RequestContext& ctx);
+		bool										parse(std::string &buffer);
+		bool										feed(const std::string& data, RequestParser& parser);
 		RequestState								getCurrentState();
+		RequestState								getStateMachineState();
 		/* Optional: case-insensitive header lookup. */
 		std::string									header(const std::string &name) const;
 

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RStateMachine.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/17 17:07:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/25 21:45:29 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/27 15:05:13 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,6 +52,8 @@ RequestEvent	RStateMachine::getNextEvent(RequestState fromState)
 			return (REQ_GET_HEADERS);
 		case REQ_BODY:
 			return (REQ_GET_BODY);
+		case REQ_WAIT:
+			return (REQ_WAIT_INFO);
 		default:
 			return (REQUEST_END_EVENT);
 	}
@@ -98,6 +100,10 @@ void	RStateMachine::handle(RequestContext& ctx, RequestParser& parser, Request& 
 {
 	RequestState	answer;
 	RequestState	currentState = this->getCurrentState();
+
+	if (currentState == REQ_WAIT)
+		event = getNextEvent(currentState);
+
 	RequestAction	action = this->nextTransition(currentState, event);
 
 	if (action.function == NULL)

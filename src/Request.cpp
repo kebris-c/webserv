@@ -7,7 +7,7 @@
 #include "RequestParser.hpp"
 
 Request::Request()
-	:_state(REQ_LINE), _contentLength(0), _chunked(false), _errorCode(0)
+	:_state(REQ_FEED), _contentLength(0), _chunked(false), _errorCode(0)
 {
 	_stateMachine.addTransition(REQ_FEED, REQ_WAIT_INFO, &RequestParser::checkFeed);
 	_stateMachine.addTransition(REQ_WAIT, REQ_WAIT_INFO, &RequestParser::checkFeed);
@@ -24,7 +24,7 @@ void	Request::reset()
 	_ctx.buffer.clear();
 	_ctx.line.clear();
 	_ctx.error.clear();
-	_state = REQ_LINE;
+	_state = REQ_FEED;
 	_method.clear();
 	_target.clear();
 	_query.clear();
@@ -142,6 +142,11 @@ void	Request::print(RequestContext& ctx)
 RequestState	Request::getCurrentState()
 {
 	return (this->_state);
+}
+
+RequestState	Request::getStateMachineState()
+{
+	return (this->_stateMachine.getCurrentState());
 }
 
 bool	Request::parse(std::string &buffer)

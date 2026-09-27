@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RequestUtils.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/22 18:42:41 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/25 21:17:31 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/27 12:56:33 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -102,6 +102,7 @@ RequestState	contentLengthHeader(const std::string& header, RequestContext& ctx,
 	if (errno == ERANGE || *end != '\0')
 		return (request.setError("Content-Length VALUE -> there was an error in value",
 			ctx, REQ_ERROR, 400), REQ_ERROR);
+	request.setContentLength(value);
 	return (REQ_BODY);
 }
 
