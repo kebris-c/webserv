@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/25 16:05:56 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/27 14:54:39 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/28 15:57:46 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,8 +24,9 @@ class	RequestParser
 	private:
 		std::map<std::string, RequestHelpFunction>		headerHelpers;
 		std::vector<std::string>			requestSplit(const std::string& str, char delimeter);
-		std::vector<std::string>			headerSplit(const std::string& str);
+		std::vector<std::string>			headerBodySplit(Request& request);
 		RequestState						headersChecker(RequestContext& ctx, Request& request);
+		std::string							parseChunkedBody(std::vector<std::string>& phrases, Request& request);
 	public:
 		RequestParser();
 		~RequestParser();
@@ -33,7 +34,6 @@ class	RequestParser
 		RequestState						parseRequestLine(RequestContext& ctx, Request& request);
 		RequestState						parseRequestHeader(RequestContext& ctx, Request& request);
 		RequestState						parseRequestBody(RequestContext& ctx, Request& request);
-		std::vector<std::string>			bodyChunkConstruct(RequestContext& ctx);
 };
 
 #endif

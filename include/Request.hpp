@@ -57,12 +57,14 @@ class Request {
 		const std::string							&version() const;
 		const std::map<std::string, std::string>	&headers() const;
 		const std::string							&body() const;
+		const bool									&chunked() const;
 		int											errorCode() const;	/* if REQ_ERROR */
 		bool										isComplete();
 		bool										parse(std::string &buffer);
 		bool										feed(const std::string& data, RequestParser& parser);
 		RequestState								getCurrentState();
 		RequestState								getStateMachineState();
+		RequestContext								getContext();
 		/* Optional: case-insensitive header lookup. */
 		std::string									header(const std::string &name) const;
 

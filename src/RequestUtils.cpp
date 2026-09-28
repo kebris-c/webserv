@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/22 18:42:41 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/27 12:56:33 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/28 16:41:33 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -120,4 +120,21 @@ RequestState	connectionHeader(const std::string& header, RequestContext& ctx, Re
 		return (REQ_BODY);
 	return (request.setError("Header -> Connection-Header: invalid status",
 			ctx, REQ_ERROR, 400), REQ_ERROR);
+}
+
+std::string	obtainBodyInfo(Request& request)
+{
+	std::string::size_type	pos;
+	std::string				body;
+	RequestContext			ctx;
+
+	ctx = request.getContext();
+	if (request.chunked())
+	{
+		pos = ctx.buffer.find("0\r\n\r\n");
+		body = ctx.buffer.substr(0, pos);	
+	}
+	else
+		body = ctx.buffer.substr();
+	return (body);
 }

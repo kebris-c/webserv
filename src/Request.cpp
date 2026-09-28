@@ -84,10 +84,23 @@ void	Request::setContentLength(std::size_t& length)
 
 void	Request::setHeaders(std::string name, std::string value, RequestContext& ctx)
 {
+	std::map<std::string, std::string>::iterator it;
+
 	if (_headers.find(name) == _headers.end())
 	{
 		_headers[name] = value;
-		return ;
+		if ((it = _headers.find("Transfer-Encoding:")) != _headers.end())
+		{
+			if (it->second == "chunked")
+				_chunked = true;
+		}
+		else if ((it = _headers.find("Content-Length:")) != _headers.end())
+		{
+			if (it->second != "")
+				_chunked = false;
+		}
+		else
+			return ;
 	}
 	else
 	{
@@ -150,6 +163,11 @@ RequestState	Request::getStateMachineState()
 	return (this->_stateMachine.getCurrentState());
 }
 
+RequestContext	Request::getContext()
+{
+	return (this->_ctx);
+}
+
 bool	Request::parse(std::string &buffer)
 {
 	/*
@@ -166,6 +184,7 @@ const std::string	&Request::method() const { return (_method); }
 const std::string	&Request::target() const { return (_target); }
 const std::string	&Request::query() const { return (_query); }
 const std::string	&Request::version() const { return (_version); }
+const bool			&Request::chunked() const { return (_chunked); }
 const std::map<std::string, std::string>	&Request::headers() const { return (_headers); }
 const std::string	&Request::body() const { return (_body); }
 int	Request::errorCode() const { return (_errorCode); }
