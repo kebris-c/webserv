@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/22 18:42:41 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/28 16:41:33 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/28 20:15:53 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -122,7 +122,7 @@ RequestState	connectionHeader(const std::string& header, RequestContext& ctx, Re
 			ctx, REQ_ERROR, 400), REQ_ERROR);
 }
 
-std::string	obtainBodyInfo(Request& request)
+RequestState	obtainBodyInfo(Request& request)
 {
 	std::string::size_type	pos;
 	std::string				body;
@@ -132,9 +132,37 @@ std::string	obtainBodyInfo(Request& request)
 	if (request.chunked())
 	{
 		pos = ctx.buffer.find("0\r\n\r\n");
-		body = ctx.buffer.substr(0, pos);	
+		if (pos == std::string::npos)
+			return (REQ_WAIT);
+		body = ctx.buffer.substr(0, pos);
+		request.setBody(body);
 	}
 	else
+	{
+		pos = ctx.buffer.find("\r\n");
+		if (pos == std::string::npos)
+			return (REQ_WAIT);
 		body = ctx.buffer.substr();
-	return (body);
+		request.setBody(body);
+	}
+	return (REQ_BODY);
+}
+
+int	obtainHexValue(std::string& value)
+{
+	std::string	hex = "0123456789abcdefABCDEF";
+	int			hexValue = 0;
+	int			totalBytes = 0;
+
+	for (size_t j = 0; j < value.size(); ++j)
+	{
+		if (hex.find(value[j]) != std::string::npos)
+		{
+			std::stringstream	ss;
+			ss << std::hex << value[j];
+			ss >> hexValue;
+			totalBytes += hexValue;
+		}
+	}
+	return (totalBytes);
 }

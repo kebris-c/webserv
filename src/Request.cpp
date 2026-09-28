@@ -89,9 +89,9 @@ void	Request::setHeaders(std::string name, std::string value, RequestContext& ct
 	if (_headers.find(name) == _headers.end())
 	{
 		_headers[name] = value;
-		if ((it = _headers.find("Transfer-Encoding:")) != _headers.end())
+		if (name == "Transfer-Encoding")
 		{
-			if (it->second == "chunked")
+			if (value == "chunked")
 				_chunked = true;
 		}
 		else if ((it = _headers.find("Content-Length:")) != _headers.end())

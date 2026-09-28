@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/25 16:17:35 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/28 16:33:40 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/28 20:16:24 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,16 +45,7 @@ RequestState	RequestParser::checkFeed(RequestContext& ctx, Request& request)
 
  	if (state == REQ_WAIT || state == REQ_FEED)
 	{
-		if (requestState == REQ_HEADERS)
-		{
-			if (ctx.buffer.find("\r\n\r\n") != std::string::npos)
-				return (REQ_HEADERS);
-			else if (ctx.buffer == "\r\n")
-				return (REQ_ERROR);
-			else
-				return (REQ_WAIT);
-		}
-		else if (requestState == REQ_LINE)
+		if (requestState == REQ_LINE)
 		{
 			if (ctx.buffer.find("\r\n") != std::string::npos)
 				return (REQ_LINE);
@@ -62,6 +53,36 @@ RequestState	RequestParser::checkFeed(RequestContext& ctx, Request& request)
 				return (REQ_ERROR);
 			else
 				return (REQ_WAIT);
+		}
+		else if (requestState == REQ_HEADERS)
+		{
+			if (ctx.buffer == "\r\n")
+				return (REQ_ERROR);
+			else if (ctx.buffer.find("\r\n\r\n") != std::string::npos)
+				return (REQ_HEADERS);
+			else
+				return (REQ_WAIT);
+		}
+		else if (requestState == REQ_BODY)
+		{
+			if (request.chunked())
+			{
+				if (ctx.buffer == "\r\n")
+					return (REQ_ERROR);
+				else if (ctx.buffer.find("0\r\n\r\n") != std::string::npos)
+					return (REQ_BODY);
+				else
+					return (REQ_WAIT);
+			}
+			else
+			{
+				if (ctx.buffer == "\r\n")
+					return (REQ_ERROR);
+				else if (ctx.buffer.find("\r\n") != std::string::npos)
+					return (REQ_BODY);
+				else
+					return (REQ_WAIT);
+			}
 		}
 	}
 	return (request.state());
@@ -95,19 +116,19 @@ RequestState	RequestParser::parseRequestLine(RequestContext& ctx, Request& reque
 	return (request.state());
 }
 
-std::vector<std::string>	RequestParser::headerBodySplit(Request& request)
+std::vector<std::string>	RequestParser::headerSplit(Request& request)
 {
 	std::vector<std::string>	vector;
 	std::string::size_type		start = 0;
 	std::string::size_type		pos;
 
-	while ((pos = request.getContext().buffer.find("\r\n")) != std::string::npos)
+	while ((pos = request.getContext().buffer.find("\r\n", start)) != std::string::npos)
 	{
+		if (pos == start)
+			break ;
 		vector.push_back(request.getContext().buffer.substr(start, pos - start));
 		start = pos + 2;
 	}
-	if (start < request.getContext().buffer.size())
-		vector.push_back(request.getContext().buffer.substr(start));
 	return (vector);
 }
 
@@ -150,7 +171,7 @@ RequestState	RequestParser::parseRequestHeader(RequestContext& ctx, Request& req
 	pos = ctx.buffer.find("\r\n\r\n");
 	if (pos == std::string::npos)
 		return (REQ_WAIT);
-	line = headerBodySplit(request);
+	line = headerSplit(request);
 	for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); ++it)
 	{
 		colon = it->find(":");
@@ -177,12 +198,26 @@ RequestState	RequestParser::parseRequestHeader(RequestContext& ctx, Request& req
 	return (request.setCurrentState(answer), request.state());
 }
 
+std::vector<std::string>	RequestParser::bodySplit(Request& request)
+{
+	std::vector<std::string>	bodyChunk;
+	std::string::size_type		start = 0;
+	std::string::size_type		pos;
+
+	while ((pos = request.getContext().buffer.find("\r\n", start)) != std::string::npos)
+	{
+		bodyChunk.push_back(request.getContext().buffer.substr(start, (pos + 2) - start));
+		start = pos + 2;
+	}
+	if (start < request.getContext().buffer.size())
+		bodyChunk.push_back(request.getContext().buffer.substr(start));
+	return (bodyChunk);
+}
+
 std::string	RequestParser::parseChunkedBody(std::vector<std::string>& phrases, Request& request)
 {
 	std::string			buffer;
-	std::string			hex = "0123456789abcdefABCDEF";
-	int					hexValue;
-	char				c;
+	size_t				hexValue;
 	RequestContext		ctx = request.getContext();
 
 	for (size_t i = 0; i < phrases.size(); ++i)
@@ -193,16 +228,7 @@ std::string	RequestParser::parseChunkedBody(std::vector<std::string>& phrases, R
 				+ " must not be an empty string", ctx, REQ_ERROR, 400), "");
 			break ;
 		}
-		c = phrases[i][0];
-		if (hex.find(c) == std::string::npos)
-		{
-			return (request.setError(" -> " + std::string(1, c)
-				+ " must be a valid hexadecimal value", ctx, REQ_ERROR, 400), "");
-			break ;
-		}
-		std::stringstream	ss;
-		ss << std::hex << c;
-		ss >> hexValue;
+		hexValue = obtainHexValue(phrases[i]);
 		++i;
 		buffer += phrases[i].substr(0, hexValue);
 	}
@@ -212,19 +238,16 @@ std::string	RequestParser::parseChunkedBody(std::vector<std::string>& phrases, R
 RequestState	RequestParser::parseRequestBody(RequestContext& ctx, Request& request)
 {
 	std::vector<std::string>	chunkedInfo;
-	std::string				body;
-	std::string::size_type	pos;
-	int						hexValue;
+	RequestState				answer;
 
-	body = obtainBodyInfo(request);
-	if (body == "")
+	answer = obtainBodyInfo(request);
+	if (answer == REQ_WAIT)
+		return (REQ_WAIT);
+	if (answer != REQ_BODY || request.body() == "" || request.body() == "\r\n")
 		return (request.setError("BODY: no body recieved", ctx, REQ_ERROR, 400), REQ_ERROR);
 	if (request.chunked())
-		chunkedInfo = headerBodySplit(request);
+		chunkedInfo = bodySplit(request);
 	if (chunkedInfo.size() > 0)
 		parseChunkedBody(chunkedInfo, request);
-	
-	(void)ctx;
-	(void)request;
 	return (REQ_COMPLETE);
 }

@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/22 18:43:24 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/28 15:27:35 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/28 20:15:57 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,7 @@ void			prepareTarget(const std::string& target, Request& request);
 RequestState	contentLengthHeader(const std::string& header, RequestContext& ctx, Request& request);
 RequestState	transferEncodingHeader(const std::string& header, RequestContext& ctx, Request& request);
 RequestState	connectionHeader(const std::string& header, RequestContext& ctx, Request& request);
-std::string		obtainBodyInfo(Request& request);
+RequestState	obtainBodyInfo(Request& request);
+int				obtainHexValue(std::string& value);
 
 #endif
