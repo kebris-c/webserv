@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/25 16:17:35 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/27 16:30:06 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/28 14:21:49 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,19 +43,21 @@ RequestState	RequestParser::checkFeed(RequestContext& ctx, Request& request)
 	RequestState	state = request.getStateMachineState();
 	RequestState	requestState = request.getCurrentState();
 
-	if (state == requestState)
-	{
-		if (ctx.buffer.find("\r\n") != std::string::npos)
-			return (REQ_LINE);
-		else
-			return (REQ_WAIT);
-	}
-	else if (state == REQ_WAIT)
+ 	if (state == REQ_WAIT || state == REQ_FEED)
 	{
 		if (requestState == REQ_HEADERS)
 		{
 			if (ctx.buffer.find("\r\n\r\n") != std::string::npos)
 				return (REQ_HEADERS);
+			else if (ctx.buffer == "\r\n")
+				return (REQ_ERROR);
+			else
+				return (REQ_WAIT);
+		}
+		else if (requestState == REQ_LINE)
+		{
+			if (ctx.buffer.find("\r\n") != std::string::npos)
+				return (REQ_LINE);
 			else if (ctx.buffer == "\r\n")
 				return (REQ_ERROR);
 			else

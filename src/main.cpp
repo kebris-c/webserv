@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/25 22:04:38 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/28 14:26:06 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -97,7 +97,8 @@ int	main()
 	// 	return (1);
 	// }
 
-	simulatedFeed.push_back("GET /index.html HTTP/1.1\r\n");
+	simulatedFeed.push_back("GET /index.html");
+	simulatedFeed.push_back(" HTTP/1.1\r\n");
 	simulatedFeed.push_back("Host: localhost:8080\r\n");
 	simulatedFeed.push_back("Transfer-Encoding: chunked\r\n");
 	simulatedFeed.push_back("\r\n");
