@@ -1,20 +1,20 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Parser.hpp                                         :+:      :+:    :+:   */
+/*   ConfParser.hpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:21 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/25 21:02:52 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/29 23:47:20 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef PARSER_HPP
-# define PARSER_HPP
+#ifndef CONF_PARSER_HPP
+# define CONF_PARSER_HPP
 
 # include "Webserv.hpp"
-# include "StateMachine.hpp"
+# include "ConfStateMachine.hpp"
 
 struct	LocationConfig
 {
@@ -45,12 +45,12 @@ typedef ParserState	(Parser::*ParseFunction)(ParserContext&);
 class	Parser
 {
 	private:
-		std::vector<ServerConfig>			servers;
-		std::vector<std::string>			keyWords;
+		std::vector<ServerConfig>				servers;
+		std::vector<std::string>				keyWords;
 		std::map<std::string, ParseFunction>	keywordDispatcher;
-		ServerConfig						serverContext;
-		LocationConfig						locationConfig;
-		int									tokenIndex;
+		ServerConfig							serverContext;
+		LocationConfig							locationConfig;
+		int										tokenIndex;
 		ParserState							parseRoot(ParserContext& ctx);
 		ParserState							parseError(ParserContext& ctx);
 		ParserState							parseIndex(ParserContext& ctx);
@@ -70,7 +70,7 @@ class	Parser
 		ParserState	outsideBlock(ParserContext& ctx);
 		ParserState	keyword(ParserContext& ctx);
 		int			getTokenIndex();
-		std::vector<ServerConfig> getServer();
+		std::vector<ServerConfig>& getServer();
 		void		setTokenIndex(int index, ParserContext& ctx);
 };
 

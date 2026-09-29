@@ -1,17 +1,17 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Parser.cpp                                         :+:      :+:    :+:   */
+/*   ConfParser.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/25 17:46:10 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/29 23:46:42 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "Parser.hpp"
-#include "ParserUtils.hpp"
+#include "ConfParser.hpp"
+#include "ConfParserUtils.hpp"
 
 Parser::Parser()
 {
@@ -40,7 +40,7 @@ int	Parser::getTokenIndex()
 	return (this->tokenIndex);
 }
 
-std::vector<ServerConfig>	Parser::getServer()
+std::vector<ServerConfig>&	Parser::getServer()
 {
 	return (this->servers);
 }
@@ -156,7 +156,7 @@ ParserState	Parser::outsideBlock(ParserContext& ctx)
 
 ParserState Parser::keyword(ParserContext& ctx)
 {
-	std::map<std::string, ParseAction>::iterator it;
+	std::map<std::string, ParseFunction>::iterator it;
 	it = keywordDispatcher.find(ctx.tokens[tokenIndex].value);
 
 	if (it == keywordDispatcher.end())

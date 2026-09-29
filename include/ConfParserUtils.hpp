@@ -1,20 +1,20 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ParserUtils.hpp                                    :+:      :+:    :+:   */
+/*   ConfParserUtils.hpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/13 18:38:24 by kjroydev          #+#    #+#             */
-/*   Updated: 2026/09/25 17:47:32 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/29 23:45:07 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef PARSER_UTILS_HPP
-# define PARSER_UTILS_HPP
+#ifndef CONF_PARSER_UTILS_HPP
+# define CONF_PARSER_UTILS_HPP
 
 # include "Webserv.hpp"
-# include "Parser.hpp"
+# include "ConfParser.hpp"
 
 int							checkFileExistence(const std::string& path, ParserContext& ctx);
 int							checkDirectoryExistence(const std::string& path, ParserContext& ctx);

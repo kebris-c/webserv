@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/25 16:17:35 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/29 19:09:40 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/29 22:08:51 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,7 +43,7 @@ RequestState	RequestParser::checkFeed(RequestContext& ctx, Request& request)
 	RequestState	state = request.getStateMachineState();
 	RequestState	requestState = request.getCurrentState();
 
- 	if (state == REQ_WAIT || state == REQ_FEED)
+ 	if ((state == REQ_WAIT || state == REQ_FEED) && (!ctx.buffer.empty()))
 	{
 		if (requestState == REQ_LINE)
 		{
@@ -249,12 +249,16 @@ RequestState	RequestParser::parseRequestBody(RequestContext& ctx, Request& reque
 		{
 			body = parseChunkedBody(chunkedInfo, request, ctx);
 			request.setBody(body);
+			return (REQ_COMPLETE);
 		}
 		else
 			return (request.setError("BODY: no info recieved", ctx, REQ_ERROR, 400), REQ_ERROR);
 	}
 	size_t	length = request.contentLength();
-	if (body.size() - 1 == length)
+	if (body.size() == length)
 		request.setBody(body);
+	else
+		return (request.setError("BODY: the amount of bytes it's higher than announced",
+				ctx, REQ_ERROR, 400), REQ_ERROR);
 	return (REQ_COMPLETE);
 }

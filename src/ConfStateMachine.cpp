@@ -1,17 +1,17 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   StateMachine.cpp                                   :+:      :+:    :+:   */
+/*   ConfStateMachine.cpp                               :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/08 15:52:43 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/25 20:31:53 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/29 23:45:37 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Webserv.hpp"
-#include "StateMachine.hpp"
+#include "ConfStateMachine.hpp"
 
 StateMachine::StateMachine()
 	:initialState(START), currentState(START)

@@ -1,16 +1,16 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ParserUtils.cpp                                    :+:      :+:    :+:   */
+/*   ConfParserUtils.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kmarrero <kmarrero@student.42.fr>          +#+  +:+       +#+        */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/13 18:44:51 by kjroydev          #+#    #+#             */
-/*   Updated: 2026/09/25 17:47:19 by kmarrero         ###   ########.fr       */
+/*   Updated: 2026/09/29 23:48:00 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "ParserUtils.hpp"
+#include "ConfParserUtils.hpp"
 
 void	setError(std::string message, ParserContext& ctx, ParserState state)
 {
@@ -136,7 +136,7 @@ std::string::size_type	isValidClientSize(std::string word, ParserContext& ctx)
 	return (measure);
 }
 
-size_t	converToBytes(size_t number, char size)
+size_t	convertToBytes(size_t number, char size)
 {
 	if (size == 'K')
 		number = number * 1024;
@@ -144,6 +144,7 @@ size_t	converToBytes(size_t number, char size)
 		number = number * 1024 * 1024;
 	if (size == 'G')
 		number = number * 1024 * 1024 * 1024;
+	return (number);
 }
 
 int	checkEndFile(ParserContext& ctx, ParserState state, std::string message)

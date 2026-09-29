@@ -8,32 +8,60 @@
 
 #include "Config.hpp"
 
-LocationConfig::LocationConfig()
-	: autoindex(false), redirectCode(302), cgiExtension(""), cgiPass("")
-{
-}
+Config::Config()
+{}
 
-ServerConfig::ServerConfig()
-	: host("0.0.0.0"), port(8080), clientMaxBodySize(1048576)
-{
-}
-
-Config::Config() {}
 Config::~Config() {}
+
+void	Config::addTransitions(StateMachine& stateMachine)
+{
+	stateMachine.addTransition(START, BALANCE, &Parser::balance);
+	stateMachine.addTransition(BLOCK_KEYWORD, BLOCK_KEYWORD_EVENT, &Parser::blockKeyWord);
+	stateMachine.addTransition(LBRACET, BEGIN_BLOCK, &Parser::insideBlock);
+	stateMachine.addTransition(RBRACET, CLOSE_BLOCK, &Parser::outsideBlock);
+	stateMachine.addTransition(DIRECTIVE, DIRECTIVE_EVENT, &Parser::keyword);
+}
+
+void	Config::setServerConfig(std::vector<ServerConfig>& server)
+{
+	this->_servers = server;
+}
 
 bool	Config::load(const std::string &path)
 {
-	/*
-	 * TODO(kmarrero):
-	 * 1) open path
-	 * 2) strip comments (# ...)
-	 * 3) parse server { ... } blocks
-	 * 4) fill _servers
-	 * INVESTIGATE: nginx listen, root, index, error_page, client_max_body_size,
-	 *              limit_except / allowed methods, return, autoindex, cgi
-	 */
-	(void)path;
-	return (false);
+	ParserContext				ctx;
+	std::ifstream				file;
+	Lexer						lexer;
+	ParserState					state;
+	ParserEvent					event;
+	Parser						parser;
+	StateMachine				stateMachine(START);
+	std::vector<ServerConfig>	server;
+
+	ctx.bracet = 0;
+	ctx.lineNumber = 0;
+	if (lexer.obtainInfile(file, path))
+		return (false);
+	if (lexer.checkFileContent(file))
+		return (false);
+	if (lexer.tokenVectorization(file))
+		return (false);
+	ctx.tokens = lexer.getTokens();
+	addTransitions(stateMachine);
+	state = stateMachine.getCurrentState();
+	while (state != END)
+	{
+		event = stateMachine.getNextEvent(state);
+		stateMachine.handle(ctx, parser, event);
+		state = stateMachine.getCurrentState();
+		if (state == SINTAX_ERROR || state == ERROR)
+			break ;
+	}
+	if (ctx.error != "")
+		return (false);
+	server = parser.getServer();
+	setServerConfig(parser.getServer());
+	return (true);
 }
 
 const std::vector<ServerConfig>	&Config::servers() const

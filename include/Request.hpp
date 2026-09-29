@@ -16,6 +16,7 @@
 # define REQUEST_HPP
 
 # include "Webserv.hpp"
+# include "Config.hpp"
 # include "RequestStateMachine.hpp"
 
 class Request {
@@ -23,6 +24,7 @@ class Request {
 		RequestState						_state;
 		RequestContext						_ctx;
 		RStateMachine						_stateMachine;
+		std::vector<ServerConfig>			_server;
 		std::string							_method;
 		std::string							_target;
 		std::string							_query;
@@ -38,6 +40,7 @@ class Request {
 		~Request();
 		void										reset();
 		void										print(RequestContext& ctx);
+		void										setServer(std::vector<ServerConfig>& server);
 		void										setCurrentState(RequestState state);
 		void										setError(std::string message, RequestContext& ctx, RequestState state, int errorCode);
 		void										setMethod(std::string& method);

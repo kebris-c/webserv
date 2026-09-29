@@ -24,6 +24,10 @@ SRCS		= \
 	$(SRC_DIR)/RequestParser.cpp \
 	$(SRC_DIR)/RequestUtils.cpp \
 	$(SRC_DIR)/Response.cpp \
+	$(SRC_DIR)/Lexer.cpp \
+	$(SRC_DIR)/ConfParser.cpp \
+	$(SRC_DIR)/ConfParserUtils.cpp \
+	$(SRC_DIR)/ConfStateMachine.cpp \
 	$(SRC_DIR)/Router.cpp \
 	$(SRC_DIR)/HttpHandler.cpp \
 	$(SRC_DIR)/CgiProcess.cpp \

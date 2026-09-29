@@ -37,6 +37,11 @@ void	Request::reset()
 	_errorCode = 0;
 }
 
+void	Request::setServer(std::vector<ServerConfig>& server)
+{
+	this->_server = server;
+}
+
 void	Request::setCurrentState(RequestState state)
 {
 	this->_state = state;

@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/22 18:42:41 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/29 20:22:53 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/29 22:02:56 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -190,21 +190,20 @@ int	bufferConstruct(size_t& hexValue, std::string& buffer, std::vector<std::stri
 						size_t& i)
 {
 	size_t	remaining = hexValue;
+	size_t	j = 0;
 
 	while (remaining > 0 && i < phrases.size())
 	{
-		size_t	dataSize = phrases[i].size();
-		if (dataSize <= remaining)
+		if (j == phrases[i].size())
 		{
-			buffer += phrases[i].substr(0, dataSize);
-			remaining -= dataSize;
 			++i;
+			j = 0;
+			continue ;
 		}
-		else
-		{
-			buffer += phrases[i].substr(0, remaining);
-			remaining = 0;
-		}
+		buffer += phrases[i][j];
+		--remaining;
+		++j;
 	}
+	++i;
 	return (i);
 }

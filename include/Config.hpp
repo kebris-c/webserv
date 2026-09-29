@@ -14,50 +14,24 @@
  * ************************************************************************** */
 
 #ifndef CONFIG_HPP
-#define CONFIG_HPP
+# define CONFIG_HPP
 
-#include "Webserv.hpp"
+# include "Lexer.hpp"
+# include "ConfParser.hpp"
+# include "Webserv.hpp"
+# include "ConfStateMachine.hpp"
 
-struct LocationConfig {
-	std::string					path;			/* URL prefix, e.g. /upload */
-	std::vector<std::string>	allowedMethods;	/* GET POST DELETE */
-	std::string					root;			/* filesystem root for this location */
-	std::string					index;			/* default file for directories */
-	bool						autoindex;		/* directory listing on/off */
-	std::string					redirect;		/* empty = none; else target URL/path */
-	int							redirectCode;	/* 301/302/... */
-	std::string					uploadStore;	/* directory for uploads */
-	std::string					cgiExtension;	/* e.g. .py */
-	std::string					cgiPass;		/* interpreter / cgi binary path */
-
-	LocationConfig();
-};
-
-struct ServerConfig {
-	std::string					host;			/* interface, e.g. 0.0.0.0 or 127.0.0.1 */
-	int							port;			/* listen port */
-	std::string					serverName;		/* optional */
-	std::map<int, std::string>	errorPages;		/* status -> file path */
-	std::size_t					clientMaxBodySize; /* bytes */
-	std::vector<LocationConfig>	locations;
-
-	ServerConfig();
-};
-
-class Config {
-public:
-	Config();
-	~Config();
-
-	/* Parse path; throw std::runtime_error or return false on hard failure. */
-	bool	load(const std::string &path);
-
-	const std::vector<ServerConfig>	&servers() const;
-
-private:
-	std::vector<ServerConfig>	_servers;
-
-	/* TODO(kmarrero): lexer + parseServer + parseLocation helpers. */
+class	Config
+{
+	private:
+		std::vector<ServerConfig>	_servers;
+		void	addTransitions(StateMachine& stateMachine);
+	public:
+		Config();
+		~Config();
+		bool							load(const std::string &path);
+		const std::vector<ServerConfig>	&servers() const;
+		void							setServerConfig(std::vector<ServerConfig>& server);
 };
 
 #endif /* CONFIG_HPP */
