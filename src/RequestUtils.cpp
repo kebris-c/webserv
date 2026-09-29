@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/22 18:42:41 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/28 20:15:53 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/29 20:22:53 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -122,30 +122,49 @@ RequestState	connectionHeader(const std::string& header, RequestContext& ctx, Re
 			ctx, REQ_ERROR, 400), REQ_ERROR);
 }
 
-RequestState	obtainBodyInfo(Request& request)
+std::string::size_type	obtainStatusFromContext(Request& request)
 {
 	std::string::size_type	pos;
-	std::string				body;
-	RequestContext			ctx;
+	RequestContext			ctx = request.getContext();
+	RequestState			state = request.state();
 
-	ctx = request.getContext();
+	if (state == REQ_LINE)
+	{
+		pos = ctx.buffer.find("\r\n");
+		if (pos != std::string::npos)
+			request.setCurrentState(REQ_LINE);
+		else
+			return (std::string::npos);
+	}
+	else if (state == REQ_HEADERS)
+	{
+		pos = ctx.buffer.find("\r\n\r\n");
+		if (pos != std::string::npos)
+			request.setCurrentState(REQ_HEADERS);
+		else
+			return (std::string::npos);
+	}
+	return (pos);
+}
+
+std::string::size_type	obtainBodyInfo(Request& request)
+{
+	std::string::size_type	pos;
+	RequestContext			ctx = request.getContext();
+
 	if (request.chunked())
 	{
 		pos = ctx.buffer.find("0\r\n\r\n");
 		if (pos == std::string::npos)
-			return (REQ_WAIT);
-		body = ctx.buffer.substr(0, pos);
-		request.setBody(body);
+			return (std::string::npos);;
 	}
 	else
 	{
 		pos = ctx.buffer.find("\r\n");
 		if (pos == std::string::npos)
-			return (REQ_WAIT);
-		body = ctx.buffer.substr();
-		request.setBody(body);
+			return (std::string::npos);;
 	}
-	return (REQ_BODY);
+	return (pos);
 }
 
 int	obtainHexValue(std::string& value)
@@ -165,4 +184,27 @@ int	obtainHexValue(std::string& value)
 		}
 	}
 	return (totalBytes);
+}
+
+int	bufferConstruct(size_t& hexValue, std::string& buffer, std::vector<std::string>& phrases,
+						size_t& i)
+{
+	size_t	remaining = hexValue;
+
+	while (remaining > 0 && i < phrases.size())
+	{
+		size_t	dataSize = phrases[i].size();
+		if (dataSize <= remaining)
+		{
+			buffer += phrases[i].substr(0, dataSize);
+			remaining -= dataSize;
+			++i;
+		}
+		else
+		{
+			buffer += phrases[i].substr(0, remaining);
+			remaining = 0;
+		}
+	}
+	return (i);
 }

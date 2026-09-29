@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/25 16:17:35 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/28 20:16:24 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/29 19:09:40 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,10 +47,10 @@ RequestState	RequestParser::checkFeed(RequestContext& ctx, Request& request)
 	{
 		if (requestState == REQ_LINE)
 		{
-			if (ctx.buffer.find("\r\n") != std::string::npos)
-				return (REQ_LINE);
-			else if (ctx.buffer == "\r\n")
+			if (ctx.buffer == "\r\n")
 				return (REQ_ERROR);
+			else if (ctx.buffer.find("\r\n") != std::string::npos)
+				return (REQ_LINE);
 			else
 				return (REQ_WAIT);
 		}
@@ -90,11 +90,10 @@ RequestState	RequestParser::checkFeed(RequestContext& ctx, Request& request)
 
 RequestState	RequestParser::parseRequestLine(RequestContext& ctx, Request& request)
 {
-	std::string::size_type		pos;
+	std::string::size_type		pos = obtainStatusFromContext(request);
 	std::vector<std::string>	line;
 	std::string					requestLine;
 
-	pos = ctx.buffer.find("\r\n");
 	if (pos == std::string::npos)
 		return (REQ_WAIT);
 	requestLine = ctx.buffer.substr(0, pos);
@@ -119,8 +118,8 @@ RequestState	RequestParser::parseRequestLine(RequestContext& ctx, Request& reque
 std::vector<std::string>	RequestParser::headerSplit(Request& request)
 {
 	std::vector<std::string>	vector;
-	std::string::size_type		start = 0;
 	std::string::size_type		pos;
+	std::string::size_type		start = 0;
 
 	while ((pos = request.getContext().buffer.find("\r\n", start)) != std::string::npos)
 	{
@@ -134,9 +133,9 @@ std::vector<std::string>	RequestParser::headerSplit(Request& request)
 
 RequestState	RequestParser::headersChecker(RequestContext& ctx, Request& request)
 {
-	RequestState											answer;
-	std::map<std::string, std::string>::const_iterator		host;
 	std::map<std::string, RequestHelpFunction>::iterator	loc;
+	std::map<std::string, std::string>::const_iterator		host;
+	RequestState											answer;
 
 	host = request.headers().find("Host");
 	if (host == request.headers().end())
@@ -163,12 +162,10 @@ RequestState	RequestParser::parseRequestHeader(RequestContext& ctx, Request& req
 {
 	std::string					name;
 	std::string					value;
-	std::string::size_type		pos;
+	std::string::size_type		pos = obtainStatusFromContext(request);
 	std::string::size_type		colon;
 	std::vector<std::string>	line;
-	RequestState				answer;
 
-	pos = ctx.buffer.find("\r\n\r\n");
 	if (pos == std::string::npos)
 		return (REQ_WAIT);
 	line = headerSplit(request);
@@ -191,36 +188,35 @@ RequestState	RequestParser::parseRequestHeader(RequestContext& ctx, Request& req
 			return (request.setError("HEADER VALUE: ", ctx, REQ_ERROR, 400), REQ_ERROR);
 		request.setHeaders(name, value, ctx);
 	}
-	answer = headersChecker(ctx, request);
+	RequestState answer = headersChecker(ctx, request);
 	if (answer == REQ_ERROR)
 		return (answer);
 	ctx.buffer.erase(0, pos + 4);
 	return (request.setCurrentState(answer), request.state());
 }
 
-std::vector<std::string>	RequestParser::bodySplit(Request& request)
+std::vector<std::string>	RequestParser::bodySplit(std::string& body)
 {
 	std::vector<std::string>	bodyChunk;
 	std::string::size_type		start = 0;
 	std::string::size_type		pos;
 
-	while ((pos = request.getContext().buffer.find("\r\n", start)) != std::string::npos)
+	while ((pos = body.find("\r\n", start)) != std::string::npos)
 	{
-		bodyChunk.push_back(request.getContext().buffer.substr(start, (pos + 2) - start));
+		bodyChunk.push_back(body.substr(start, (pos + 2) - start));
 		start = pos + 2;
 	}
-	if (start < request.getContext().buffer.size())
-		bodyChunk.push_back(request.getContext().buffer.substr(start));
+	if (start < body.size())
+		bodyChunk.push_back(body.substr(start));
 	return (bodyChunk);
 }
 
-std::string	RequestParser::parseChunkedBody(std::vector<std::string>& phrases, Request& request)
+std::string	RequestParser::parseChunkedBody(std::vector<std::string>& phrases, Request& request, RequestContext& ctx)
 {
 	std::string			buffer;
 	size_t				hexValue;
-	RequestContext		ctx = request.getContext();
 
-	for (size_t i = 0; i < phrases.size(); ++i)
+	for (size_t i = 0; i < phrases.size();)
 	{
 		if (phrases[i] == "")
 		{
@@ -230,24 +226,35 @@ std::string	RequestParser::parseChunkedBody(std::vector<std::string>& phrases, R
 		}
 		hexValue = obtainHexValue(phrases[i]);
 		++i;
-		buffer += phrases[i].substr(0, hexValue);
+		i = bufferConstruct(hexValue, buffer, phrases, i);
 	}
 	return (buffer);
 }
 
 RequestState	RequestParser::parseRequestBody(RequestContext& ctx, Request& request)
 {
+	std::string::size_type		pos = obtainBodyInfo(request);
+	std::string					body;
 	std::vector<std::string>	chunkedInfo;
-	RequestState				answer;
 
-	answer = obtainBodyInfo(request);
-	if (answer == REQ_WAIT)
+	if (pos == std::string::npos)
 		return (REQ_WAIT);
-	if (answer != REQ_BODY || request.body() == "" || request.body() == "\r\n")
+	body = ctx.buffer.substr(0, pos);
+	if (request.state() != REQ_BODY || body == "" || body == "\r\n")
 		return (request.setError("BODY: no body recieved", ctx, REQ_ERROR, 400), REQ_ERROR);
 	if (request.chunked())
-		chunkedInfo = bodySplit(request);
-	if (chunkedInfo.size() > 0)
-		parseChunkedBody(chunkedInfo, request);
+	{
+		chunkedInfo = bodySplit(body);
+		if (chunkedInfo.size() > 0)
+		{
+			body = parseChunkedBody(chunkedInfo, request, ctx);
+			request.setBody(body);
+		}
+		else
+			return (request.setError("BODY: no info recieved", ctx, REQ_ERROR, 400), REQ_ERROR);
+	}
+	size_t	length = request.contentLength();
+	if (body.size() - 1 == length)
+		request.setBody(body);
 	return (REQ_COMPLETE);
 }

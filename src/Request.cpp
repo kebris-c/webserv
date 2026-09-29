@@ -94,11 +94,8 @@ void	Request::setHeaders(std::string name, std::string value, RequestContext& ct
 			if (value == "chunked")
 				_chunked = true;
 		}
-		else if ((it = _headers.find("Content-Length:")) != _headers.end())
-		{
-			if (it->second != "")
-				_chunked = false;
-		}
+		else if (name == "Content-Length")
+			_chunked = false;
 		else
 			return ;
 	}
@@ -179,7 +176,7 @@ bool	Request::parse(std::string &buffer)
 	return (false);
 }
 
-RequestState	Request::state() const { return (_state); }
+RequestState		Request::state() const { return (_state); }
 const std::string	&Request::method() const { return (_method); }
 const std::string	&Request::target() const { return (_target); }
 const std::string	&Request::query() const { return (_query); }
@@ -187,6 +184,7 @@ const std::string	&Request::version() const { return (_version); }
 const bool			&Request::chunked() const { return (_chunked); }
 const std::map<std::string, std::string>	&Request::headers() const { return (_headers); }
 const std::string	&Request::body() const { return (_body); }
+const size_t		&Request::contentLength() const { return (_contentLength); }
 int	Request::errorCode() const { return (_errorCode); }
 
 std::string	Request::header(const std::string &name) const

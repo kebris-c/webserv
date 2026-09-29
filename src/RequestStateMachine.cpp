@@ -1,16 +1,16 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   RStateMachine.cpp                                  :+:      :+:    :+:   */
+/*   RequestStateMachine.cpp                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/17 17:07:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/27 15:05:13 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/29 18:57:55 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "RStateMachine.hpp"
+#include "RequestStateMachine.hpp"
 
 RStateMachine::RStateMachine()
 	:initialState(REQ_FEED), currentState(REQ_FEED)

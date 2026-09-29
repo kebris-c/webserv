@@ -16,7 +16,7 @@
 # define REQUEST_HPP
 
 # include "Webserv.hpp"
-# include "RStateMachine.hpp"
+# include "RequestStateMachine.hpp"
 
 class Request {
 	private:
@@ -58,6 +58,7 @@ class Request {
 		const std::map<std::string, std::string>	&headers() const;
 		const std::string							&body() const;
 		const bool									&chunked() const;
+		const size_t								&contentLength() const;
 		int											errorCode() const;	/* if REQ_ERROR */
 		bool										isComplete();
 		bool										parse(std::string &buffer);
