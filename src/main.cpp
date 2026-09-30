@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/29 23:41:34 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/09/30 16:08:24 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,12 +48,7 @@ int	main(int ac, char* av[])
 		it != simulatedFeed.end();
 		++it)
 	{
-		std::cout << *it << std::endl;
-		if (!request.feed(*it, parser))
-		{
-			std::cerr << "Error 400: Bad request" << std::endl;
-			return (1);
-		}
+		request.parse(*it, parser);
 	}
 	if (!request.isComplete())
 		return (request.state() != REQ_ERROR);

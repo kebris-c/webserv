@@ -64,7 +64,7 @@ class Request {
 		const size_t								&contentLength() const;
 		int											errorCode() const;	/* if REQ_ERROR */
 		bool										isComplete();
-		bool										parse(std::string &buffer);
+		bool										parse(std::string &buffer, RequestParser& parser);
 		bool										feed(const std::string& data, RequestParser& parser);
 		RequestState								getCurrentState();
 		RequestState								getStateMachineState();
