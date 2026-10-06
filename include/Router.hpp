@@ -15,26 +15,30 @@
 #include "Config.hpp"
 #include "Request.hpp"
 
-struct RouteMatch {
+struct RouteMatch
+{
 	const ServerConfig		*server;
 	const LocationConfig	*location;
 	std::string				fsPath;		/* resolved filesystem path */
 	bool					ok;
 };
 
-class Router {
-public:
-	Router();
-	~Router();
+class	Router
+{
+	public:
+		Router();
+		~Router();
 
-	/* Pick server by listen socket / host header later; for now by port index. */
-	RouteMatch	match(const ServerConfig &server, const Request &req) const;
+		/* Pick server by listen socket / host header later; for now by port index. */
+		RouteMatch	match(const ServerConfig &server, const Request &req) const;
 
-private:
-	const LocationConfig	*_bestLocation(const ServerConfig &server,
-											const std::string &uri) const;
-	std::string				_mapToFilesystem(const LocationConfig &loc,
-											const std::string &uri) const;
+	private:
+		const LocationConfig	*_bestLocation(const ServerConfig &server,
+												const std::string &uri) const;
+		std::string				_mapToFilesystem(const LocationConfig &loc,
+												const std::string &uri) const;
+		bool	isLocationMatch(const std::string& uri, const std::string& location) const;
+		bool	isTransversal(const std::string& route) const;
 };
 
 #endif /* ROUTER_HPP */

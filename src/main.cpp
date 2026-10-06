@@ -6,11 +6,12 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/29 23:41:34 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/06 16:10:00 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Lexer.hpp"
+#include "Router.hpp"
 #include "Config.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
@@ -21,6 +22,8 @@ int	main(int ac, char* av[])
 	Config			config;
 	Request			request;
 	RequestParser	parser;
+	Router			router;
+	RouteMatch		rMatch;
 	std::vector<std::string>	simulatedFeed;
 	std::vector<ServerConfig>	server;
 
@@ -57,5 +60,6 @@ int	main(int ac, char* av[])
 	}
 	if (!request.isComplete())
 		return (request.state() != REQ_ERROR);
+	rMatch = router.match(server[0], request);
 	return (0);
 }

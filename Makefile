@@ -7,7 +7,7 @@ NAME		= webserv
 # Subject: compile with c++ and -Wall -Wextra -Werror; must accept -std=c++98.
 # If your environment's `c++` is broken, override: make CXX=g++
 CXX			= c++
-CXXFLAGS	= -Wall -Wextra -Werror -std=c++98 -g
+CXXFLAGS	= -Wall -Wextra -Werror -std=c++98 -MMD -MP -g
 CPPFLAGS	= -Iinclude
 
 SRC_DIR		= src
@@ -34,6 +34,8 @@ SRCS		= \
 	$(SRC_DIR)/Utils.cpp
 
 OBJS		= $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+
+-include: $(OBJ_DIR:.o=.d)
 
 all: $(NAME)
 
