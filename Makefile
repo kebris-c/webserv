@@ -14,7 +14,6 @@ SRC_DIR		= src
 OBJ_DIR		= obj
 
 SRCS		= \
-	$(SRC_DIR)/main.cpp \
 	$(SRC_DIR)/Config.cpp \
 	$(SRC_DIR)/Server.cpp \
 	$(SRC_DIR)/Socket.cpp \
@@ -31,11 +30,12 @@ SRCS		= \
 	$(SRC_DIR)/Router.cpp \
 	$(SRC_DIR)/HttpHandler.cpp \
 	$(SRC_DIR)/CgiProcess.cpp \
-	$(SRC_DIR)/Utils.cpp
+	$(SRC_DIR)/Utils.cpp \
+	$(SRC_DIR)/main.cpp 
 
-OBJS		= $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+OBJS = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
--include: $(OBJ_DIR:.o=.d)
+-include $(OBJS:.o=.d)
 
 all: $(NAME)
 

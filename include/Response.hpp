@@ -36,6 +36,8 @@ private:
 	int									_status;
 	std::map<std::string, std::string>	_headers;
 	std::string							_body;
+	std::map<std::string, std::string>	_extensionDispatcher;
+	std::string	getExtension(const std::string& path);
 };
 
 #endif /* RESPONSE_HPP */

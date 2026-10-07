@@ -5,21 +5,26 @@
 
 #include "HttpHandler.hpp"
 
-HttpHandler::HttpHandler() {}
-HttpHandler::~HttpHandler() {}
+HttpHandler::HttpHandler()
+{}
+
+HttpHandler::~HttpHandler()
+{}
 
 Response	HttpHandler::handle(const Request &req, const RouteMatch &route) const
 {
-	/*
-	 * TODO(kmarrero):
-	 * - if !route.ok -> 404
-	 * - if redirect configured -> _handleRedirect
-	 * - if method not allowed -> 405
-	 * - if CGI extension matches -> hand off to CgiProcess (kebris-c runs it)
-	 * - dispatch GET/POST/DELETE
-	 */
-	(void)req;
-	(void)route;
+	const LocationConfig	&loc = *(route).location;
+	std::string				method;
+
+	if (!methodAllowed(loc, req.method()))
+		return (Response::makeError(405));
+	method = req.method();
+	if (method == "GET")
+		return (handleGet(req, route));
+	if (method == "POST")
+		return (handlePost(req, route));
+	if (method == "DELETE")
+		return (handleDelete(req, route));
 	return (Response::makeError(501));
 }
 
@@ -73,27 +78,87 @@ Response	HttpHandler::parseCgiOutput(const std::string &output) const
 	return (Response::makeError(501));
 }
 
-Response	HttpHandler::_handleGet(const Request &req, const RouteMatch &route) const
+Response	HttpHandler::handleGet(const Request &req, const RouteMatch &route) const
 {
-	/* TODO: file / directory index / autoindex / 404 / 403 */
+	DIR				*dir;
+	struct stat		fileInfo;
+	struct dirent	*entry;
+	std::string		body;
+	Response		response;
+
 	(void)req;
-	(void)route;
+	if (stat(route.fsPath.c_str(), &fileInfo) == -1)
+		return (Response::makeError(404));
+	if (S_ISREG(fileInfo.st_mode))
+	{
+		response.setBodyFromFile(route.fsPath);
+		return (response);
+	}
+	if (S_ISDIR(fileInfo.st_mode))
+	{
+		if (stat((route.fsPath + "/index.html").c_str(), &fileInfo) == -1)
+		{
+			response.setBodyFromFile(route.fsPath + "/index.html");
+			return (response);
+		}
+		if (route.location->autoindex == true)
+		{
+			dir = opendir(route.fsPath.c_str());
+			if (dir == NULL)
+				return (Response::makeError(403));
+			while ((entry = readdir(dir)) != NULL)
+			{
+				body += entry->d_name;
+				body += " \n";
+			}
+			closedir(dir);
+			response.setBody(body);
+			return (response);
+		}
+		return (Response::makeError(403));
+	}
 	return (Response::makeError(501));
 }
 
-Response	HttpHandler::_handlePost(const Request &req, const RouteMatch &route) const
+Response	HttpHandler::handlePost(const Request &req, const RouteMatch &route) const
 {
 	/*
 	 * TODO(kmarrero): uploads — write body to location.uploadStore
 	 * INVESTIGATE: multipart/form-data vs raw body; subject requires upload capability
 	 * Enforce client_max_body_size (413).
 	 */
-	(void)req;
-	(void)route;
+	struct stat	fileInfo;
+	Response	response;
+
+	if (stat(route.fsPath.c_str(), &fileInfo) == 0)
+	{
+		if (S_ISREG(fileInfo.st_mode))
+		{
+			std::ofstream fileWrite(route.fsPath.c_str(), std::ios::binary | std::ios::app);
+			if (!fileWrite.is_open())
+				return (Response::makeError(403));
+			fileWrite.write(req.body().data(), req.body().size());
+			if (!fileWrite)
+				return (Response::makeError(500));
+			fileWrite.close();
+			response.setBody("File Uploaded");
+			return (response);
+		}
+	}
+	else if (errno == ENOENT)
+	{
+		std::ofstream	file(route.fsPath.c_str(), std::ios::binary);
+		file.write(req.body().data(), req.body().size());
+		if (!file)
+			return (Response::makeError(500));
+		file.close();
+		response.setBody("File created");
+		return (response);
+	}
 	return (Response::makeError(501));
 }
 
-Response	HttpHandler::_handleDelete(const Request &req, const RouteMatch &route) const
+Response	HttpHandler::handleDelete(const Request &req, const RouteMatch &route) const
 {
 	/* TODO(kmarrero): unlink file if allowed; careful with directories */
 	(void)req;
@@ -101,7 +166,7 @@ Response	HttpHandler::_handleDelete(const Request &req, const RouteMatch &route)
 	return (Response::makeError(501));
 }
 
-Response	HttpHandler::_handleRedirect(const LocationConfig &loc) const
+Response	HttpHandler::handleRedirect(const LocationConfig &loc) const
 {
 	Response	r;
 	r.setStatus(loc.redirectCode ? loc.redirectCode : 302);
@@ -110,7 +175,7 @@ Response	HttpHandler::_handleRedirect(const LocationConfig &loc) const
 	return (r);
 }
 
-Response	HttpHandler::_autoindex(const std::string &fsPath, const std::string &uri) const
+Response	HttpHandler::autoindex(const std::string &fsPath, const std::string &uri) const
 {
 	/*
 	 * TODO(kmarrero): opendir/readdir/closedir -> simple HTML listing
@@ -121,7 +186,7 @@ Response	HttpHandler::_autoindex(const std::string &fsPath, const std::string &u
 	return (Response::makeError(501));
 }
 
-bool	HttpHandler::_methodAllowed(const LocationConfig &loc, const std::string &m) const
+bool	HttpHandler::methodAllowed(const LocationConfig &loc, const std::string &m) const
 {
 	if (loc.allowedMethods.empty())
 		return (m == "GET"); /* sensible default until config fills methods */

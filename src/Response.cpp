@@ -6,7 +6,18 @@
 #include "Response.hpp"
 #include "Utils.hpp"
 
-Response::Response() : _status(200) {}
+Response::Response()
+	: _status(200)
+{
+	_extensionDispatcher["html"] =	"text/html";
+	_extensionDispatcher["htm"] =	"text/html";
+	_extensionDispatcher["css"] =	"text/css";
+	_extensionDispatcher["js"] =	"application/javascript";
+	_extensionDispatcher["png"] =	"image/png";
+	_extensionDispatcher["jpg"] =	"image/jpg";
+	_extensionDispatcher["pdf"] =	"application/pdf";
+	_extensionDispatcher["txt"] =	"text/txt";
+}
 Response::~Response() {}
 
 void	Response::setStatus(int code) { _status = code; }
@@ -22,10 +33,38 @@ void	Response::setBody(const std::string &body)
 	_headers["Content-Length"] = utils::toString(static_cast<int>(_body.size()));
 }
 
-void	Response::setBodyFromFile(const std::string &path)
+std::string	Response::getExtension(const std::string& path)
 {
-	/* TODO(kmarrero): open/read file; set Content-Type from extension */
-	(void)path;
+	std::string::size_type	slash;
+	std::string::size_type	dot;
+	std::string				extension;
+
+	slash = path.find_last_of('/');
+	dot = path.find_last_of('.');
+	if (dot != std::string::npos && dot > slash)
+		extension = path.substr(dot + 1);
+	return (extension);
+}
+
+void Response::setBodyFromFile(const std::string &path)
+{
+    std::string extension;
+    std::string contentType;
+    std::map<std::string, std::string>::const_iterator it;
+    std::ifstream file(path.c_str(), std::ios::binary);
+    std::istreambuf_iterator<char> begin(file);
+    std::istreambuf_iterator<char> end;
+    std::string body(begin, end);
+
+    extension = getExtension(path);
+    it = _extensionDispatcher.find(extension);
+    if (it != _extensionDispatcher.end())
+        contentType = it->second;
+    else
+        contentType = "application/octet-stream";
+
+    setHeader("Content-Type", contentType);
+    setBody(body);
 }
 
 std::string	Response::raw() const

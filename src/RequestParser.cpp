@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/25 16:17:35 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/29 22:08:51 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/07 16:57:16 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -259,6 +259,6 @@ RequestState	RequestParser::parseRequestBody(RequestContext& ctx, Request& reque
 		request.setBody(body);
 	else
 		return (request.setError("BODY: the amount of bytes it's higher than announced",
-				ctx, REQ_ERROR, 400), REQ_ERROR);
+				ctx, REQ_ERROR, 413), REQ_ERROR);
 	return (REQ_COMPLETE);
 }

@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/13 18:44:51 by kjroydev          #+#    #+#             */
-/*   Updated: 2026/09/29 23:48:00 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/07 17:31:19 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -195,7 +195,6 @@ int	checkFileExistence(const std::string& path, ParserContext& ctx)
 {
 	struct stat	fileInfo;
 
-	
 	if (stat(path.c_str(), &fileInfo) == -1)
 		return (setError("FILE: does not exist", ctx, ERROR), 1);
 	if (!S_ISREG(fileInfo.st_mode))
