@@ -83,8 +83,6 @@ Response	HttpHandler::handleGet(const RouteMatch &route) const
 	struct stat		fileInfo;
 	Response		response;
 
-	std::cerr << "[DEBUG] handleGet ejecutado" << std::endl;
-	std::cerr << "[DEBUG] fsPath: " << route.fsPath << std::endl;
 	if (lstat(route.fsPath.c_str(), &fileInfo) == -1)
 	{
 		if (errno == EACCES)
