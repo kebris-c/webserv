@@ -7,6 +7,7 @@
 #include "Server.hpp"
 #include "Router.hpp"
 #include "HttpHandler.hpp"
+#include "RequestParser.hpp"
 
 namespace {
 
@@ -286,6 +287,7 @@ void	Server::_onReadable(int fd)
 	std::vector<std::string>				environment;
 	std::vector<int>						inheritedFds;
 	CgiProcess								*cgi;
+	RequestParser							parser;
 	Response								response;
 
 	it = _connections.find(fd);
@@ -321,7 +323,7 @@ void	Server::_onReadable(int fd)
 				it->second->readBuf().clear();
 				return ;
 			}
-			if (!it->second->request().parse(it->second->readBuf()))
+			if (!it->second->request().parse(it->second->readBuf(), parser))
 				return ;
 			if (it->second->request().state() == REQ_ERROR)
 				response = Response::makeError(

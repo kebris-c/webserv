@@ -147,7 +147,7 @@ bool	Request::feed(const std::string& data, RequestParser& parser)
 
 bool	Request::isComplete()
 {
-	return (this->_state != REQ_ERROR);
+	return (this->_state == REQ_COMPLETE);
 }
 
 void	Request::print(RequestContext& ctx)
@@ -170,15 +170,13 @@ RequestContext	Request::getContext()
 	return (this->_ctx);
 }
 
-bool	Request::parse(std::string &buffer)
+bool	Request::parse(std::string &buffer, RequestParser &parser)
 {
-	/*
-	 * TODO(kmarrero): incremental parser — see PSEUDOCODE in Request.hpp
-	 * INVESTIGATE: CRLF rules, header folding (you can reject obsolete folding),
-	 *              chunked coding, absolute-form targets from proxies (optional)
-	 */
-	(void)buffer;
-	return (false);
+	if (!feed(buffer, parser))
+		return (false);
+	if (!isComplete())
+		return (state() != REQ_ERROR);
+	return (isComplete());
 }
 
 RequestState		Request::state() const { return (_state); }

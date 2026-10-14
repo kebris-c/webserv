@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:21 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/29 23:47:20 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/14 23:26:47 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,6 +52,7 @@ class	Parser
 		LocationConfig							locationConfig;
 		int										tokenIndex;
 		ParserState							parseRoot(ParserContext& ctx);
+		ParserState							parseUploadStore(ParserContext& ctx);
 		ParserState							parseError(ParserContext& ctx);
 		ParserState							parseIndex(ParserContext& ctx);
 		ParserState							parseListen(ParserContext& ctx);

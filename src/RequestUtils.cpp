@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/22 18:42:41 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/29 22:02:56 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/15 00:52:02 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -162,7 +162,7 @@ std::string::size_type	obtainBodyInfo(Request& request)
 	{
 		pos = ctx.buffer.find("\r\n");
 		if (pos == std::string::npos)
-			return (std::string::npos);;
+			return (std::string::npos);
 	}
 	return (pos);
 }

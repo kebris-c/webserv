@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 22:37:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/29 23:46:42 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/14 23:41:33 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@ Parser::Parser()
 	keywordDispatcher["index"] = &Parser::parseIndex;
 	keywordDispatcher["allowed_methods"] = &Parser::parseAllowedMethods;
 	keywordDispatcher["autoindex"] = &Parser::parseAutoIndex;
-	keywordDispatcher["upload_store"] = &Parser::parseRoot;
+	keywordDispatcher["upload_store"] = &Parser::parseUploadStore;
 	keywordDispatcher["return"] = &Parser::parseReturn;
 	keywordDispatcher["cgi_extension"] = &Parser::parseCGI;
 	keywordDispatcher["cgi_pass"] = &Parser::parseCGI;
@@ -274,6 +274,24 @@ ParserState	Parser::parseRoot(ParserContext& ctx)
 		return (ctx.state);
 	locationConfig.root = root;
 	ctx.directoryExist[root] = true;
+	return (checkNextElement(ctx, *this));
+}
+
+ParserState	Parser::parseUploadStore(ParserContext& ctx)
+{
+	std::string	upload;
+
+	if (checkNextValue(ctx, SINTAX_ERROR, "Upload Store definition"))
+		return (ctx.state);
+	setTokenIndex(++tokenIndex, ctx);
+	ctx.currentWord = ctx.tokens[tokenIndex].value;
+	if (!isValidRoot(ctx.currentWord, ctx))
+		return (ctx.state);
+	upload = ctx.currentWord;
+	if (checkDirectoryExistence(upload, ctx))
+		return (ctx.state);
+	locationConfig.uploadStore = upload;
+	ctx.directoryExist[upload] = true;
 	return (checkNextElement(ctx, *this));
 }
 

@@ -83,5 +83,7 @@ std::string	Router::_mapToFilesystem(const LocationConfig &loc,
 	route = uri.substr(loc.path.size());
 	if (isTransversal(route))
 		return ("");
+	std::cerr << "root: " << loc.root
+			<< " | uri: " << uri << std::endl;
 	return (loc.root + uri);
 }

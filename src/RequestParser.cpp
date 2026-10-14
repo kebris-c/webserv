@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/25 16:17:35 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/10/14 14:38:57 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/15 00:57:10 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 
 RequestParser::RequestParser()
 {
-	headerHelpers["Content-Lenght"] = &contentLengthHeader;
+	headerHelpers["Content-Length"] = &contentLengthHeader;
 	headerHelpers["Transfer-Encoding"] = &transferEncodingHeader;
 	headerHelpers["Connection"] = &connectionHeader;
 }
