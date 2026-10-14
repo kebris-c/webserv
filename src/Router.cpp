@@ -20,7 +20,11 @@ RouteMatch	Router::match(const ServerConfig &server, const Request &req) const
 	m.location = _bestLocation(server, req.target());
 	m.ok = (m.location != 0);
 	if (m.ok)
+	{
 		m.fsPath = _mapToFilesystem(*m.location, req.target());
+		if (m.fsPath.empty())
+			m.ok = false;
+	}
 	return (m);
 }
 
@@ -64,7 +68,7 @@ bool	Router::isTransversal(const std::string& route) const
 		if (pos == std::string::npos)
 			pos = route.size();
 		element = route.substr(start, pos - start);
-		if (element == "..")
+		if (element == ".." || element == ".")
 			return (true);
 		start = pos + 1;
 	}

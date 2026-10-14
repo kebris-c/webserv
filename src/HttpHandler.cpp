@@ -20,11 +20,11 @@ Response	HttpHandler::handle(const Request &req, const RouteMatch &route) const
 		return (Response::makeError(405));
 	method = req.method();
 	if (method == "GET")
-		return (handleGet(req, route));
+		return (handleGet(route));
 	if (method == "POST")
 		return (handlePost(req, route));
 	if (method == "DELETE")
-		return (handleDelete(req, route));
+		return (handleDelete(route));
 	return (Response::makeError(501));
 }
 
@@ -78,17 +78,21 @@ Response	HttpHandler::parseCgiOutput(const std::string &output) const
 	return (Response::makeError(501));
 }
 
-Response	HttpHandler::handleGet(const Request &req, const RouteMatch &route) const
+Response	HttpHandler::handleGet(const RouteMatch &route) const
 {
-	DIR				*dir;
 	struct stat		fileInfo;
-	struct dirent	*entry;
-	std::string		body;
 	Response		response;
 
-	(void)req;
-	if (stat(route.fsPath.c_str(), &fileInfo) == -1)
-		return (Response::makeError(404));
+	std::cerr << "[DEBUG] handleGet ejecutado" << std::endl;
+	std::cerr << "[DEBUG] fsPath: " << route.fsPath << std::endl;
+	if (lstat(route.fsPath.c_str(), &fileInfo) == -1)
+	{
+		if (errno == EACCES)
+			return (Response::makeError(403));
+		if (errno == ENOENT || errno == ENOTDIR)
+			return (Response::makeError(404));
+		return (Response::makeError(500));
+	}
 	if (S_ISREG(fileInfo.st_mode))
 	{
 		response.setBodyFromFile(route.fsPath);
@@ -96,41 +100,27 @@ Response	HttpHandler::handleGet(const Request &req, const RouteMatch &route) con
 	}
 	if (S_ISDIR(fileInfo.st_mode))
 	{
-		if (stat((route.fsPath + "/index.html").c_str(), &fileInfo) == -1)
+		if (stat((route.fsPath + "/index.html").c_str(), &fileInfo) == 0
+			&& S_ISREG(fileInfo.st_mode))
 		{
 			response.setBodyFromFile(route.fsPath + "/index.html");
 			return (response);
 		}
 		if (route.location->autoindex == true)
-		{
-			dir = opendir(route.fsPath.c_str());
-			if (dir == NULL)
-				return (Response::makeError(403));
-			while ((entry = readdir(dir)) != NULL)
-			{
-				body += entry->d_name;
-				body += " \n";
-			}
-			closedir(dir);
-			response.setBody(body);
-			return (response);
-		}
+			return (autoindex(route.fsPath, route.location->path));
 		return (Response::makeError(403));
 	}
-	return (Response::makeError(501));
+	return (Response::makeError(403));
 }
 
 Response	HttpHandler::handlePost(const Request &req, const RouteMatch &route) const
 {
-	/*
-	 * TODO(kmarrero): uploads — write body to location.uploadStore
-	 * INVESTIGATE: multipart/form-data vs raw body; subject requires upload capability
-	 * Enforce client_max_body_size (413).
-	 */
 	struct stat	fileInfo;
 	Response	response;
 
-	if (stat(route.fsPath.c_str(), &fileInfo) == 0)
+	if (req.body().size() > route.server->clientMaxBodySize)
+		return (Response::makeError(413));
+	if (lstat(route.fsPath.c_str(), &fileInfo) == 0)
 	{
 		if (S_ISREG(fileInfo.st_mode))
 		{
@@ -153,17 +143,42 @@ Response	HttpHandler::handlePost(const Request &req, const RouteMatch &route) co
 			return (Response::makeError(500));
 		file.close();
 		response.setBody("File created");
+		response.setStatus(200);
 		return (response);
 	}
 	return (Response::makeError(501));
 }
 
-Response	HttpHandler::handleDelete(const Request &req, const RouteMatch &route) const
+Response HttpHandler::handleDelete(const RouteMatch &route) const
 {
-	/* TODO(kmarrero): unlink file if allowed; careful with directories */
-	(void)req;
-	(void)route;
-	return (Response::makeError(501));
+	struct stat fileInfo;
+	Response response;
+	int result;
+
+	if (lstat(route.fsPath.c_str(), &fileInfo) == -1)
+	{
+		if (errno == ENOENT || errno == ENOTDIR)
+			return (Response::makeError(404));
+		if (errno == EACCES || errno == EPERM)
+			return (Response::makeError(403));
+		return (Response::makeError(500));
+	}
+	if (S_ISDIR(fileInfo.st_mode))
+		result = rmdir(route.fsPath.c_str());
+	else
+		result = unlink(route.fsPath.c_str());
+	if (result == -1)
+	{
+		if (errno == ENOENT || errno == ENOTDIR)
+			return (Response::makeError(404));
+		if (errno == EACCES || errno == EPERM)
+			return (Response::makeError(403));
+		if (errno == ENOTEMPTY || errno == EEXIST)
+			return (Response::makeError(409));
+		return (Response::makeError(500));
+	}
+	response.setStatus(204);
+	return (response);
 }
 
 Response	HttpHandler::handleRedirect(const LocationConfig &loc) const
@@ -175,16 +190,96 @@ Response	HttpHandler::handleRedirect(const LocationConfig &loc) const
 	return (r);
 }
 
-Response	HttpHandler::autoindex(const std::string &fsPath, const std::string &uri) const
+std::string	HttpHandler::escapeHTML(const std::string &str) const
 {
-	/*
-	 * TODO(kmarrero): opendir/readdir/closedir -> simple HTML listing
-	 * INVESTIGATE: escape HTML in filenames; show hrefs relative to uri
-	 */
-	(void)fsPath;
-	(void)uri;
-	return (Response::makeError(501));
+	std::string	result;
+
+	for (size_t i = 0; i < str.size(); ++i)
+	{
+		if (str[i] == '&')
+			result += "&amp;";
+		else if (str[i] == '<')
+			result += "&lt;";
+		else if (str[i] == '>')
+			result += "&gt;";
+		else if (str[i] == '"')
+			result += "&quot;";
+		else if (str[i] == '\'')
+			result += "&#39;";
+		else
+			result += str[i];
+	}
+	return (result);
 }
+
+std::string	HttpHandler::encodeURL(const std::string &str) const
+{
+	const char	*hex = "0123456789ABCDEF";
+	std::string	result;
+
+	for (size_t i = 0; i< str.size(); ++i)
+	{
+		unsigned char	c = str[i];
+		if ((c >= 'a' && c <= 'z')
+			|| (c >= 'A' && c <= 'Z')
+			|| (c >= '0' && c <= '9')
+			|| c == '-' || c == '_'
+			|| c == '.' || c == '~')
+			result += c;
+		else
+		{
+			result += '%';
+			result += hex[c >> 4];
+			result += hex[c & 15];
+		}
+	}
+	return (result);
+}
+
+Response HttpHandler::autoindex(const std::string &fsPath,
+                                const std::string &uri) const
+{
+    DIR             *dir;
+    struct dirent   *entry;
+    std::string     body;
+    std::string     name;
+    std::string     href;
+    Response        response;
+
+    dir = opendir(fsPath.c_str());
+    if (dir == NULL)
+    {
+        if (errno == EACCES)
+            return (Response::makeError(403));
+        return (Response::makeError(500));
+    }
+    body = "<html><body>";
+    body += "<h1>Index of " + uri + "</h1>";
+    body += "<ul>";
+    while ((entry = readdir(dir)) != NULL)
+    {
+        name = entry->d_name;
+        if (name == "." || name == "..")
+            continue ;
+        href = uri;
+        if (href.empty() || href[href.size() - 1] != '/')
+            href += "/";
+        href += encodeURL(name);
+        body += "<li><a href=\"";
+        body += escapeHTML(href);
+        body += "\">";
+        body += escapeHTML(name);
+        body += "</a></li>";
+    }
+    closedir(dir);
+    body += "</ul>";
+    body += "</body></html>";
+    response.setStatus(200);
+    response.setHeader("Content-Type", "text/html");
+    response.setBody(body);
+    return (response);
+}
+
 
 bool	HttpHandler::methodAllowed(const LocationConfig &loc, const std::string &m) const
 {

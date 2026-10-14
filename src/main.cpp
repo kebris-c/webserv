@@ -6,60 +6,57 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/10/06 16:10:00 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/14 14:14:49 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "Lexer.hpp"
-#include "Router.hpp"
+
 #include "Config.hpp"
-#include "Request.hpp"
-#include "Response.hpp"
-#include "RequestParser.hpp"
+#include "Server.hpp"
 
-int	main(int ac, char* av[])
+#include <iostream>
+#include <vector>
+
+int main(int ac, char **av)
 {
-	Config			config;
-	Request			request;
-	RequestParser	parser;
-	Router			router;
-	RouteMatch		rMatch;
-	std::vector<std::string>	simulatedFeed;
-	std::vector<ServerConfig>	server;
+    Config                       config;
+    std::vector<ServerConfig>    servers;
+    Server                       server;
 
-	(void)ac;
-	config.load(av[1]);
-	server = config.servers();
-	request.setServer(server);
-	simulatedFeed.push_back("GET /index.html");
-	simulatedFeed.push_back(" HTTP/1.1\r\n");
-	simulatedFeed.push_back("Host: localhost:8080\r\n");
-	simulatedFeed.push_back("Transfer-Encoding: chunked\r\n");
-	simulatedFeed.push_back("\r\n");
-	simulatedFeed.push_back("4\r\n");
-	simulatedFeed.push_back("Wiki\r\n");
-	simulatedFeed.push_back("5\r\n");
-	simulatedFeed.push_back("pedia\r\n");
-	simulatedFeed.push_back("E\r\n");
-	simulatedFeed.push_back(" in\r\n");
-	simulatedFeed.push_back("\r\n");
-	simulatedFeed.push_back("chunks.\r\n");
-	simulatedFeed.push_back("0\r\n");
-	simulatedFeed.push_back("\r\n");
+    if (ac != 2)
+    {
+        std::cerr << "Usage: ./webserv <config.conf>"
+                  << std::endl;
+        return (1);
+    }
 
-	for (std::vector<std::string>::iterator it = simulatedFeed.begin();
-		it != simulatedFeed.end();
-		++it)
-	{
-		std::cout << *it << std::endl;
-		if (!request.feed(*it, parser))
-		{
-			std::cerr << "Error 400: Bad request" << std::endl;
-			return (1);
-		}
-	}
-	if (!request.isComplete())
-		return (request.state() != REQ_ERROR);
-	rMatch = router.match(server[0], request);
-	return (0);
+    // Cargar configuracion
+    if (config.load(av[1]) != true)
+    {
+        std::cerr << "Error loading configuration"
+                  << std::endl;
+        return (1);
+    }
+
+    servers = config.servers();
+
+    if (servers.empty())
+    {
+        std::cerr << "No servers configured"
+                  << std::endl;
+        return (1);
+    }
+
+    // Configurar sockets y puertos
+    if (!server.configure(servers))
+    {
+        std::cerr << "Error configuring server"
+                  << std::endl;
+        return (1);
+    }
+
+    std::cout << "Webserv running..." << std::endl;
+
+    // Iniciar el bucle de eventos
+    return (server.run());
 }

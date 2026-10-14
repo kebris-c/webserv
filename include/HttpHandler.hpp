@@ -50,12 +50,14 @@ class HttpHandler {
 		*/
 		Response	parseCgiOutput(const std::string &output) const;
 	private:
-		Response	handleGet(const Request &req, const RouteMatch &route) const;
+		Response	handleGet(const RouteMatch &route) const;
 		Response	handlePost(const Request &req, const RouteMatch &route) const;
-		Response	handleDelete(const Request &req, const RouteMatch &route) const;
+		Response	handleDelete(const RouteMatch &route) const;
 		Response	handleRedirect(const LocationConfig &loc) const;
 		Response	autoindex(const std::string &fsPath, const std::string &uri) const;
 		bool		methodAllowed(const LocationConfig &loc, const std::string &m) const;
+		std::string	escapeHTML(const std::string &str) const;
+		std::string	encodeURL(const std::string &str) const;
 };
 
 #endif /* HTTP_HANDLER_HPP */

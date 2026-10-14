@@ -33,17 +33,21 @@ void	Response::setBody(const std::string &body)
 	_headers["Content-Length"] = utils::toString(static_cast<int>(_body.size()));
 }
 
-std::string	Response::getExtension(const std::string& path)
+std::string Response::getExtension(const std::string &path)
 {
-	std::string::size_type	slash;
-	std::string::size_type	dot;
-	std::string				extension;
+    std::string::size_type slash;
+    std::string::size_type dot;
 
-	slash = path.find_last_of('/');
-	dot = path.find_last_of('.');
-	if (dot != std::string::npos && dot > slash)
-		extension = path.substr(dot + 1);
-	return (extension);
+    slash = path.find_last_of('/');
+    dot = path.find_last_of('.');
+
+    if (dot == std::string::npos)
+        return ("");
+
+    if (slash != std::string::npos && dot < slash)
+        return ("");
+
+    return (path.substr(dot + 1));
 }
 
 void Response::setBodyFromFile(const std::string &path)
