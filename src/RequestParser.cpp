@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/25 16:17:35 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/10/17 01:33:26 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/17 01:46:35 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -171,7 +171,7 @@ RequestState	RequestParser::parseRequestHeader(RequestContext& ctx, Request& req
 		value = it->substr(colon + 1);
 		if (!checkValueHeader(value, ctx))
 			return (request.setError("HEADER VALUE: ", ctx, REQ_ERROR, 400), REQ_ERROR);
-		if (normalizeHeaders(name))
+		if (normalizeHeader(name))
 			request.setHeaders(name, value, ctx);
 		if (request.state() == REQ_ERROR)
 			return (REQ_ERROR);
