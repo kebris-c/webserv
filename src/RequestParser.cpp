@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/25 16:17:35 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/29 22:08:51 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/17 01:33:26 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,26 +64,7 @@ RequestState	RequestParser::checkFeed(RequestContext& ctx, Request& request)
 				return (REQ_WAIT);
 		}
 		else if (requestState == REQ_BODY)
-		{
-			if (request.chunked())
-			{
-				if (ctx.buffer == "\r\n")
-					return (REQ_ERROR);
-				else if (ctx.buffer.find("0\r\n\r\n") != std::string::npos)
-					return (REQ_BODY);
-				else
-					return (REQ_WAIT);
-			}
-			else
-			{
-				if (ctx.buffer == "\r\n")
-					return (REQ_ERROR);
-				else if (ctx.buffer.find("\r\n") != std::string::npos)
-					return (REQ_BODY);
-				else
-					return (REQ_WAIT);
-			}
-		}
+			return (REQ_BODY);
 	}
 	return (request.state());
 }
@@ -135,7 +116,7 @@ RequestState	RequestParser::headersChecker(RequestContext& ctx, Request& request
 {
 	std::map<std::string, RequestHelpFunction>::iterator	loc;
 	std::map<std::string, std::string>::const_iterator		host;
-	RequestState											answer;
+	RequestState											answer = REQ_COMPLETE;
 
 	host = request.headers().find("Host");
 	if (host == request.headers().end())
@@ -153,9 +134,13 @@ RequestState	RequestParser::headersChecker(RequestContext& ctx, Request& request
 		else
 			break ;
 	}
-	if (!answer)
-		return (REQ_COMPLETE);
-	return (answer);
+	if (answer == REQ_ERROR)
+		return (answer);
+	if (request.headers().count("Content-Length") && request.chunked())
+		return (request.setError("Ambiguous body length", ctx, REQ_ERROR, 400), REQ_ERROR);
+	if (request.chunked() || request.contentLength() > 0)
+		return (REQ_BODY);
+	return (REQ_COMPLETE);
 }
 
 RequestState	RequestParser::parseRequestHeader(RequestContext& ctx, Request& request)
@@ -186,7 +171,10 @@ RequestState	RequestParser::parseRequestHeader(RequestContext& ctx, Request& req
 		value = it->substr(colon + 1);
 		if (!checkValueHeader(value, ctx))
 			return (request.setError("HEADER VALUE: ", ctx, REQ_ERROR, 400), REQ_ERROR);
-		request.setHeaders(name, value, ctx);
+		if (normalizeHeaders(name))
+			request.setHeaders(name, value, ctx);
+		if (request.state() == REQ_ERROR)
+			return (REQ_ERROR);
 	}
 	RequestState answer = headersChecker(ctx, request);
 	if (answer == REQ_ERROR)
@@ -233,32 +221,21 @@ std::string	RequestParser::parseChunkedBody(std::vector<std::string>& phrases, R
 
 RequestState	RequestParser::parseRequestBody(RequestContext& ctx, Request& request)
 {
-	std::string::size_type		pos = obtainBodyInfo(request);
-	std::string					body;
-	std::vector<std::string>	chunkedInfo;
+	std::string	body;
+	size_t		offset;
 
-	if (pos == std::string::npos)
-		return (REQ_WAIT);
-	body = ctx.buffer.substr(0, pos);
-	if (request.state() != REQ_BODY || body == "" || body == "\r\n")
-		return (request.setError("BODY: no body recieved", ctx, REQ_ERROR, 400), REQ_ERROR);
-	if (request.chunked())
+	if (!request.chunked())
 	{
-		chunkedInfo = bodySplit(body);
-		if (chunkedInfo.size() > 0)
-		{
-			body = parseChunkedBody(chunkedInfo, request, ctx);
-			request.setBody(body);
-			return (REQ_COMPLETE);
-		}
-		else
-			return (request.setError("BODY: no info recieved", ctx, REQ_ERROR, 400), REQ_ERROR);
-	}
-	size_t	length = request.contentLength();
-	if (body.size() == length)
+		if (ctx.buffer.size() < request.contentLength())
+			return (REQ_WAIT);
+		body = ctx.buffer.substr(0, request.contentLength());
+		ctx.buffer.erase(0, request.contentLength());
 		request.setBody(body);
-	else
-		return (request.setError("BODY: the amount of bytes it's higher than announced",
-				ctx, REQ_ERROR, 400), REQ_ERROR);
-	return (REQ_COMPLETE);
+		return (REQ_COMPLETE);
+	}
+	offset = 0;
+	while (true)
+	{
+		
+	}
 }

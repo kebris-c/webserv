@@ -9,6 +9,14 @@
 Request::Request()
 	:_state(REQ_LINE), _contentLength(0), _chunked(false), _errorCode(0)
 {
+	configureStateMachine(_stateMachine);
+}
+
+Request::~Request()
+{}
+
+void	Request::configureStateMachine(RStateMachine _stateMachine)
+{
 	_stateMachine.addTransition(REQ_FEED, REQ_WAIT_INFO, &RequestParser::checkFeed);
 	_stateMachine.addTransition(REQ_FEED, REQ_GET_REQUEST, &RequestParser::checkFeed);
 	_stateMachine.addTransition(REQ_WAIT, REQ_WAIT_INFO, &RequestParser::checkFeed);
@@ -17,11 +25,10 @@ Request::Request()
 	_stateMachine.addTransition(REQ_BODY, REQ_GET_BODY, &RequestParser::parseRequestBody);
 }
 
-Request::~Request()
-{}
-
 void	Request::reset()
 {
+	_stateMachine = RStateMachine();
+	configureStateMachine(_stateMachine);
 	_ctx.buffer.clear();
 	_ctx.line.clear();
 	_ctx.error.clear();
@@ -89,8 +96,8 @@ void	Request::setContentLength(std::size_t& length)
 
 void	Request::setHeaders(std::string name, std::string value, RequestContext& ctx)
 {
-	std::map<std::string, std::string>::iterator it;
-
+	if (name.empty())
+		return (setError("HEADER: header name it's empty", ctx, REQ_ERROR, 400), (void)NULL);
 	if (_headers.find(name) == _headers.end())
 	{
 		_headers[name] = value;
@@ -99,8 +106,6 @@ void	Request::setHeaders(std::string name, std::string value, RequestContext& ct
 			if (value == "chunked")
 				_chunked = true;
 		}
-		else if (name == "Content-Length")
-			_chunked = false;
 		else
 			return ;
 	}

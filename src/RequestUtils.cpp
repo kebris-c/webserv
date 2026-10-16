@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/22 18:42:41 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/29 22:02:56 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/17 01:40:56 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ bool	checkMethod(const std::string& word)
 
 bool	checkTarget(const std::string& word)
 {
-	if (word[0] == '/')
+	if (word.empty() || word[0] == '/')
 		return (true);
 	return (false);
 }
@@ -86,17 +86,42 @@ void	prepareTarget(const std::string& target, Request& request)
 		return ;
 }
 
+bool	normalizeHeader(const std::string& header)
+{
+	std::string	name = NULL;
+	const char *canonical[] = {"Host", "Content-Length",
+								"Transfer-Encoding",
+								"Connection", "Content-Type"};
+
+	for (size_t i = 0; i < header.size(); ++i)
+		name += std::tolower(static_cast<unsigned char>(header[i]));
+	for (size_t j = 0; j < sizeof(canonical) / sizeof(canonical[0]); ++j)
+	{
+		std::string	lower = canonical[j];
+		for (size_t i = 0; i < lower.size(); ++i)
+			lower[i] = std::tolower(static_cast<unsigned char>(lower[i]));
+		if (name == lower)
+		{
+			name = canonical[j];
+			return (true);
+		}
+	}
+	return (false);
+}
+
 RequestState	contentLengthHeader(const std::string& header, RequestContext& ctx, Request& request)
 {
 	unsigned long	value;
 	char			*end;
 	errno = 0;
 
+	if (header.empty())
+		return (request.setError("Empty Content-Length", ctx, REQ_ERROR, 400), REQ_ERROR);
 	for (size_t i = 0; i < header.size(); ++i)
 	{
 		if (!std::isdigit(static_cast<unsigned char>(header[i])))
 			return (request.setError("HEADER -> Content-Length: format not valid",
-					ctx, REQ_ERROR, 400), REQ_BODY);
+					ctx, REQ_ERROR, 400), REQ_ERROR);
 	}
 	value = std::strtoul(header.c_str(), &end, 10);
 	if (errno == ERANGE || *end != '\0')

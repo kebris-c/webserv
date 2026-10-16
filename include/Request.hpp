@@ -15,26 +15,28 @@
 #ifndef REQUEST_HPP
 # define REQUEST_HPP
 
-# include "Webserv.hpp"
 # include "Config.hpp"
+# include "Webserv.hpp"
 # include "RequestStateMachine.hpp"
 
-class Request {
+class Request
+{
 	private:
-		RequestState						_state;
-		RequestContext						_ctx;
-		RStateMachine						_stateMachine;
-		std::vector<ServerConfig>			_server;
+		int									_errorCode;
+		bool								_chunked;
 		std::string							_method;
 		std::string							_target;
 		std::string							_query;
 		std::string							_version;
 		std::string							_body;
 		std::size_t							_contentLength;
-		std::map<std::string, std::string>	_headers;
-		bool								_chunked;
-		int									_errorCode;
+		RequestState						_state;
+		RStateMachine						_stateMachine;
+		RequestContext						_ctx;
 		std::vector<std::string>			_chunkedBody;
+		std::vector<ServerConfig>			_server;
+		std::map<std::string, std::string>	_headers;
+		void								configureStateMachine(RStateMachine _stateMachine);
 	public:
 		Request();
 		~Request();
