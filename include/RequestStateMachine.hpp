@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/17 16:31:07 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/29 18:57:43 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/17 16:51:12 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,6 +32,7 @@ enum	RequestEvent
 	REQ_GET_REQUEST,
 	REQ_GET_HEADERS,
 	REQ_GET_BODY,
+	REQ_GET_CHUNKED_BODY,
 	REQ_GET_VALUE,
 	REQ_GET_INFO,
 	REQUEST_END_EVENT
@@ -42,6 +43,12 @@ struct	RequestContext
 	std::string		buffer;
 	std::string		error;
 	std::string		line;
+	size_t			chunkSize; /** Bytes the current chunk needs. */
+	size_t			chunkDigitEnd;
+	size_t			chunkEnd;
+	size_t			chunkOffSet;
+	std::string		chunkedBody; /** Accumulated body of the chunk. */
+	bool			chunked;
 };
 
 typedef	RequestState	(RequestParser::*RequestFunction)(RequestContext&, Request&);
@@ -56,23 +63,26 @@ typedef	std::pair<RequestState, RequestEvent>	RequestTransitionKey;
 class	RStateMachine
 {
 	private:
-		RequestState	initialState;
-		RequestState	currentState;
 		std::map<RequestTransitionKey, RequestAction>	functions;
-		void			setCurrentState(RequestState state);
+		RequestState									initialState;
+		RequestState									currentState;
+		void											setCurrentState(RequestState state);
 	public:
 		RStateMachine();
 		RStateMachine(RequestState initialState);
 		RStateMachine(const RStateMachine& other);
 		~RStateMachine();
 		RStateMachine&	operator=(const RStateMachine& other);
+		RequestState	getCurrentState();
+		RequestEvent	getNextEvent(RequestState fromState, RequestContext& ctx);
+		RequestAction	nextTransition(RequestState fromState, RequestEvent event);
 		void			addTransition(RequestState fromState,
 								RequestEvent event,
 								RequestFunction function);
-		RequestAction	nextTransition(RequestState fromState, RequestEvent event);
-		void			handle(RequestContext& ctx, RequestParser& parser, Request& request, RequestEvent event);
-		RequestState	getCurrentState();
-		RequestEvent	getNextEvent(RequestState fromState);
+		void			handle(RequestContext& ctx,
+								RequestParser& parser,
+								Request& request,
+								RequestEvent event);
 };
 
 #endif

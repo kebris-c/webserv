@@ -122,16 +122,19 @@ Response	HttpHandler::handlePost(const Request &req, const RouteMatch &route) co
 	{
 		if (S_ISREG(fileInfo.st_mode))
 		{
-			std::ofstream fileWrite(route.fsPath.c_str(), std::ios::binary | std::ios::app);
+			std::ofstream fileWrite(route.fsPath.c_str(), std::ios::binary);
 			if (!fileWrite.is_open())
 				return (Response::makeError(403));
 			fileWrite.write(req.body().data(), req.body().size());
 			if (!fileWrite)
 				return (Response::makeError(500));
 			fileWrite.close();
+			if (!fileWrite)
+				return (Response::makeError(500));
 			response.setBody("File Uploaded");
 			return (response);
 		}
+		return (Response::makeError(S_ISDIR(fileInfo.st_mode) ? 409 : 403));
 	}
 	else if (errno == ENOENT)
 	{
@@ -140,11 +143,17 @@ Response	HttpHandler::handlePost(const Request &req, const RouteMatch &route) co
 		if (!file)
 			return (Response::makeError(500));
 		file.close();
+		if (!file)
+			return (Response::makeError(500));
 		response.setBody("File created");
-		response.setStatus(200);
+		response.setStatus(201);
 		return (response);
 	}
-	return (Response::makeError(501));
+	if (errno == EACCES || errno == EPERM)
+		return (Response::makeError(403));
+	if (errno == ENOTDIR)
+		return (Response::makeError(404));
+	return (Response::makeError(500));
 }
 
 Response HttpHandler::handleDelete(const RouteMatch &route) const
@@ -277,7 +286,6 @@ Response HttpHandler::autoindex(const std::string &fsPath,
     response.setBody(body);
     return (response);
 }
-
 
 bool	HttpHandler::methodAllowed(const LocationConfig &loc, const std::string &m) const
 {

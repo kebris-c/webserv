@@ -35,9 +35,9 @@ SRCS		= \
 
 OBJS = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
--include $(OBJS:.o=.d)
-
 all: $(NAME)
+
+-include $(OBJS:.o=.d)
 
 $(NAME): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)

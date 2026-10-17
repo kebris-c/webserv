@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/25 16:05:56 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/29 19:12:55 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/17 15:14:24 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,8 +25,6 @@ class	RequestParser
 		std::vector<std::string>			headerSplit(Request& request);
 		std::vector<std::string>			bodySplit(std::string& body);
 		RequestState						headersChecker(RequestContext& ctx, Request& request);
-		std::string							parseChunkedBody(std::vector<std::string>& phrases, Request& request,
-																RequestContext& ctx);
 	public:
 		RequestParser();
 		~RequestParser();
@@ -34,6 +32,7 @@ class	RequestParser
 		RequestState						parseRequestLine(RequestContext& ctx, Request& request);
 		RequestState						parseRequestHeader(RequestContext& ctx, Request& request);
 		RequestState						parseRequestBody(RequestContext& ctx, Request& request);
+		RequestState						parseChunkedBody(RequestContext& ctx, Request& request);
 };
 
 #endif
