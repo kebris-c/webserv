@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/17 16:31:07 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/10/17 16:04:42 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/17 16:51:12 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,16 +38,6 @@ enum	RequestEvent
 	REQUEST_END_EVENT
 };
 
-enum	ChunkState
-{
-	CHUNK_START,
-	CHUNK_SIZE,
-	CHUNK_DATA,
-	CHUNK_DATA_CRLF,
-	CHUNK_TRAILERS,
-	CHUNK_COMPLETE
-};
-
 struct	RequestContext
 {
 	std::string		buffer;
@@ -57,7 +47,6 @@ struct	RequestContext
 	size_t			chunkDigitEnd;
 	size_t			chunkEnd;
 	size_t			chunkOffSet;
-	ChunkState		chunkState; /** Current state of the chunk. */
 	std::string		chunkedBody; /** Accumulated body of the chunk. */
 	bool			chunked;
 };

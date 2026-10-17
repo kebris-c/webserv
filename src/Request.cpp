@@ -11,7 +11,6 @@ Request::Request()
 {
 	configureStateMachine();
 	_ctx.chunked = false;
-	_ctx.chunkState = CHUNK_START;
 	_ctx.chunkedBody = "";
 	_ctx.chunkSize = 0;
 	_ctx.chunkDigitEnd = 0;
@@ -41,7 +40,6 @@ void	Request::reset()
 	_ctx.line.clear();
 	_ctx.error.clear();
 	_ctx.chunked = false;
-	_ctx.chunkState = CHUNK_START;
 	_ctx.chunkedBody = "";
 	_ctx.chunkSize = 0;
 	_ctx.chunkDigitEnd = 0;
