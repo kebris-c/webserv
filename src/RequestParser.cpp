@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/25 16:17:35 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/10/15 00:57:10 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/17 16:54:47 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,26 +64,7 @@ RequestState	RequestParser::checkFeed(RequestContext& ctx, Request& request)
 				return (REQ_WAIT);
 		}
 		else if (requestState == REQ_BODY)
-		{
-			if (request.chunked())
-			{
-				if (ctx.buffer == "\r\n")
-					return (REQ_ERROR);
-				else if (ctx.buffer.find("0\r\n\r\n") != std::string::npos)
-					return (REQ_BODY);
-				else
-					return (REQ_WAIT);
-			}
-			else
-			{
-				if (ctx.buffer == "\r\n")
-					return (REQ_ERROR);
-				else if (ctx.buffer.find("\r\n") != std::string::npos)
-					return (REQ_BODY);
-				else
-					return (REQ_WAIT);
-			}
-		}
+			return (REQ_BODY);
 	}
 	return (request.state());
 }
@@ -135,7 +116,7 @@ RequestState	RequestParser::headersChecker(RequestContext& ctx, Request& request
 {
 	std::map<std::string, RequestHelpFunction>::iterator	loc;
 	std::map<std::string, std::string>::const_iterator		host;
-	RequestState											answer;
+	RequestState											answer = REQ_COMPLETE;
 
 	host = request.headers().find("Host");
 	if (host == request.headers().end())
@@ -153,17 +134,21 @@ RequestState	RequestParser::headersChecker(RequestContext& ctx, Request& request
 		else
 			break ;
 	}
-	if (!answer)
-		return (REQ_COMPLETE);
-	return (answer);
+	if (answer == REQ_ERROR)
+		return (answer);
+	if (request.headers().count("Content-Length") && request.chunked())
+		return (request.setError("Ambiguous body length", ctx, REQ_ERROR, 400), REQ_ERROR);
+	if (request.chunked() || request.contentLength() > 0)
+		return (REQ_BODY);
+	return (REQ_COMPLETE);
 }
 
 RequestState	RequestParser::parseRequestHeader(RequestContext& ctx, Request& request)
 {
 	std::string					name;
 	std::string					value;
-	std::string::size_type		pos = obtainStatusFromContext(request);
 	std::string::size_type		colon;
+	std::string::size_type		pos = obtainStatusFromContext(request);
 	std::vector<std::string>	line;
 
 	if (pos == std::string::npos)
@@ -172,21 +157,20 @@ RequestState	RequestParser::parseRequestHeader(RequestContext& ctx, Request& req
 	for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); ++it)
 	{
 		colon = it->find(":");
-		if (colon == std::string::npos)
-			return (request.setError("HEADER: colon (:) not found", ctx, REQ_ERROR, 400), REQ_ERROR);
-		if (colon == 0)
-			return (request.setError("HEADER: colon (:) not found", ctx, REQ_ERROR, 400), REQ_ERROR);
-		if ((*it)[colon - 1] == ' ')
-			return (request.setError("HEADER: extra space not valid", ctx, REQ_ERROR, 400), REQ_ERROR);
-		if ((*it)[colon - 1] == '\t')
-			return (request.setError("HEADER: invalir character", ctx, REQ_ERROR, 400), REQ_ERROR);
+		if (!colonChecker(colon, it, request, ctx))
+			return (REQ_ERROR);
 		name = it->substr(0, colon);
 		if (!checkNameHeader(name, ctx))
-			return (request.setError("HEADER NAME: ", ctx, REQ_ERROR, 400), REQ_ERROR);
+			return (request.setError("HEADER NAME: ",
+						ctx, REQ_ERROR, 400), REQ_ERROR);
 		value = it->substr(colon + 1);
 		if (!checkValueHeader(value, ctx))
-			return (request.setError("HEADER VALUE: ", ctx, REQ_ERROR, 400), REQ_ERROR);
-		request.setHeaders(name, value, ctx);
+			return (request.setError("HEADER VALUE: ",
+						ctx, REQ_ERROR, 400), REQ_ERROR);
+		name = normalizeHeader(name);
+			request.setHeaders(name, value, ctx);
+		if (request.state() == REQ_ERROR)
+			return (REQ_ERROR);
 	}
 	RequestState answer = headersChecker(ctx, request);
 	if (answer == REQ_ERROR)
@@ -211,54 +195,36 @@ std::vector<std::string>	RequestParser::bodySplit(std::string& body)
 	return (bodyChunk);
 }
 
-std::string	RequestParser::parseChunkedBody(std::vector<std::string>& phrases, Request& request, RequestContext& ctx)
-{
-	std::string			buffer;
-	size_t				hexValue;
-
-	for (size_t i = 0; i < phrases.size();)
-	{
-		if (phrases[i] == "")
-		{
-			return (request.setError(" -> " + phrases[i]
-				+ " must not be an empty string", ctx, REQ_ERROR, 400), "");
-			break ;
-		}
-		hexValue = obtainHexValue(phrases[i]);
-		++i;
-		i = bufferConstruct(hexValue, buffer, phrases, i);
-	}
-	return (buffer);
-}
-
 RequestState	RequestParser::parseRequestBody(RequestContext& ctx, Request& request)
 {
-	std::string::size_type		pos = obtainBodyInfo(request);
-	std::string					body;
-	std::vector<std::string>	chunkedInfo;
+	std::string	body;
 
-	if (pos == std::string::npos)
+	if (ctx.buffer.size() < request.contentLength())
 		return (REQ_WAIT);
-	body = ctx.buffer.substr(0, pos);
-	if (request.state() != REQ_BODY || body == "" || body == "\r\n")
-		return (request.setError("BODY: no body recieved", ctx, REQ_ERROR, 400), REQ_ERROR);
-	if (request.chunked())
-	{
-		chunkedInfo = bodySplit(body);
-		if (chunkedInfo.size() > 0)
-		{
-			body = parseChunkedBody(chunkedInfo, request, ctx);
-			request.setBody(body);
-			return (REQ_COMPLETE);
-		}
-		else
-			return (request.setError("BODY: no info recieved", ctx, REQ_ERROR, 400), REQ_ERROR);
-	}
-	size_t	length = request.contentLength();
-	if (body.size() == length)
-		request.setBody(body);
-	else
-		return (request.setError("BODY: the amount of bytes it's higher than announced",
-				ctx, REQ_ERROR, 413), REQ_ERROR);
+	body = ctx.buffer.substr(0, request.contentLength());
+	ctx.buffer.erase(0, request.contentLength());
+	request.setBody(body);
 	return (REQ_COMPLETE);
+}
+
+RequestState	RequestParser::parseChunkedBody(RequestContext& ctx, Request& request)
+{
+	while (true)
+	{
+		if (chunkCalculations(ctx, request) == REQ_ERROR)
+			return (REQ_ERROR);
+		if (ctx.chunkSize == 0)
+		{
+			if (consumeTrailerInFinalLine(ctx, request) == REQ_ERROR);
+				return (REQ_ERROR);
+		}
+		if (ctx.chunkSize > ctx.buffer.size() - ctx.chunkOffSet)
+			return (REQ_WAIT);
+		if (ctx.buffer.size() - ctx.chunkOffSet - ctx.chunkSize < 2)
+			return (REQ_WAIT);
+		if (ctx.buffer.compare(ctx.chunkOffSet + ctx.chunkSize, 2, "\r\n") != 0)
+			return (request.setError("Invalid chunk delimiter", ctx, REQ_ERROR, 400), REQ_ERROR);
+		ctx.chunkedBody.append(ctx.buffer, ctx.chunkOffSet, ctx.chunkSize);
+		ctx.chunkOffSet += ctx.chunkSize + 2;
+	}
 }
