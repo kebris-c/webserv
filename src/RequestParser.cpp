@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/25 16:17:35 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/10/17 16:54:47 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/17 17:14:11 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -215,7 +215,7 @@ RequestState	RequestParser::parseChunkedBody(RequestContext& ctx, Request& reque
 			return (REQ_ERROR);
 		if (ctx.chunkSize == 0)
 		{
-			if (consumeTrailerInFinalLine(ctx, request) == REQ_ERROR);
+			if (consumeTrailerInFinalLine(ctx, request) == REQ_ERROR)
 				return (REQ_ERROR);
 		}
 		if (ctx.chunkSize > ctx.buffer.size() - ctx.chunkOffSet)

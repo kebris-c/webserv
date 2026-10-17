@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/22 18:42:41 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/10/17 16:54:57 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/17 17:20:03 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -125,7 +125,7 @@ RequestState	chunkCalculations(RequestContext& ctx, Request& request)
 	ctx.chunkEnd = ctx.buffer.find("\r\n", ctx.chunkOffSet);
 	if (ctx.chunkEnd == std::string::npos)
 		return (REQ_WAIT);
-	ctx.chunkDigitEnd = ctx.buffer.find("\r\n", ctx.chunkOffSet);
+	ctx.chunkDigitEnd = ctx.buffer.find(';', ctx.chunkOffSet);
 	if (ctx.chunkDigitEnd == std::string::npos || ctx.chunkDigitEnd > ctx.chunkEnd)
 		ctx.chunkDigitEnd = ctx.chunkEnd;
 	if (ctx.chunkDigitEnd == ctx.chunkOffSet)
@@ -220,7 +220,7 @@ std::string::size_type	obtainStatusFromContext(Request& request)
 
 std::string	normalizeHeader(const std::string& header)
 {
-	std::string	name = NULL;
+	std::string	name;
 	const char *canonical[] = {"Host", "Content-Length",
 								"Transfer-Encoding",
 								"Connection", "Content-Type"};
@@ -238,5 +238,5 @@ std::string	normalizeHeader(const std::string& header)
 			return (name);
 		}
 	}
-	return ("");
+	return (name);
 }

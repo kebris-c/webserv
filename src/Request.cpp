@@ -7,7 +7,10 @@
 #include "RequestParser.hpp"
 
 Request::Request()
-	:_state(REQ_LINE), _contentLength(0), _chunked(false), _errorCode(0)
+    : _errorCode(0),
+      _chunked(false),
+      _contentLength(0),
+      _state(REQ_LINE)
 {
 	configureStateMachine();
 	_ctx.chunked = false;

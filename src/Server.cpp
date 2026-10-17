@@ -323,11 +323,11 @@ void	Server::_onReadable(int fd)
 				it->second->readBuf().clear();
 				return ;
 			}
-			if (!it->second->request().parse(it->second->readBuf(), parser))
+			it->second->request().parse(it->second->readBuf(), parser);
+			it->second->readBuf().clear();
+			if (!it->second->request().isComplete()
+				&& it->second->request().state() != REQ_ERROR)
 				return ;
-			if (it->second->request().state() == REQ_ERROR)
-				response = Response::makeError(
-						it->second->request().errorCode());
 			else
 			{
 				if (it->second->serverIndex() >= _configs.size())
