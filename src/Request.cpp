@@ -9,29 +9,44 @@
 Request::Request()
 	:_state(REQ_LINE), _contentLength(0), _chunked(false), _errorCode(0)
 {
-	configureStateMachine(_stateMachine);
+	configureStateMachine();
+	_ctx.chunked = false;
+	_ctx.chunkState = CHUNK_START;
+	_ctx.chunkedBody = "";
+	_ctx.chunkSize = 0;
+	_ctx.chunkDigitEnd = 0;
+	_ctx.chunkEnd = 0;
+	_ctx.chunkOffSet = 0;
 }
 
 Request::~Request()
 {}
 
-void	Request::configureStateMachine(RStateMachine _stateMachine)
+void	Request::configureStateMachine()
 {
+	_stateMachine = RStateMachine();
 	_stateMachine.addTransition(REQ_FEED, REQ_WAIT_INFO, &RequestParser::checkFeed);
 	_stateMachine.addTransition(REQ_FEED, REQ_GET_REQUEST, &RequestParser::checkFeed);
 	_stateMachine.addTransition(REQ_WAIT, REQ_WAIT_INFO, &RequestParser::checkFeed);
 	_stateMachine.addTransition(REQ_LINE, REQ_GET_REQUEST, &RequestParser::parseRequestLine);
 	_stateMachine.addTransition(REQ_HEADERS, REQ_GET_HEADERS, &RequestParser::parseRequestHeader);
 	_stateMachine.addTransition(REQ_BODY, REQ_GET_BODY, &RequestParser::parseRequestBody);
+	_stateMachine.addTransition(REQ_BODY, REQ_GET_CHUNKED_BODY, &RequestParser::parseChunkedBody);
 }
 
 void	Request::reset()
 {
-	_stateMachine = RStateMachine();
-	configureStateMachine(_stateMachine);
+	configureStateMachine();
 	_ctx.buffer.clear();
 	_ctx.line.clear();
 	_ctx.error.clear();
+	_ctx.chunked = false;
+	_ctx.chunkState = CHUNK_START;
+	_ctx.chunkedBody = "";
+	_ctx.chunkSize = 0;
+	_ctx.chunkDigitEnd = 0;
+	_ctx.chunkEnd = 0;
+	_ctx.chunkOffSet = 0;
 	_state = REQ_LINE;
 	_method.clear();
 	_target.clear();
@@ -104,7 +119,10 @@ void	Request::setHeaders(std::string name, std::string value, RequestContext& ct
 		if (name == "Transfer-Encoding")
 		{
 			if (value == "chunked")
+			{
 				_chunked = true;
+				ctx.chunked = true;
+			}
 		}
 		else
 			return ;
@@ -114,16 +132,6 @@ void	Request::setHeaders(std::string name, std::string value, RequestContext& ct
 		setError("HEADER " + name + ": already exist in map", ctx, REQ_ERROR, 400);
 		return ;
 	}
-}
-
-void	Request::setChunked(bool& answer)
-{
-	this->_chunked = answer;
-}
-
-void	Request::setChunkedBody(std::vector<std::string>& chunk)
-{
-	this->_chunkedBody = chunk;
 }
 
 void	Request::setErrorCode(int& code)
@@ -140,7 +148,7 @@ bool	Request::feed(const std::string& data, RequestParser& parser)
 		state = getCurrentState();
 	while (state != REQ_COMPLETE && state != REQ_ERROR && state != REQ_WAIT)
 	{
-		RequestEvent	event = _stateMachine.getNextEvent(state);
+		RequestEvent	event = _stateMachine.getNextEvent(state, _ctx);
 	
 		_stateMachine.handle(_ctx, parser, *this, event);
 		state = _stateMachine.getCurrentState();

@@ -6,7 +6,7 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/17 17:07:17 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/09/29 18:57:55 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/17 13:44:08 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,7 @@ void			RStateMachine::setCurrentState(RequestState state)
 	this->currentState = state;
 }
 
-RequestEvent	RStateMachine::getNextEvent(RequestState fromState)
+RequestEvent	RStateMachine::getNextEvent(RequestState fromState, RequestContext& ctx)
 {
 	switch (fromState)
 	{
@@ -51,7 +51,12 @@ RequestEvent	RStateMachine::getNextEvent(RequestState fromState)
 		case REQ_HEADERS:
 			return (REQ_GET_HEADERS);
 		case REQ_BODY:
-			return (REQ_GET_BODY);
+			{
+				if (ctx.chunked)
+					return (REQ_GET_CHUNKED_BODY);
+				else
+					return (REQ_GET_BODY);
+			}
 		case REQ_WAIT:
 			return (REQ_WAIT_INFO);
 		default:
@@ -102,10 +107,8 @@ void	RStateMachine::handle(RequestContext& ctx, RequestParser& parser, Request& 
 	RequestState	currentState = this->getCurrentState();
 
 	if (currentState == REQ_WAIT)
-		event = getNextEvent(currentState);
-
+		event = getNextEvent(currentState, ctx);
 	RequestAction	action = this->nextTransition(currentState, event);
-
 	if (action.function == NULL)
 	{
 		std::cerr << "Invalid transition" << std::endl;

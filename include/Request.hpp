@@ -33,10 +33,9 @@ class Request
 		RequestState						_state;
 		RStateMachine						_stateMachine;
 		RequestContext						_ctx;
-		std::vector<std::string>			_chunkedBody;
 		std::vector<ServerConfig>			_server;
 		std::map<std::string, std::string>	_headers;
-		void								configureStateMachine(RStateMachine _stateMachine);
+		void								configureStateMachine();
 	public:
 		Request();
 		~Request();
@@ -52,9 +51,7 @@ class Request
 		void										setBody(std::string& body);
 		void										setContentLength(std::size_t& length);
 		void										setHeaders(std::string name, std::string value, RequestContext& ctx);
-		void										setChunked(bool& answer);
 		void										setErrorCode(int& code);
-		void										setChunkedBody(std::vector<std::string>& chunk);
 		RequestState								state() const;
 		const std::string							&method() const;
 		const std::string							&target() const;		/* path (+ query later) */
@@ -73,20 +70,6 @@ class Request
 		RequestContext								getContext();
 		/* Optional: case-insensitive header lookup. */
 		std::string									header(const std::string &name) const;
-
-	/*
-	 * PSEUDOCODE — OWNER kmarrero
-	 *
-	 * while state != COMPLETE/ERROR:
-	 *   if REQ_LINE: need "\r\n" -> split METHOD SP TARGET SP HTTP/x.y
-	 *                split TARGET into path ? query
-	 *   if REQ_HEADERS: read lines until empty line
-	 *                   detect Content-Length / Transfer-Encoding
-	 *   if REQ_BODY:
-	 *     if chunked: decode chunks until 0-size chunk (CGI needs unchunked body)
-	 *     else: accumulate until Content-Length bytes
-	 *     enforce client_max_body_size from matched server/location (Router later)
-	 */
 };
 
-#endif /* REQUEST_HPP */
+#endif
