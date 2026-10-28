@@ -1,9 +1,17 @@
-/* **************************************************************************
- * HttpHandler.cpp
- * OWNER: kmarrero
- * ************************************************************************** */
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   HttpHandler.cpp                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/10/28 16:45:17 by kjroydev          #+#    #+#             */
+/*   Updated: 2026/10/28 16:45:55 by kjroydev         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
 #include "HttpHandler.hpp"
+#include "CgiProcess.hpp"
 
 HttpHandler::HttpHandler()
 {}
@@ -50,12 +58,7 @@ bool	HttpHandler::prepareCgi(const Request &req, const RouteMatch &route,
 	// pipe/poll here; body must already be unchunked in Request before true;
 	// kebris-c owns CgiProcess::start + pipe I/O + waitpid(WNOHANG).
 	// ============================================================
-	(void)req;
-	(void)route;
-	(void)remoteAddr;
-	scriptPath.clear();
-	environment.clear();
-	return (false);
+	
 }
 
 /*

@@ -94,16 +94,15 @@ bool	checkValueHeader(std::string& value, RequestContext& ctx)
 void	prepareTarget(const std::string& target, Request& request)
 {
 	std::string::size_type	pos;
-	std::string	objective;
+	std::string				path;
+	std::string				query;
 
-	pos = target.find("?");
+	pos = target.find('?');
+	path = target.substr(0, pos);
 	if (pos != std::string::npos)
-	{
-		objective = target.substr(pos + 1);
-		request.setQuery(objective);
-	}
-	else
-		return ;
+		query = target.substr(pos + 1);
+	request.setTarget(path);
+	request.setQuery(query);
 }
 
 RequestState	getHexadecimalLength(RequestContext& ctx, Request& request)

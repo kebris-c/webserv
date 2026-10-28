@@ -35,7 +35,11 @@ public:
 	/* Closes pipes and terminates a child still owned during shutdown. */
 	~CgiProcess();
 
-	/* kmarrero: build env from Request + Location + ServerConfig */
+	/*
+	 * Build env for script-only URLs using an absolute scriptPath.
+	 * HttpHandler::prepareCgi must append REMOTE_ADDR from the connection.
+	 * URLs with a PATH_INFO suffix need script resolution before using this API.
+	 */
 	static std::vector<std::string>	buildEnv(const Request &req,
 												const ServerConfig &srv,
 												const LocationConfig &loc,

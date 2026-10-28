@@ -25,28 +25,39 @@ CgiProcess::~CgiProcess()
 		::kill(_pid, SIGKILL);
 }
 
-/* Builds CGI environment data; this method remains owned by kmarrero. */
+/*
+ * Builds CGI environment data for a request whose URL path ends at the script.
+ * scriptPath must be absolute; prepareCgi adds the client's REMOTE_ADDR.
+ */
 std::vector<std::string>	CgiProcess::buildEnv(const Request &req,
 													const ServerConfig &srv,
 													const LocationConfig &loc,
 													const std::string &scriptPath)
 {
-	/*
-	 * TODO(kmarrero): RFC 3875 — return KEY=VALUE strings for execve envp.
-	 * WHY touchpoint: kebris-c already runs start()/pipes/poll/reap; only env
-	 * construction is yours. Call this from prepareCgi (pass remoteAddr into
-	 * REMOTE_ADDR=...).
-	 * YOU: fill at least REQUEST_METHOD, SCRIPT_FILENAME/SCRIPT_NAME, PATH_INFO,
-	 * QUERY_STRING, CONTENT_LENGTH, CONTENT_TYPE, SERVER_PROTOCOL, SERVER_NAME,
-	 * SERVER_PORT, REMOTE_ADDR, GATEWAY_INTERFACE=CGI/1.1, REDIRECT_STATUS=200.
-	 * RESPECT: return vector of "KEY=VALUE" only — no fork/pipe/poll; do not
-	 * change CgiProcess::start signature or parent pipe ownership.
-	 */
-	(void)req;
-	(void)srv;
+	std::vector<std::string>	cgiEnv;
+	std::ostringstream		length;
+	std::ostringstream		port;
+
 	(void)loc;
-	(void)scriptPath;
-	return (std::vector<std::string>());
+	if (scriptPath.empty() || scriptPath[0] != '/')
+		throw std::invalid_argument("CGI scriptPath must be absolute");
+	length << req.body().size();
+	port << srv.port;
+	cgiEnv.push_back("REQUEST_METHOD=" + req.method());
+	cgiEnv.push_back("QUERY_STRING=" + req.query());
+	cgiEnv.push_back("SERVER_PROTOCOL=" + req.version());
+	cgiEnv.push_back("SERVER_PORT=" + port.str());
+	cgiEnv.push_back("SERVER_NAME="
+		+ (srv.serverName.empty() ? srv.host : srv.serverName));
+	cgiEnv.push_back("GATEWAY_INTERFACE=CGI/1.1");
+	cgiEnv.push_back("SCRIPT_FILENAME=" + scriptPath);
+	cgiEnv.push_back("SCRIPT_NAME=" + req.target());
+	cgiEnv.push_back("CONTENT_LENGTH=" + length.str());
+	if (!req.header("Content-Type").empty())
+		cgiEnv.push_back("CONTENT_TYPE=" + req.header("Content-Type"));
+	cgiEnv.push_back("REDIRECT_STATUS=200");
+	cgiEnv.push_back("PATH_INFO=");
+	return (cgiEnv);
 }
 
 /*

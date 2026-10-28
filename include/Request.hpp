@@ -54,7 +54,7 @@ class Request
 		void										setErrorCode(int& code);
 		RequestState								state() const;
 		const std::string							&method() const;
-		const std::string							&target() const;		/* path (+ query later) */
+		const std::string							&target() const;		/* URL path, without query */
 		const std::string							&query() const;
 		const std::string							&version() const;
 		const std::map<std::string, std::string>	&headers() const;
