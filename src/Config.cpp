@@ -1,10 +1,14 @@
-/* **************************************************************************
- * Config.cpp
- * OWNER: kmarrero
- * GOAL: Implement nginx-inspired parser. Skeleton only.
- * LEARN: Start by parsing the sample configs/default.conf by hand on paper,
- *        then tokenize braces and directives.
- * ************************************************************************** */
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Config.cpp                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/10/28 17:35:20 by kjroydev          #+#    #+#             */
+/*   Updated: 2026/10/28 17:35:22 by kjroydev         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
 #include "Config.hpp"
 

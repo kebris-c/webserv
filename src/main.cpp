@@ -6,15 +6,12 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/04 21:57:18 by kmarrero          #+#    #+#             */
-/*   Updated: 2026/10/17 16:55:09 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/28 19:30:04 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Config.hpp"
 #include "Server.hpp"
-
-#include <iostream>
-#include <vector>
 
 int main(int ac, char **av)
 {

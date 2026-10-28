@@ -6,12 +6,12 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/10/28 16:45:17 by kjroydev          #+#    #+#             */
-/*   Updated: 2026/10/28 16:45:55 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/28 19:29:56 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "HttpHandler.hpp"
 #include "CgiProcess.hpp"
+#include "HttpHandler.hpp"
 
 HttpHandler::HttpHandler()
 {}
@@ -45,20 +45,34 @@ bool	HttpHandler::prepareCgi(const Request &req, const RouteMatch &route,
 								std::string &scriptPath,
 								std::vector<std::string> &environment) const
 {
-	// ============================================================
-	// TODO: This is a workaround to allow me keep going on, must be
-	// changed/improved before the project end.
-	// WHY (kebris-c): Server needs a CGI decision + path/env WITHOUT owning
-	// HTTP/route semantics; this API was added on your HttpHandler so the
-	// poll/CGI process plane could compile and run.
-	// YOU (kmarrero): if this request is CGI, set scriptPath, fill environment
-	// (KEY=VALUE, include REMOTE_ADDR=remoteAddr via buildEnv), return true.
-	// Otherwise return false and Server will call handle() instead.
-	// RESPECT: keep this signature (incl. remoteAddr); do NOT recv/send/fork/
-	// pipe/poll here; body must already be unchunked in Request before true;
-	// kebris-c owns CgiProcess::start + pipe I/O + waitpid(WNOHANG).
-	// ============================================================
+	const LocationConfig	&loc = *route.location;
+	std::string				path = route.fsPath;
+
+	if (!route.ok || route.server == NULL || route.location == NULL
+		|| req.state() != REQ_COMPLETE || route.fsPath.empty())
+		return (false);
+	environment.clear();
+	scriptPath.clear();
+	if (loc.cgiPass.empty() || loc.cgiExtension.empty()
+		|| !methodAllowed(loc, req.method())
+		|| (req.method() != "GET" && req.method() != "POST")
+		|| req.body().size() > route.server->clientMaxBodySize
+		|| route.fsPath.size () < loc.cgiPass.size()
+		|| route.fsPath.compare(route.fsPath.size() - loc.cgiExtension.size(),
+				loc.cgiExtension.size(), loc.cgiExtension) != 0)
+		return (false);
+	if (path[0] != '/')
+	{
+		char	cwd[PATH_MAX];
 	
+		if (getcwd(cwd, sizeof(cwd)) == NULL)
+			throw std::runtime_error("Cannot resolved CGI script path");
+		path = std::string(cwd) + "/" + path;
+	}
+	environment = CgiProcess::buildEnv(req, *route.server, loc, path);
+	environment.push_back("REMOTE_ADDR=" + remoteAddr);
+	scriptPath.swap(path);
+	return (true);
 }
 
 /*
