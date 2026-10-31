@@ -1,21 +1,17 @@
-/* **************************************************************************
- * HttpHandler.hpp
- * OWNER: kmarrero (HTTP semantics) — calls into CgiProcess owned by kebris-c
- * GOAL: Turn Request + RouteMatch into Response (static, upload, delete, redirect, CGI).
- * LEARN:
- *   - Serve fully static website
- *   - Directory index + autoindex HTML listing
- *   - POST upload to upload_store
- *   - DELETE resource
- *   - Method not allowed -> 405
- *   - Body too large -> 413
- * NOTES:
- *   - Keep this free of raw socket calls.
- *   - CGI: prepare env + args here; let CgiProcess run the child.
- * ************************************************************************** */
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   HttpHandler.hpp                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/10/31 16:43:56 by kjroydev          #+#    #+#             */
+/*   Updated: 2026/10/31 16:44:21 by kjroydev         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
 #ifndef HTTP_HANDLER_HPP
-#define HTTP_HANDLER_HPP
+# define HTTP_HANDLER_HPP
 
 #include "Webserv.hpp"
 #include "Config.hpp"
@@ -37,16 +33,14 @@ class HttpHandler {
 
 		Response	handle(const Request &req, const RouteMatch &route) const;
 		/*
-		* CGI decision for Server (kebris-c call site). Stub until you implement it.
-		* See workaround TODO in HttpHandler.cpp — keep signature stable.
+		* CGI decision for Server without socket or pipe I/O.
 		*/
 		bool		prepareCgi(const Request &req, const RouteMatch &route,
 							const std::string &remoteAddr,
 							std::string &scriptPath,
 							std::vector<std::string> &environment) const;
 		/*
-		* CGI stdout -> Response after kebris-c finished pipes/reap.
-		* See workaround TODO in HttpHandler.cpp.
+		* Complete CGI stdout -> Response after pipe EOF and child reaping.
 		*/
 		Response	parseCgiOutput(const std::string &output) const;
 	private:
@@ -60,4 +54,4 @@ class HttpHandler {
 		std::string	encodeURL(const std::string &str) const;
 };
 
-#endif /* HTTP_HANDLER_HPP */
+#endif

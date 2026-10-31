@@ -24,6 +24,8 @@ public:
 
 	void	setStatus(int code);
 	void	setHeader(const std::string &key, const std::string &value);
+	/* Append a separate field, e.g. a second Set-Cookie. */
+	void	addHeader(const std::string &key, const std::string &value);
 	void	setBody(const std::string &body);
 	void	setBodyFromFile(const std::string &path);	/* TODO: read disk file */
 
@@ -34,7 +36,7 @@ public:
 
 private:
 	int									_status;
-	std::map<std::string, std::string>	_headers;
+	std::multimap<std::string, std::string>	_headers;
 	std::string							_body;
 	std::map<std::string, std::string>	_extensionDispatcher;
 	std::string	getExtension(const std::string& path);

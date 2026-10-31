@@ -13,6 +13,28 @@
 #include "Utils.hpp"
 #include "Response.hpp"
 
+namespace {
+
+bool	sameHeaderName(const std::string &left, const std::string &right)
+{
+	if (left.size() != right.size())
+		return (false);
+	for (std::size_t i = 0; i < left.size(); ++i)
+	{
+		char a = left[i];
+		char b = right[i];
+		if (a >= 'A' && a <= 'Z')
+			a += 'a' - 'A';
+		if (b >= 'A' && b <= 'Z')
+			b += 'a' - 'A';
+		if (a != b)
+			return (false);
+	}
+	return (true);
+}
+
+}
+
 Response::Response()
 	: _status(200)
 {
@@ -31,13 +53,29 @@ void	Response::setStatus(int code) { _status = code; }
 
 void	Response::setHeader(const std::string &key, const std::string &value)
 {
-	_headers[key] = value;
+	std::multimap<std::string, std::string>::iterator it = _headers.begin();
+
+	while (it != _headers.end())
+	{
+		if (sameHeaderName(it->first, key))
+			_headers.erase(it++);
+		else
+			++it;
+	}
+	addHeader(key, value);
+}
+
+void	Response::addHeader(const std::string &key, const std::string &value)
+{
+	_headers.insert(std::make_pair(key, value));
 }
 
 void	Response::setBody(const std::string &body)
 {
 	_body = body;
-	_headers["Content-Length"] = utils::toString(static_cast<int>(_body.size()));
+	std::ostringstream length;
+	length << _body.size();
+	setHeader("Content-Length", length.str());
 }
 
 std::string Response::getExtension(const std::string &path)
@@ -80,21 +118,19 @@ void Response::setBodyFromFile(const std::string &path)
 
 std::string	Response::raw() const
 {
-	/*
-	 * TODO(kmarrero): assemble:
-	 *   HTTP/1.1 <code> <reason>\r\n
-	 *   Header: value\r\n
-	 *   ...
-	 *   \r\n
-	 *   body
-	 */
 	std::ostringstream	oss;
+	bool noBody = (_status < 200 || _status == 204 || _status == 304);
+
 	oss << "HTTP/1.1 " << _status << " " << utils::statusReason(_status) << "\r\n";
-	for (std::map<std::string, std::string>::const_iterator it = _headers.begin();
+	for (std::multimap<std::string, std::string>::const_iterator it = _headers.begin();
 		 it != _headers.end(); ++it)
-		oss << it->first << ": " << it->second << "\r\n";
+	{
+		if (!noBody || !sameHeaderName(it->first, "Content-Length"))
+			oss << it->first << ": " << it->second << "\r\n";
+	}
 	oss << "\r\n";
-	oss << _body;
+	if (!noBody)
+		oss << _body;
 	return (oss.str());
 }
 

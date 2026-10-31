@@ -29,6 +29,7 @@ SRCS		= \
 	$(SRC_DIR)/ConfStateMachine.cpp \
 	$(SRC_DIR)/Router.cpp \
 	$(SRC_DIR)/HttpHandler.cpp \
+	$(SRC_DIR)/CgiUtils.cpp	\
 	$(SRC_DIR)/CgiProcess.cpp \
 	$(SRC_DIR)/Utils.cpp \
 	$(SRC_DIR)/main.cpp 

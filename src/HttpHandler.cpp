@@ -6,10 +6,11 @@
 /*   By: kjroydev <kjroydev@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/10/28 16:45:17 by kjroydev          #+#    #+#             */
-/*   Updated: 2026/10/28 19:29:56 by kjroydev         ###   ########.fr       */
+/*   Updated: 2026/10/31 16:26:56 by kjroydev         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include "CgiUtils.hpp"
 #include "CgiProcess.hpp"
 #include "HttpHandler.hpp"
 
@@ -80,19 +81,49 @@ bool	HttpHandler::prepareCgi(const Request &req, const RouteMatch &route,
  */
 Response	HttpHandler::parseCgiOutput(const std::string &output) const
 {
-	// ============================================================
-	// TODO: This is a workaround to allow me keep going on, must be
-	// changed/improved before the project end.
-	// WHY (kebris-c): Server collects raw CGI stdout asynchronously, then needs
-	// YOUR conversion to Response; stub returns 501 so the call site exists.
-	// YOU (kmarrero): parse CGI headers until blank line; honour Status: if
-	// present else default 200; body = remainder (EOF already means end if no
-	// Content-Length). Return a complete Response (raw()-ready).
-	// RESPECT: no socket/pipe I/O here; input is the full buffer from
-	// CgiProcess::output() after kebris-c closed stdout and reaped the child.
-	// ============================================================
-	(void)output;
-	return (Response::makeError(501));
+	Response					response;
+	CgiHeaders					headers;
+	std::map<std::string, bool>	excluded;
+	std::size_t					bodyStart;
+	std::size_t					length;
+	int							status = 200;
+
+	if (!readCgiHeaders(output, headers, bodyStart)
+		|| !cgiConnectionFields(headers, excluded))
+		return (Response::makeError(500));
+	CgiHeaders::const_iterator field = headers.find("status");
+	if (field != headers.end())
+	{
+		if (!parseCgiStatus(field->second, status))
+			return (Response::makeError(500));
+	}
+	else if (headers.count("location") != 0)
+		status = 302;
+	std::size_t bodySize = output.size() - bodyStart;
+	bool noBody = (status == 204 || status == 205 || status == 304);
+	if ((noBody && bodySize != 0)
+		|| (!noBody && headers.count("content-type") == 0
+			&& !(status >= 300 && status < 400
+				&& headers.count("location") != 0 && bodySize == 0)))
+		return (Response::makeError(500));
+	field = headers.find("content-length");
+	if (field != headers.end()
+		&& (!parseCgiLength(field->second, length)
+			|| (status != 304 && length != bodySize)))
+		return (Response::makeError(500));
+	/* CGI supplies body bytes, never HTTP chunk framing. */
+	if (headers.count("transfer-encoding") != 0)
+		return (Response::makeError(500));
+	response.setStatus(status);
+	for (field = headers.begin(); field != headers.end(); ++field)
+	{
+		if (field->first != "status" && field->first != "content-length"
+			&& !cgiHopByHop(field->first) && excluded.count(field->first) == 0
+			&& field->first.compare(0, 6, "x-cgi-") != 0)
+			response.addHeader(field->first, field->second);
+	}
+	response.setBody(output.substr(bodyStart));
+	return (response);
 }
 
 Response	HttpHandler::handleGet(const RouteMatch &route) const
