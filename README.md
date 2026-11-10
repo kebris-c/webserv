@@ -50,7 +50,8 @@ required by the subject.
 ./webserv configs/default.conf
 ```
 
-If no argument is provided, the program uses `configs/default.conf`.
+The configuration file is required. With any other argument count the program
+prints usage and exits.
 
 Leave that process running in a terminal. The sample config listens on:
 

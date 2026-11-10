@@ -17,12 +17,15 @@ www/uploads/*
 !www/uploads/.gitkeep
 *.log
 
-# Internal team docs (study / split / seams) — NOT for evaluation submit.
-# Subject: only repository content is evaluated. Keep these local or untracked
-# before the final defense push.
-#
-# Uncomment when main branch is pushed and ensure this file is named as '.gitignore' instead of 'gitingore'
-#KEBRIS-C.md
-#KMARRERO.md
-#SUBJECT_RULES.md
-#docs/
+# Old internal guides. The only extra doc that stays tracked is docs/DEFENSA.md.
+# README.md stays: subject chapter V requires it.
+KEBRIS-C.md
+KMARRERO.md
+SUBJECT_RULES.md
+en.subject.pdf
+docs/KEBRIS-C.md
+docs/KMARRERO.md
+docs/README.md
+docs/SUBJECT_RULES.md
+docs/WORK_SPLIT.md
+docs/en.subject.pdf
