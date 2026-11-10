@@ -14,42 +14,6 @@
 #include "CgiProcess.hpp"
 #include "HttpHandler.hpp"
 
-namespace {
-
-std::size_t	bodyLimit(const RouteMatch &route)
-{
-	if (route.location != NULL && route.location->clientMaxBodySize > 0)
-		return (route.location->clientMaxBodySize);
-	if (route.server != NULL)
-		return (route.server->clientMaxBodySize);
-	return (0);
-}
-
-std::string	uploadFile(const Request &req, const LocationConfig &loc)
-{
-	std::string	rel;
-	std::string	path;
-
-	if (loc.uploadStore.empty())
-		return ("");
-	rel = req.target();
-	if (rel.size() >= loc.path.size()
-		&& rel.compare(0, loc.path.size(), loc.path) == 0)
-		rel = rel.substr(loc.path.size());
-	while (!rel.empty() && rel[0] == '/')
-		rel.erase(0, 1);
-	if (rel.empty() || rel == "." || rel == ".."
-		|| rel.find('/') != std::string::npos)
-		return ("");
-	path = loc.uploadStore;
-	if (!path.empty() && path[path.size() - 1] != '/')
-		path += "/";
-	path += rel;
-	return (path);
-}
-
-}
-
 HttpHandler::HttpHandler()
 {}
 
@@ -58,18 +22,11 @@ HttpHandler::~HttpHandler()
 
 Response	HttpHandler::handle(const Request &req, const RouteMatch &route) const
 {
-	if (route.location == NULL)
-		return (Response::makeError(404, route.server));
-
-	const LocationConfig	&loc = *route.location;
+	const LocationConfig	&loc = *(route).location;
 	std::string				method;
 
-	if (!loc.redirect.empty())
-		return (handleRedirect(loc));
-	if (!route.ok || route.fsPath.empty())
-		return (Response::makeError(404, route.server));
 	if (!methodAllowed(loc, req.method()))
-		return (Response::makeError(405, route.server));
+		return (Response::makeError(405));
 	method = req.method();
 	if (method == "GET")
 		return (handleGet(route));
@@ -77,7 +34,7 @@ Response	HttpHandler::handle(const Request &req, const RouteMatch &route) const
 		return (handlePost(req, route));
 	if (method == "DELETE")
 		return (handleDelete(route));
-	return (Response::makeError(501, route.server));
+	return (Response::makeError(501));
 }
 
 /*
@@ -89,37 +46,40 @@ bool	HttpHandler::prepareCgi(const Request &req, const RouteMatch &route,
 								std::string &scriptPath,
 								std::vector<std::string> &environment) const
 {
-	std::size_t	limit;
-
-	if (route.server == NULL || route.location == NULL || !route.ok
-		|| req.state() != REQ_COMPLETE || route.fsPath.empty()
-		|| !route.location->redirect.empty())
-		return (false);
-
 	const LocationConfig	&loc = *route.location;
+	std::string				path = route.fsPath;
 
+	if (!route.ok || route.server == NULL || route.location == NULL
+		|| req.state() != REQ_COMPLETE || route.fsPath.empty())
+		return (false);
 	environment.clear();
 	scriptPath.clear();
-	limit = bodyLimit(route);
 	if (loc.cgiPass.empty() || loc.cgiExtension.empty()
 		|| !methodAllowed(loc, req.method())
 		|| (req.method() != "GET" && req.method() != "POST")
-		|| (limit > 0 && req.body().size() > limit)
-		|| route.fsPath.size() < loc.cgiExtension.size()
+		|| req.body().size() > route.server->clientMaxBodySize
+		|| route.fsPath.size () < loc.cgiPass.size()
 		|| route.fsPath.compare(route.fsPath.size() - loc.cgiExtension.size(),
 				loc.cgiExtension.size(), loc.cgiExtension) != 0)
 		return (false);
-	environment = CgiProcess::buildEnv(req, *route.server, loc, route.fsPath);
+	if (path[0] != '/')
+	{
+		char	cwd[PATH_MAX];
+	
+		if (getcwd(cwd, sizeof(cwd)) == NULL)
+			throw std::runtime_error("Cannot resolved CGI script path");
+		path = std::string(cwd) + "/" + path;
+	}
+	environment = CgiProcess::buildEnv(req, *route.server, loc, path);
 	environment.push_back("REMOTE_ADDR=" + remoteAddr);
-	scriptPath = route.fsPath;
+	scriptPath.swap(path);
 	return (true);
 }
 
 /*
  * Converts complete CGI stdout into an HTTP response after pipe EOF.
  */
-Response	HttpHandler::parseCgiOutput(const std::string &output,
-								const ServerConfig *server) const
+Response	HttpHandler::parseCgiOutput(const std::string &output) const
 {
 	Response					response;
 	CgiHeaders					headers;
@@ -130,12 +90,12 @@ Response	HttpHandler::parseCgiOutput(const std::string &output,
 
 	if (!readCgiHeaders(output, headers, bodyStart)
 		|| !cgiConnectionFields(headers, excluded))
-		return (Response::makeError(500, server));
+		return (Response::makeError(500));
 	CgiHeaders::const_iterator field = headers.find("status");
 	if (field != headers.end())
 	{
 		if (!parseCgiStatus(field->second, status))
-			return (Response::makeError(500, server));
+			return (Response::makeError(500));
 	}
 	else if (headers.count("location") != 0)
 		status = 302;
@@ -145,15 +105,15 @@ Response	HttpHandler::parseCgiOutput(const std::string &output,
 		|| (!noBody && headers.count("content-type") == 0
 			&& !(status >= 300 && status < 400
 				&& headers.count("location") != 0 && bodySize == 0)))
-		return (Response::makeError(500, server));
+		return (Response::makeError(500));
 	field = headers.find("content-length");
 	if (field != headers.end()
 		&& (!parseCgiLength(field->second, length)
 			|| (status != 304 && length != bodySize)))
-		return (Response::makeError(500, server));
+		return (Response::makeError(500));
 	/* CGI supplies body bytes, never HTTP chunk framing. */
 	if (headers.count("transfer-encoding") != 0)
-		return (Response::makeError(500, server));
+		return (Response::makeError(500));
 	response.setStatus(status);
 	for (field = headers.begin(); field != headers.end(); ++field)
 	{
@@ -170,93 +130,78 @@ Response	HttpHandler::handleGet(const RouteMatch &route) const
 {
 	struct stat		fileInfo;
 	Response		response;
-	std::string		indexPath;
 
-	if (stat(route.fsPath.c_str(), &fileInfo) == -1)
+	if (lstat(route.fsPath.c_str(), &fileInfo) == -1)
 	{
 		if (errno == EACCES)
-			return (Response::makeError(403, route.server));
+			return (Response::makeError(403));
 		if (errno == ENOENT || errno == ENOTDIR)
-			return (Response::makeError(404, route.server));
-		return (Response::makeError(500, route.server));
+			return (Response::makeError(404));
+		return (Response::makeError(500));
 	}
 	if (S_ISREG(fileInfo.st_mode))
 	{
-		if (!response.setBodyFromFile(route.fsPath))
-			return (Response::makeError(500, route.server));
+		response.setBodyFromFile(route.fsPath);
 		return (response);
 	}
 	if (S_ISDIR(fileInfo.st_mode))
 	{
-		if (!route.location->index.empty())
+		if (stat((route.fsPath + "/index.html").c_str(), &fileInfo) == 0
+			&& S_ISREG(fileInfo.st_mode))
 		{
-			indexPath = route.fsPath;
-			if (!indexPath.empty() && indexPath[indexPath.size() - 1] != '/')
-				indexPath += "/";
-			indexPath += route.location->index;
-			if (stat(indexPath.c_str(), &fileInfo) == 0 && S_ISREG(fileInfo.st_mode))
-			{
-				if (!response.setBodyFromFile(indexPath))
-					return (Response::makeError(500, route.server));
-				return (response);
-			}
+			response.setBodyFromFile(route.fsPath + "/index.html");
+			return (response);
 		}
 		if (route.location->autoindex == true)
-			return (autoindex(route.fsPath, route.location->path, route.server));
-		return (Response::makeError(403, route.server));
+			return (autoindex(route.fsPath, route.location->path));
+		return (Response::makeError(403));
 	}
-	return (Response::makeError(403, route.server));
+	return (Response::makeError(403));
 }
 
 Response	HttpHandler::handlePost(const Request &req, const RouteMatch &route) const
 {
 	struct stat	fileInfo;
 	Response	response;
-	std::string	path;
-	std::size_t	limit;
 
-	limit = bodyLimit(route);
-	if (limit > 0 && req.body().size() > limit)
-		return (Response::makeError(413, route.server));
-	if (route.location->uploadStore.empty())
-		return (Response::makeError(403, route.server));
-	path = uploadFile(req, *route.location);
-	if (path.empty())
-		return (Response::makeError(403, route.server));
-	if (stat(path.c_str(), &fileInfo) == 0)
+	if (req.body().size() > route.server->clientMaxBodySize)
+		return (Response::makeError(413));
+	if (lstat(route.fsPath.c_str(), &fileInfo) == 0)
 	{
-		if (!S_ISREG(fileInfo.st_mode))
-			return (Response::makeError(S_ISDIR(fileInfo.st_mode) ? 409 : 403, route.server));
-		std::ofstream fileWrite(path.c_str(), std::ios::binary);
-		if (!fileWrite.is_open())
-			return (Response::makeError(403, route.server));
-		fileWrite.write(req.body().data(), req.body().size());
-		if (!fileWrite)
-			return (Response::makeError(500, route.server));
-		fileWrite.close();
-		if (!fileWrite)
-			return (Response::makeError(500, route.server));
-		response.setBody("File Uploaded");
+		if (S_ISREG(fileInfo.st_mode))
+		{
+			std::ofstream fileWrite(route.fsPath.c_str(), std::ios::binary);
+			if (!fileWrite.is_open())
+				return (Response::makeError(403));
+			fileWrite.write(req.body().data(), req.body().size());
+			if (!fileWrite)
+				return (Response::makeError(500));
+			fileWrite.close();
+			if (!fileWrite)
+				return (Response::makeError(500));
+			response.setBody("File Uploaded");
+			return (response);
+		}
+		return (Response::makeError(S_ISDIR(fileInfo.st_mode) ? 409 : 403));
+	}
+	else if (errno == ENOENT)
+	{
+		std::ofstream	file(route.fsPath.c_str(), std::ios::binary);
+		file.write(req.body().data(), req.body().size());
+		if (!file)
+			return (Response::makeError(500));
+		file.close();
+		if (!file)
+			return (Response::makeError(500));
+		response.setBody("File created");
+		response.setStatus(201);
 		return (response);
 	}
-	if (errno != ENOENT)
-	{
-		if (errno == EACCES || errno == EPERM)
-			return (Response::makeError(403, route.server));
-		if (errno == ENOTDIR)
-			return (Response::makeError(404, route.server));
-		return (Response::makeError(500, route.server));
-	}
-	std::ofstream	file(path.c_str(), std::ios::binary);
-	file.write(req.body().data(), req.body().size());
-	if (!file)
-		return (Response::makeError(500, route.server));
-	file.close();
-	if (!file)
-		return (Response::makeError(500, route.server));
-	response.setBody("File created");
-	response.setStatus(201);
-	return (response);
+	if (errno == EACCES || errno == EPERM)
+		return (Response::makeError(403));
+	if (errno == ENOTDIR)
+		return (Response::makeError(404));
+	return (Response::makeError(500));
 }
 
 Response HttpHandler::handleDelete(const RouteMatch &route) const
@@ -265,13 +210,13 @@ Response HttpHandler::handleDelete(const RouteMatch &route) const
 	Response response;
 	int result;
 
-	if (stat(route.fsPath.c_str(), &fileInfo) == -1)
+	if (lstat(route.fsPath.c_str(), &fileInfo) == -1)
 	{
 		if (errno == ENOENT || errno == ENOTDIR)
-			return (Response::makeError(404, route.server));
+			return (Response::makeError(404));
 		if (errno == EACCES || errno == EPERM)
-			return (Response::makeError(403, route.server));
-		return (Response::makeError(500, route.server));
+			return (Response::makeError(403));
+		return (Response::makeError(500));
 	}
 	if (S_ISDIR(fileInfo.st_mode))
 		result = rmdir(route.fsPath.c_str());
@@ -280,12 +225,12 @@ Response HttpHandler::handleDelete(const RouteMatch &route) const
 	if (result == -1)
 	{
 		if (errno == ENOENT || errno == ENOTDIR)
-			return (Response::makeError(404, route.server));
+			return (Response::makeError(404));
 		if (errno == EACCES || errno == EPERM)
-			return (Response::makeError(403, route.server));
+			return (Response::makeError(403));
 		if (errno == ENOTEMPTY || errno == EEXIST)
-			return (Response::makeError(409, route.server));
-		return (Response::makeError(500, route.server));
+			return (Response::makeError(409));
+		return (Response::makeError(500));
 	}
 	response.setStatus(204);
 	return (response);
@@ -347,8 +292,7 @@ std::string	HttpHandler::encodeURL(const std::string &str) const
 }
 
 Response HttpHandler::autoindex(const std::string &fsPath,
-                                const std::string &uri,
-                                const ServerConfig *server) const
+                                const std::string &uri) const
 {
     DIR             *dir;
     struct dirent   *entry;
@@ -361,8 +305,8 @@ Response HttpHandler::autoindex(const std::string &fsPath,
     if (dir == NULL)
     {
         if (errno == EACCES)
-            return (Response::makeError(403, server));
-        return (Response::makeError(500, server));
+            return (Response::makeError(403));
+        return (Response::makeError(500));
     }
     body = "<html><body>";
     body += "<h1>Index of " + uri + "</h1>";

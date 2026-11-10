@@ -46,8 +46,8 @@ std::vector<std::string>	CgiProcess::buildEnv(const Request &req,
 	std::ostringstream		port;
 
 	(void)loc;
-	if (scriptPath.empty())
-		return (cgiEnv);
+	if (scriptPath.empty() || scriptPath[0] != '/')
+		throw std::invalid_argument("CGI scriptPath must be absolute");
 	length << req.body().size();
 	port << srv.port;
 	cgiEnv.push_back("REQUEST_METHOD=" + req.method());
@@ -60,30 +60,10 @@ std::vector<std::string>	CgiProcess::buildEnv(const Request &req,
 	cgiEnv.push_back("SCRIPT_FILENAME=" + scriptPath);
 	cgiEnv.push_back("SCRIPT_NAME=" + req.target());
 	cgiEnv.push_back("CONTENT_LENGTH=" + length.str());
-	if (!req.header("content-type").empty())
-		cgiEnv.push_back("CONTENT_TYPE=" + req.header("content-type"));
+	if (!req.header("Content-Type").empty())
+		cgiEnv.push_back("CONTENT_TYPE=" + req.header("Content-Type"));
 	cgiEnv.push_back("REDIRECT_STATUS=200");
 	cgiEnv.push_back("PATH_INFO=");
-	for (std::map<std::string, std::string>::const_iterator it = req.headers().begin();
-			it != req.headers().end(); ++it)
-	{
-		std::string	name;
-
-		if (it->first == "content-type" || it->first == "content-length"
-			|| it->first == "connection" || it->first == "transfer-encoding")
-			continue ;
-		name = "HTTP_";
-		for (std::size_t i = 0; i < it->first.size(); ++i)
-		{
-			if (it->first[i] == '-')
-				name += '_';
-			else if (it->first[i] >= 'a' && it->first[i] <= 'z')
-				name += static_cast<char>(it->first[i] - 'a' + 'A');
-			else
-				name += it->first[i];
-		}
-		cgiEnv.push_back(name + "=" + it->second);
-	}
 	return (cgiEnv);
 }
 

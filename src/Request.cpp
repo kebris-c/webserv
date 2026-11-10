@@ -12,16 +12,12 @@
 
 #include "Request.hpp"
 #include "RequestParser.hpp"
-#include "Router.hpp"
-
-#include <cctype>
 
 Request::Request()
     : _errorCode(0),
       _chunked(false),
       _contentLength(0),
-      _state(REQ_LINE),
-      _activeServer(NULL)
+      _state(REQ_LINE)
 {
 	configureStateMachine();
 	_ctx.chunked = false;
@@ -76,27 +72,6 @@ void	Request::setServer(std::vector<ServerConfig>& server)
 	this->_server = server;
 }
 
-void	Request::setActiveServer(const ServerConfig *server)
-{
-	this->_activeServer = server;
-}
-
-bool	Request::bodyExceeds(std::size_t size) const
-{
-	std::size_t	limit;
-	Router		router;
-	RouteMatch	route;
-
-	if (this->_activeServer == NULL || this->_target.empty())
-		return (false);
-	route = router.match(*this->_activeServer, *this);
-	if (route.location != NULL && route.location->clientMaxBodySize > 0)
-		limit = route.location->clientMaxBodySize;
-	else
-		limit = this->_activeServer->clientMaxBodySize;
-	return (limit > 0 && size > limit);
-}
-
 void	Request::setCurrentState(RequestState state)
 {
 	this->_state = state;
@@ -144,14 +119,12 @@ void	Request::setContentLength(std::size_t& length)
 
 void	Request::setHeaders(std::string name, std::string value, RequestContext& ctx)
 {
-	for (std::size_t i = 0; i < name.size(); ++i)
-		name[i] = static_cast<char>(std::tolower(static_cast<unsigned char>(name[i])));
 	if (name.empty())
 		return (setError("HEADER: header name it's empty", ctx, REQ_ERROR, 400), (void)NULL);
 	if (_headers.find(name) == _headers.end())
 	{
 		_headers[name] = value;
-		if (name == "transfer-encoding")
+		if (name == "Transfer-Encoding")
 		{
 			if (value == "chunked")
 			{
@@ -240,11 +213,8 @@ int	Request::errorCode() const { return (_errorCode); }
 
 std::string	Request::header(const std::string &name) const
 {
-	std::string	key;
-
-	for (std::size_t i = 0; i < name.size(); ++i)
-		key += static_cast<char>(std::tolower(static_cast<unsigned char>(name[i])));
-	std::map<std::string, std::string>::const_iterator it = _headers.find(key);
+	/* TODO(kmarrero): case-insensitive lookup */
+	std::map<std::string, std::string>::const_iterator it = _headers.find(name);
 	if (it == _headers.end())
 		return ("");
 	return (it->second);

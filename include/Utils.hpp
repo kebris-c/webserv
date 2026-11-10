@@ -20,6 +20,8 @@ bool		fileExists(const std::string &path);
 bool		isDirectory(const std::string &path);
 std::string	joinPath(const std::string &a, const std::string &b);
 
+/* TODO(both): reject ".." path segments when mapping URL -> filesystem. */
+
 } /* namespace utils */
 
 #endif /* UTILS_HPP */

@@ -27,7 +27,6 @@ struct	LocationConfig
 	std::string					redirect;		/* empty = none; else target URL/path */
 	std::string					uploadStore;	/* directory for uploads */
 	std::string					cgiExtension;	/* e.g. .py */
-	std::size_t					clientMaxBodySize;	/* 0 = inherit the server limit */
 	std::vector<std::string>	allowedMethods;	/* GET POST DELETE */
 };
 

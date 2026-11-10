@@ -29,6 +29,9 @@ public:
 
 	/* Copies public config data and creates all configured listeners. */
 	bool	configure(const std::vector<ServerConfig> &servers);
+	/* Enables temporary TCP echo while kmarrero's HTTP plane is unavailable.
+	 * Workaround: remove call from main once Config::load works (see main.cpp). */
+	void	enableEchoWorkaround();
 	/* Runs the single readiness loop until a fatal poll/listener error. */
 	int		run();
 
@@ -38,6 +41,7 @@ private:
 	std::map<int, Connection *>			_connections;
 	std::vector<ServerConfig>			_configs;
 	bool								_running;
+	bool								_echoWorkaround;
 	std::time_t							_acceptPausedUntil;
 
 	bool	_setupListeners();

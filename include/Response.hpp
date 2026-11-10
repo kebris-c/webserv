@@ -17,8 +17,6 @@
 
 #include "Webserv.hpp"
 
-struct ServerConfig;
-
 class Response {
 public:
 	Response();
@@ -29,14 +27,12 @@ public:
 	/* Append a separate field, e.g. a second Set-Cookie. */
 	void	addHeader(const std::string &key, const std::string &value);
 	void	setBody(const std::string &body);
-	/* Reads a regular file. False when the file cannot be opened. */
-	bool	setBodyFromFile(const std::string &path);
+	void	setBodyFromFile(const std::string &path);	/* TODO: read disk file */
 
 	/* Build wire format: status-line + headers + CRLF + body */
 	std::string	raw() const;
 
-	/* Uses server->errorPages when the file can be read; otherwise built-in HTML. */
-	static Response	makeError(int code, const ServerConfig *server = NULL);
+	static Response	makeError(int code, const std::string &pagePath = "");
 
 private:
 	int									_status;
