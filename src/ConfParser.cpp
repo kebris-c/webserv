@@ -98,9 +98,6 @@ ParserState	Parser::blockKeyWord(ParserContext& ctx)
 		setTokenIndex(++tokenIndex, ctx);
 		if (tokens[tokenIndex].value[0] == '/')
 		{
-			if (tokens[tokenIndex].value.size() != 2
-				&& checkDirectoryExistence("www" + tokens[tokenIndex].value, ctx))
-				return (ctx.state);
 			locationConfig.path = tokens[tokenIndex].value;
 			ctx.directoryExist[tokens[tokenIndex].value] = true;
 			setTokenIndex(++tokenIndex, ctx);
@@ -223,7 +220,10 @@ ParserState	Parser::parseClientSize(ParserContext& ctx)
 		return (setError("Invalid size unit",
 			ctx, SINTAX_ERROR), ctx.state);
 	number = convertToBytes(number, sizeData);
-	serverContext.clientMaxBodySize = number;
+	if (ctx.bracet >= 2)
+		locationConfig.clientMaxBodySize = number;
+	else
+		serverContext.clientMaxBodySize = number;
 	return (checkNextElement(ctx, *this));
 }
 

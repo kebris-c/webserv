@@ -12,21 +12,43 @@
 
 #include "Utils.hpp"
 
+#include <cctype>
+
 namespace utils {
 
 std::string	trim(const std::string &s)
 {
-	/* TODO(both): strip whitespace from both ends */
-	(void)s;
-	return (std::string());
+	std::size_t	start;
+	std::size_t	end;
+
+	start = 0;
+	while (start < s.size()
+		&& std::isspace(static_cast<unsigned char>(s[start])))
+		++start;
+	end = s.size();
+	while (end > start
+		&& std::isspace(static_cast<unsigned char>(s[end - 1])))
+		--end;
+	return (s.substr(start, end - start));
 }
 
 std::vector<std::string>	split(const std::string &s, char delim)
 {
-	/* TODO(both) */
-	(void)s;
-	(void)delim;
-	return (std::vector<std::string>());
+	std::vector<std::string>	out;
+	std::string					cur;
+
+	for (std::size_t i = 0; i < s.size(); ++i)
+	{
+		if (s[i] == delim)
+		{
+			out.push_back(cur);
+			cur.clear();
+		}
+		else
+			cur += s[i];
+	}
+	out.push_back(cur);
+	return (out);
 }
 
 std::string	toString(int n)
@@ -84,28 +106,39 @@ std::string	statusReason(int code)
 
 bool	fileExists(const std::string &path)
 {
-	/* TODO(both): stat() */
-	(void)path;
-	return (false);
+	struct stat	info;
+
+	return (stat(path.c_str(), &info) == 0);
 }
 
 bool	isDirectory(const std::string &path)
 {
-	/* TODO(both): S_ISDIR */
-	(void)path;
-	return (false);
+	struct stat	info;
+
+	return (stat(path.c_str(), &info) == 0 && S_ISDIR(info.st_mode));
 }
 
 std::string	joinPath(const std::string &a, const std::string &b)
 {
-	/* TODO(both): avoid duplicate slashes; do not resolve ".." yet — reject instead */
+	std::string	right;
+	std::size_t	start;
+
+	if (b == "." || b == ".." || b.find("/../") != std::string::npos
+		|| b.find("/./") != std::string::npos
+		|| b.compare(0, 3, "../") == 0 || b.compare(0, 2, "./") == 0)
+		return ("");
 	if (a.empty())
 		return (b);
 	if (b.empty())
 		return (a);
-	if (a[a.size() - 1] == '/')
-		return (a + b);
-	return (a + "/" + b);
+	right = b;
+	start = 0;
+	while (start < right.size() && right[start] == '/')
+		++start;
+	right = right.substr(start);
+	if (!a.empty() && a[a.size() - 1] == '/')
+		return (a + right);
+	return (a + "/" + right);
 }
 
 } /* namespace utils */

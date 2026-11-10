@@ -15,9 +15,9 @@
 
 RequestParser::RequestParser()
 {
-	headerHelpers["Content-Length"] = &contentLengthHeader;
-	headerHelpers["Transfer-Encoding"] = &transferEncodingHeader;
-	headerHelpers["Connection"] = &connectionHeader;
+	headerHelpers["content-length"] = &contentLengthHeader;
+	headerHelpers["transfer-encoding"] = &transferEncodingHeader;
+	headerHelpers["connection"] = &connectionHeader;
 }
 
 RequestParser::~RequestParser()
@@ -118,7 +118,7 @@ RequestState	RequestParser::headersChecker(RequestContext& ctx, Request& request
 	std::map<std::string, std::string>::const_iterator		host;
 	RequestState											answer = REQ_COMPLETE;
 
-	host = request.headers().find("Host");
+	host = request.headers().find("host");
 	if (host == request.headers().end())
 		return (request.setError("HEADER: Host not found",
 				ctx, REQ_ERROR, 400), REQ_ERROR);
@@ -136,7 +136,7 @@ RequestState	RequestParser::headersChecker(RequestContext& ctx, Request& request
 	}
 	if (answer == REQ_ERROR)
 		return (answer);
-	if (request.headers().count("Content-Length") && request.chunked())
+	if (request.headers().count("content-length") && request.chunked())
 		return (request.setError("Ambiguous body length", ctx, REQ_ERROR, 400), REQ_ERROR);
 	if (request.chunked() || request.contentLength() > 0)
 		return (REQ_BODY);
@@ -152,7 +152,17 @@ RequestState	RequestParser::parseRequestHeader(RequestContext& ctx, Request& req
 	std::vector<std::string>	line;
 
 	if (pos == std::string::npos)
+	{
+		if (ctx.buffer.compare(0, 2, "\r\n") == 0)
+		{
+			RequestState	done = headersChecker(ctx, request);
+
+			if (done != REQ_ERROR)
+				ctx.buffer.erase(0, 2);
+			return (request.setCurrentState(done), request.state());
+		}
 		return (REQ_WAIT);
+	}
 	line = headerSplit(request);
 	for (std::vector<std::string>::iterator it = line.begin(); it != line.end(); ++it)
 	{
@@ -209,15 +219,18 @@ RequestState	RequestParser::parseRequestBody(RequestContext& ctx, Request& reque
 
 RequestState	RequestParser::parseChunkedBody(RequestContext& ctx, Request& request)
 {
+	RequestState	step;
+
 	while (true)
 	{
-		if (chunkCalculations(ctx, request) == REQ_ERROR)
-			return (REQ_ERROR);
+		step = chunkCalculations(ctx, request);
+		if (step == REQ_ERROR || step == REQ_WAIT)
+			return (step);
 		if (ctx.chunkSize == 0)
-		{
-			if (consumeTrailerInFinalLine(ctx, request) == REQ_ERROR)
-				return (REQ_ERROR);
-		}
+			return (consumeTrailerInFinalLine(ctx, request));
+		if (ctx.chunkSize > static_cast<std::size_t>(-1) - ctx.chunkedBody.size()
+			|| request.bodyExceeds(ctx.chunkedBody.size() + ctx.chunkSize))
+			return (request.setError("body too large", ctx, REQ_ERROR, 413), REQ_ERROR);
 		if (ctx.chunkSize > ctx.buffer.size() - ctx.chunkOffSet)
 			return (REQ_WAIT);
 		if (ctx.buffer.size() - ctx.chunkOffSet - ctx.chunkSize < 2)

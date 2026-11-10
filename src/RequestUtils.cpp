@@ -12,6 +12,8 @@
 
 #include "RequestUtils.hpp"
 
+#include <cctype>
+
 bool	checkTarget(const std::string& word)
 {
 	if (word.empty() || word[0] == '/')
@@ -121,6 +123,7 @@ RequestState	getHexadecimalLength(RequestContext& ctx, Request& request)
 
 RequestState	chunkCalculations(RequestContext& ctx, Request& request)
 {
+	ctx.chunkSize = 0;
 	ctx.chunkEnd = ctx.buffer.find("\r\n", ctx.chunkOffSet);
 	if (ctx.chunkEnd == std::string::npos)
 		return (REQ_WAIT);
@@ -180,7 +183,13 @@ RequestState	contentLengthHeader(const std::string& header, RequestContext& ctx,
 	if (errno == ERANGE || *end != '\0')
 		return (request.setError("Content-Length VALUE -> there was an error in value",
 			ctx, REQ_ERROR, 400), REQ_ERROR);
-	request.setContentLength(value);
+	{
+		std::size_t	length = static_cast<std::size_t>(value);
+
+		request.setContentLength(length);
+		if (request.bodyExceeds(length))
+			return (request.setError("body too large", ctx, REQ_ERROR, 413), REQ_ERROR);
+	}
 	return (REQ_BODY);
 }
 
@@ -220,22 +229,8 @@ std::string::size_type	obtainStatusFromContext(Request& request)
 std::string	normalizeHeader(const std::string& header)
 {
 	std::string	name;
-	const char *canonical[] = {"Host", "Content-Length",
-								"Transfer-Encoding",
-								"Connection", "Content-Type"};
 
 	for (size_t i = 0; i < header.size(); ++i)
-		name += std::tolower(static_cast<unsigned char>(header[i]));
-	for (size_t j = 0; j < sizeof(canonical) / sizeof(canonical[0]); ++j)
-	{
-		std::string	lower = canonical[j];
-		for (size_t i = 0; i < lower.size(); ++i)
-			lower[i] = std::tolower(static_cast<unsigned char>(lower[i]));
-		if (name == lower)
-		{
-			name = canonical[j];
-			return (name);
-		}
-	}
+		name += static_cast<char>(std::tolower(static_cast<unsigned char>(header[i])));
 	return (name);
 }

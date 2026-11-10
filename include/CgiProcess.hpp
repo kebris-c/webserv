@@ -36,7 +36,7 @@ public:
 	~CgiProcess();
 
 	/*
-	 * Build env for script-only URLs using an absolute scriptPath.
+	 * Build env for script-only URLs. scriptPath may be relative to the server cwd.
 	 * HttpHandler::prepareCgi must append REMOTE_ADDR from the connection.
 	 * URLs with a PATH_INFO suffix need script resolution before using this API.
 	 */
