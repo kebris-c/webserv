@@ -29,9 +29,6 @@ public:
 
 	/* Copies public config data and creates all configured listeners. */
 	bool	configure(const std::vector<ServerConfig> &servers);
-	/* Enables temporary TCP echo while kmarrero's HTTP plane is unavailable.
-	 * Workaround: remove call from main once Config::load works (see main.cpp). */
-	void	enableEchoWorkaround();
 	/* Runs the single readiness loop until a fatal poll/listener error. */
 	int		run();
 
@@ -41,7 +38,6 @@ private:
 	std::map<int, Connection *>			_connections;
 	std::vector<ServerConfig>			_configs;
 	bool								_running;
-	bool								_echoWorkaround;
 	std::time_t							_acceptPausedUntil;
 
 	bool	_setupListeners();
@@ -55,23 +51,6 @@ private:
 
 	Server(const Server &);
 	Server	&operator=(const Server &);
-
-	/*
-	 * PSEUDOCODE (event loop) — OWNER kebris-c — implement for real in Server.cpp
-	 *
-	 * build pollfd[] from: all listen fds (POLLIN)
-	 *                    + each connection: POLLIN if reading / need body
-	 *                                       POLLOUT if writeBuf non-empty
-	 *                    + CGI pipe fds when active
-	 * poll(fds, n, timeout_ms)
-	 * for each ready fd:
-	 *   if listen && POLLIN -> accept (non-blocking), register client
-	 *   if client POLLIN    -> recv into readBuf; try parse Request (kmarrero)
-	 *                         if complete -> HttpHandler -> fill writeBuf
-	 *   if client POLLOUT   -> send from writeBuf; on done -> close or reset
-	 *   if CGI pipe ready   -> move bytes; when CGI done -> finalize Response
-	 * sweep timed-out connections
-	 */
 };
 
 #endif /* SERVER_HPP */

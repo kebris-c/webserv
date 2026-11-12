@@ -22,8 +22,6 @@
 #include <climits>
 #include <cerrno>
 #include <ctime>
-#include <memory>
-#include <stdexcept>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -38,12 +36,7 @@
 #include <netdb.h>
 #include <poll.h>
 
-/* Default path if argv[1] is missing (subject allows a default path). */
-#ifndef WEBSERV_DEFAULT_CONF
-# define WEBSERV_DEFAULT_CONF "configs/default.conf"
-#endif
-
-/* Soft defaults — override from config when implemented. */
+/* Runtime defaults. */
 #ifndef WEBSERV_RECV_CHUNK
 # define WEBSERV_RECV_CHUNK 4096
 #endif
@@ -52,14 +45,13 @@
 # define WEBSERV_CLIENT_TIMEOUT_SEC 60
 #endif
 
-/* Forward declarations — flesh out in owning headers. */
+/* Forward declarations. */
 class	Config;
 class	Server;
 class	Connection;
 class	Request;
 class	Response;
 class	Parser;
-class	Request;
 class	RequestParser;
 
 #endif /* WEBSERV_HPP */

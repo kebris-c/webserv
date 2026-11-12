@@ -98,9 +98,6 @@ ParserState	Parser::blockKeyWord(ParserContext& ctx)
 		setTokenIndex(++tokenIndex, ctx);
 		if (tokens[tokenIndex].value[0] == '/')
 		{
-			if (tokens[tokenIndex].value.size() != 2
-				&& checkDirectoryExistence("www" + tokens[tokenIndex].value, ctx))
-				return (ctx.state);
 			locationConfig.path = tokens[tokenIndex].value;
 			ctx.directoryExist[tokens[tokenIndex].value] = true;
 			setTokenIndex(++tokenIndex, ctx);
@@ -223,7 +220,10 @@ ParserState	Parser::parseClientSize(ParserContext& ctx)
 		return (setError("Invalid size unit",
 			ctx, SINTAX_ERROR), ctx.state);
 	number = convertToBytes(number, sizeData);
-	serverContext.clientMaxBodySize = number;
+	if (ctx.bracet >= 2)
+		locationConfig.clientMaxBodySize = number;
+	else
+		serverContext.clientMaxBodySize = number;
 	return (checkNextElement(ctx, *this));
 }
 
@@ -251,10 +251,9 @@ ParserState	Parser::parseError(ParserContext& ctx)
 	if (!isValidHTML(ctx.currentWord.substr(letter + 1), ctx))
 		return (ctx.state);
 	location = ctx.currentWord;
-	if (checkDirectoryExistence("www", ctx)
-		&& checkFileExistence("www" + location, ctx))
-		return (ctx.state);
-	ctx.directoryExist["www"] = true;
+	if (location.empty() || location[0] != '/')
+		return (setError("ERROR_PAGE: path must start with /",
+			ctx, SINTAX_ERROR), ctx.state);
 	serverContext.errorPages[errorCode] = location;
 	return (checkNextElement(ctx, *this));
 }
@@ -299,7 +298,6 @@ ParserState	Parser::parseIndex(ParserContext& ctx)
 {
 	std::string::size_type	dot;
 	std::string				extension;
-	std::string				htmlFile;
 
 	if (checkNextValue(ctx, SINTAX_ERROR, "Root definition expected"))
 		return (ctx.state);
@@ -311,9 +309,6 @@ ParserState	Parser::parseIndex(ParserContext& ctx)
 			ctx, SINTAX_ERROR), ctx.state);
 	extension = ctx.currentWord.substr(dot + 1);
 	if (!isValidHTML(extension, ctx))
-		return (ctx.state);
-	htmlFile = ctx.currentWord;
-	if (checkFileExistence("www/" + htmlFile, ctx))
 		return (ctx.state);
 	locationConfig.index = ctx.currentWord;
 	return (checkNextElement(ctx, *this));
@@ -356,6 +351,9 @@ ParserState	Parser::parseAutoIndex(ParserContext& ctx)
 		else
 			locationConfig.autoindex = true;
 	}
+	else
+		return (setError("autoindex must be on or off",
+			ctx, SINTAX_ERROR), ctx.state);
 	return (checkNextElement(ctx, *this));
 }
 
@@ -377,7 +375,7 @@ ParserState	Parser::parseReturn(ParserContext& ctx)
 				ctx, SINTAX_ERROR), ctx.state);
 	}
 	code = std::atoi(ctx.currentWord.c_str());
-	if (code < 300 || code > 599)
+	if (code < 300 || code > 399)
 		return (setError("RETURN: code value not valid",
 			ctx, SINTAX_ERROR), ctx.state);
 	locationConfig.redirectCode = code;
@@ -405,13 +403,17 @@ ParserState	Parser::parseCGI(ParserContext& ctx)
 			ctx, SINTAX_ERROR), ctx.state);
 	criteria = ctx.currentWord.substr(separator + 1);
 	setTokenIndex(++tokenIndex, ctx);
-	if (criteria == "extension" && ctx.tokens[tokenIndex].value == ".py")
+	if (criteria == "extension" && ctx.tokens[tokenIndex].value.size() > 1
+		&& ctx.tokens[tokenIndex].value[0] == '.')
 		locationConfig.cgiExtension = ctx.tokens[tokenIndex].value;
-	if (criteria == "pass" && ctx.tokens[tokenIndex].value[0] == '/')
+	else if (criteria == "pass" && ctx.tokens[tokenIndex].value[0] == '/')
 	{
 		if (checkFileExistence(ctx.tokens[tokenIndex].value, ctx))
 			return (ctx.state);
 		locationConfig.cgiPass = ctx.tokens[tokenIndex].value;
 	}
+	else
+		return (setError("CGI: invalid directive value",
+			ctx, SINTAX_ERROR), ctx.state);
 	return (checkNextElement(ctx, *this));
 }

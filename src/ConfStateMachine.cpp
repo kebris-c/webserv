@@ -49,11 +49,9 @@ ParseAction	StateMachine::nextTransition(ParserState currentState, ParserEvent e
 	std::map<ParseTransitionKey, ParseAction>::iterator it = functions.find(key);
 	if (it != functions.end())
 		return (it->second);
-	else
-	{
-		std::cerr << "Invalid transition" << std::endl;
-		exit(1);
-	}
+	ParseAction	invalid;
+	invalid.function = NULL;
+	return (invalid);
 }
 
 void	StateMachine::handle(ParserContext& ctx, Parser& parser, ParserEvent event)
@@ -62,6 +60,12 @@ void	StateMachine::handle(ParserContext& ctx, Parser& parser, ParserEvent event)
 	ParseAction		action = nextTransition(currentState, event);
 	ParserState	answer;
 
+	if (action.function == NULL)
+	{
+		ctx.error = "Invalid parser transition";
+		setCurrentState(SINTAX_ERROR);
+		return ;
+	}
 	answer = (parser.*action.function)(ctx);
 	if (answer == SINTAX_ERROR || answer == ERROR)
 	{

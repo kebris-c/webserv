@@ -12,6 +12,7 @@
 
 #include "Utils.hpp"
 #include "Response.hpp"
+#include "Router.hpp"
 
 namespace {
 
@@ -95,12 +96,15 @@ std::string Response::getExtension(const std::string &path)
     return (path.substr(dot + 1));
 }
 
-void Response::setBodyFromFile(const std::string &path)
+bool Response::setBodyFromFile(const std::string &path)
 {
     std::string extension;
     std::string contentType;
     std::map<std::string, std::string>::const_iterator it;
     std::ifstream file(path.c_str(), std::ios::binary);
+
+    if (!file.is_open())
+        return (false);
     std::istreambuf_iterator<char> begin(file);
     std::istreambuf_iterator<char> end;
     std::string body(begin, end);
@@ -114,6 +118,7 @@ void Response::setBodyFromFile(const std::string &path)
 
     setHeader("Content-Type", contentType);
     setBody(body);
+    return (true);
 }
 
 std::string	Response::raw() const
@@ -134,12 +139,25 @@ std::string	Response::raw() const
 	return (oss.str());
 }
 
-Response	Response::makeError(int code, const std::string &pagePath)
+Response	Response::makeError(int code, const ServerConfig *server)
 {
 	Response	r;
+
 	r.setStatus(code);
-	/* TODO(kmarrero): load pagePath if non-empty; else built-in HTML */
-	(void)pagePath;
+	if (server != NULL)
+	{
+		std::map<int, std::string>::const_iterator page = server->errorPages.find(code);
+		if (page != server->errorPages.end() && !page->second.empty())
+		{
+			Router		router;
+			std::string	path = page->second;
+
+			if (!path.empty() && path[0] == '/')
+				path = router.resolve(*server, page->second);
+			if (!path.empty() && r.setBodyFromFile(path))
+				return (r);
+		}
+	}
 	r.setHeader("Content-Type", "text/html");
 	r.setBody("<html><body><h1>" + utils::toString(code) + " "
 			  + utils::statusReason(code) + "</h1></body></html>");

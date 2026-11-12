@@ -1,149 +1,143 @@
-# Defensa — recorrido de una request
+# Defensa webserv — flujo y puntos que hay que saber
 
-Los dos explicáis los dos planos. El nombre dice quién lo escribió, no quién puede callarse.
+Subject v24.1. Los dos debéis explicar todo. El owner indica quién implementó el bloque.
 
-Subject v24.1. Un proceso, C++98, un solo `poll`. `recv` / `send` / `read` / `write` de socket o pipe solo si ese fd salió listo. El disco no pasa por `poll`. `fork` solo para CGI. Python es el script (`www/cgi-bin/hello.py`) o un tester, no el servidor.
+## Reglas que suspenden
 
-| Quién | Código |
-|---|---|
-| **kebris-c** | `Socket`, `Server`, `Connection`, proceso CGI (`start`, pipes, `fork` / `execve` / `waitpid`), señales |
-| **kmarrero** | config (`Lexer`, `Parser`, `StateMachine`, `Config`), `Request*`, `Router`, `HttpHandler`, `Response`, `CgiUtils`, `CgiProcess::buildEnv`, `configs/`, `www/` |
-| **los dos** | `main.cpp`, `Makefile`, `Utils` |
+- C++98, `c++ -Wall -Wextra -Werror`, sin Boost ni librerías externas.
+- Un proceso y un único `poll` para listeners, clientes y pipes CGI.
+- Socket o pipe no bloqueante. `recv`, `send`, `read` y `write` solo tras readiness.
+- No consultar `errno` para reintentar después de esas cuatro llamadas.
+- `fork` solo para CGI. El servidor nunca ejecuta otro web server.
+- Una request no puede quedar colgada: límites y timeouts.
+- Python solo es CGI o test externo; el servidor es C++98.
 
-Arranque real: `./webserv configs/default.conf`. Sin ese argumento el programa sale. El subject acepta argumento **o** un path por defecto; aquí solo existe el argumento. `WEBSERV_DEFAULT_CONF` no se usa.
+## Ownership
 
----
+- **kebris-c:** `Socket`, `Server`, `Connection`, poll, buffers, timeouts, señales y proceso/pipes/reap CGI.
+- **kmarrero:** config, request parser, router, handlers, response, entorno/salida CGI, configs y `www`.
+- **Mutuo:** `main.cpp`, `Makefile`, utilidades, integración, tests, README y defensa.
 
-## No defendible — decirlo antes de que lo vean
+## Flujo completo
 
-Cada punto está en el código de ahora. No lo adornéis.
+### 1. Build y arranque — mutuo
 
-1. **Redirección muerta.** `location /old { return 301 /; }` se parsea (`redirect`, `redirectCode`). `handleRedirect` no lo llama nadie. `GET /old` entra en `handleGet` y busca un fichero. El subject pide redirección HTTP en una ruta. Con este config no sale un 301.
+`make` compila cada `.cpp` en `obj/`, genera dependencias `.d` y enlaza `webserv`.
+Un segundo `make` no relinka. `clean`, `fclean` y `re` cumplen el subject.
 
-2. **`error_page` no se aplica.** El parser guarda `ServerConfig::errorPages`. `Response::makeError` ignora `pagePath` y manda un HTML de una línea. `www/errors/` no entra en la respuesta. El HTML mínimo cubre «si no hay página configurada». No cubre «la config define la página».
+`./webserv configs/default.conf`: `main` carga el config, comprueba que haya servers,
+configura listeners y entra en `Server::run`. Config inválida significa error y salida.
 
-3. **`index` de la config no se lee.** `handleGet`, si el path es directorio, busca el literal `index.html`. En el sample coincide. Si cambiáis `index`, el servidor no se entera.
+### 2. Config — kmarrero
 
-4. **`upload_store` no se lee.** El POST escribe en `route.fsPath`. En el sample eso cae bajo `www/uploads/` por cómo se concatena el path, no porque se use la directiva. Cambiad el directorio de `upload_store` y el fichero no irá ahí.
+`Lexer` tokeniza. `StateMachine` controla bloques. `Parser` llena:
 
-5. **El `root` no sigue el ejemplo del subject.** El PDF: si `/kapouet` tiene root `/tmp/www`, `/kapouet/pouic/toto/pouet` se busca en `/tmp/www/pouic/toto/pouet` (el prefijo de la location se quita). `_mapToFilesystem` hace `root + uri` entero: daría `/tmp/www/kapouet/pouic/...`. El sample «funciona» porque `location /files` + `root www` + uri `/files/readme.txt` produce `www/files/readme.txt`, que es donde está el fichero. Es el `root` de nginx, no el ejemplo del PDF. Además hay un `std::cerr` en cada match.
+- `ServerConfig`: host, port, nombre, límite de body, error pages y locations.
+- `LocationConfig`: path, root, métodos, redirect, autoindex, index, upload store, CGI y límite local.
 
-6. **`handle` no mira si `location` es nulo.** `prepareCgi` devuelve false si no hay location, y el `else` llama a `handle`, que desreferencia `route.location`. Con `location /` en el sample toda URI absoluta encaja y no crashea. Un server sin esa location es un null deref: el subject pone 0 si el proceso muere.
+El límite local `0` hereda el del server. `root` admite rutas relativas o absolutas seguras.
+`autoindex` solo acepta `on/off`; `return` solo códigos 3xx.
 
-7. **`REQ_ERROR` sigue hacia el handler.** `_onReadable` solo vuelve a `poll` si falta body. Si el parse falló, igual hace match y `handle`. `errorCode()` no se convierte en la respuesta.
+### 3. Listeners — kebris-c
 
-8. **Chunked no es incremental de verdad.** `parseChunkedBody` tira el `REQ_WAIT` de `chunkCalculations` y de `consumeTrailerInFinalLine`, y también el `REQ_COMPLETE` del chunk 0 (ahí ya se hizo `setBody`). El subject exige deschunkear antes del CGI. No lo deis por bueno sin un POST chunked visto en `curl`.
+Por cada `host:port`, `Socket::listenOn` hace:
+`getaddrinfo → socket → setsockopt → bind → listen → fcntl(O_NONBLOCK)`.
 
-9. **`client_max_body_size` dentro de un location escribe el campo del server.** `LocationConfig` no tiene ese campo. El `2M` de `/uploads` pisa el `10M` del server. El tope existe; los dos números del sample no significan lo que parecen.
+`_listenerConfigs[fd]` relaciona listener y `ServerConfig`. 8080 y 8081 son fds
+distintos dentro del mismo proceso y poll.
 
-10. **Headers CGI incompletos.** `buildEnv` manda método, query, protocolo, puerto, nombre, `SCRIPT_*`, `CONTENT_LENGTH`, `CONTENT_TYPE` si venía, y `REMOTE_ADDR`. No convierte el resto de headers del cliente en `HTTP_*`. El subject dice que la request completa y los argumentos tienen que llegar al CGI.
+### 4. Poll — kebris-c
 
-11. **Llamadas fuera de la whitelist:** `lstat`, `unlink`, `rmdir`, `getcwd`. `stat` sí está. DELETE y el path absoluto del CGI, como están escritos, no salen de la lista. Si os lo preguntan, señalad la línea. No digáis que el subject las autoriza.
+Cada vuelta registra listeners y clientes en `POLLIN`, clientes con respuesta en
+`POLLOUT`, stdin CGI en `POLLOUT` y stdout CGI en `POLLIN`.
 
-12. **Echo muerto.** `enableEchoWorkaround` y el branch de `_onReadable` siguen ahí. `main` no los enciende. No es HTTP. No lo presentéis.
+`poll` espera hasta 500 ms. Después despacha únicamente fds preparados. Al final
+revisa hijos CGI y timeouts. Hay máximo de conexiones, buffers, backpressure y
+offset para `send` parcial.
 
-`Request::header` compara el nombre tal cual (`Content-Type` ≠ `content-type`). El TODO sigue en el fuente.
+`SIGINT`/`SIGTERM` solo cambian un `sig_atomic_t`; la limpieza ocurre fuera del handler.
+`SIGPIPE` se ignora para que un cliente desconectado no mate el servidor.
 
----
+### 5. Accept y Connection — kebris-c
 
-## 1. Arranque — `main.cpp` (los dos)
+Tras `POLLIN` del listener, `accept` crea un cliente no bloqueante. `Connection`
+posee fd, buffers, offset, request incremental, config, dirección remota,
+timestamps y CGI opcional.
 
-`argc` tiene que ser 2. `Config::load` (kmarrero). Si falla o no hay servers, sale: no hay echo ni puertos inventados. `Server::configure` + `Server::run` (kebris).
+### 6. Request — kmarrero
 
-## 2. Config — kmarrero
+`Server::_onReadable` hace `recv` y entrega bytes a `Request::parse`.
+Estados: request-line → headers → body → complete/error/wait.
 
-`Lexer` tokeniza (salta comentarios). `Config::addTransitions` registra la máquina. `StateMachine` camina hasta `END` o error. `Parser::keyword` despacha `listen`, `server_name`, `client_max_body_size`, `error_page`, `root`, `index`, `allowed_methods`, `autoindex`, `return`, `upload_store`, `cgi_extension`, `cgi_pass`.
+- Headers guardados en minúsculas: lookup case-insensitive.
+- `Content-Length` y chunked no pueden coexistir.
+- Chunked admite fragmentación; chunk 0 finaliza y el CGI recibe body plano.
+- El límite efectivo se comprueba antes de acumular: exceso → 413.
+- Framing inválido → 400. `REQ_ERROR` no entra en router ni handler.
 
-Sale `vector<ServerConfig>`. Cada uno tiene `host`, `port`, `clientMaxBodySize`, `errorPages` y `vector<LocationConfig>`. `Socket` no ve el texto: solo `host` y `port`.
+### 7. Router — kmarrero
 
-## 3. Listeners — kebris
+Elige la location de prefijo más largo y rechaza segmentos `.` y `..`.
+Path de disco = `root + URI sin el prefijo de location`.
 
-`_setupListeners` → `Socket::listenOn` por cada server: `getaddrinfo` (IPv4), `socket`, `SO_REUSEADDR`, `bind`, `listen(128)`, `fcntl(O_NONBLOCK)`. `_listenerConfigs[fd]` guarda el índice del `ServerConfig`. Si uno falla, se cierran los que ya abrió.
+Ejemplo: location `/kapouet`, root `/tmp/www`, URI `/kapouet/pouic`
+produce `/tmp/www/pouic`.
 
-`8080` y `8081` son dos fds de escucha en el mismo `poll`, no dos procesos. El índice del listener elige el sitio (`www/` o `www/site2/`).
+### 8. Handler y Response — kmarrero
 
-## 4. El único `poll` — kebris, `Server::run`
+Orden: redirect → ruta válida → método permitido → GET/POST/DELETE.
 
-Antes del bucle: `SIGPIPE` ignorado. `SIGINT` / `SIGTERM` solo ponen `g_stopRequested`. El handler no cierra fds.
+- GET sirve fichero, index configurado o autoindex.
+- POST escribe en `upload_store`; exceso de body → 413.
+- DELETE borra fichero o directorio vacío; éxito → 204.
+- Error configurado carga su HTML; si falla, usa HTML interno.
 
-Cada vuelta se rearma el array:
+`Response::raw` construye status-line, headers, CRLF y body. `setBody` fija
+`Content-Length`. Los ficheros regulares no pasan por poll: el subject los exime.
 
-- listeners en `POLLIN`, salvo con ≥ 1024 clientes o si `accept` falló hace menos de 1 s
-- cliente en `CONN_READING_REQUEST`: `POLLIN` solo si lo pendiente de envío es < 1 MiB
-- cliente con bytes por enviar: `POLLOUT`
-- CGI en `CGI_RUNNING`: stdin del hijo `POLLOUT`, stdout `POLLIN`
+### 9. CGI — ambos
 
-`poll(..., 500)`. Esos 500 ms existen para mirar timeouts e hijos sin bloquear. `EINTR` reintenta. Por fd listo: listener → `_acceptNew`; si no, `_onCgiEvent`; si no, cliente → lectura, escritura o `POLLHUP`. Al cerrar la vuelta: `_checkCgiProcesses` y `_checkTimeouts`.
+**kmarrero:** decide por extensión y construye método, query, protocolo, server,
+script, length/type, `REMOTE_ADDR` y headers `HTTP_*` salvo hop-by-hop.
 
-El tope de 1 MiB deja de leer a un cliente al que no podemos escribir. El fallo de `accept` pausa la admisión 1 s para no girar en vacío si se acaban los fds.
+**kebris-c:** crea dos pipes y hace `fork`.
 
-## 5. Accept — kebris
+- Hijo: cierra heredados, `dup2`, `chdir`, `execve`.
+- Padre: escribe body tras `POLLOUT`, cierra stdin para EOF y lee stdout tras `POLLIN`.
+- `waitpid(WNOHANG)` reap durante servicio; al apagar se recoge cualquier hijo pendiente.
 
-`accept` no bloqueante, cliente en no bloqueante. La IPv4 del peer se calcula con `ntohl` (sin `inet_ntop`, que no está en la lista) y queda en `Connection::remoteAddr`. La conexión nace leyendo, atada al índice de ese listener.
+La salida CGI se valida y convierte en `Response`.
 
-## 6. Bytes — kebris recibe, kmarrero interpreta
+### 10. Envío y cierre — kebris-c
 
-`recv` de un trozo. Por encima de 16 MiB en el buffer, se cierra. `recv == 0` es peer cerrado.
+Tras `POLLOUT`, `send` empieza en `bytesSent`; un envío parcial avanza el offset.
+Al terminar se cierra la conexión. No hay keep-alive ni pipelining.
 
-`Request::parse` → `feed`: los bytes pasan a `RequestContext::buffer` y la `RStateMachine` avanza: línea (`método`, target, versión) → headers → body por `Content-Length` o chunked → `REQ_COMPLETE`, `REQ_WAIT` o `REQ_ERROR`.
+Timeouts: 60 s de inactividad y 120 s para headers/CGI. Si el cliente muere durante
+CGI, se apaga el socket, se termina el hijo y se reap.
 
-Luego `Server` vacía `readBuf`: la copia ya está en el contexto. Si no está completo y no es error, vuelve a `poll`. El `RequestParser` nuevo de cada `recv` no guarda estado; el estado vive en el `Request` de la conexión.
+## Demo
 
-El hueco del punto 7 de arriba está en este `if`.
+```bash
+make
+python3 tests/test_smoke.py
+./webserv configs/default.conf
+```
 
-## 7. Router — kmarrero
+Mostrar: `/`, `/style.css`, puerto 8081, `/files/`, `/old`, `/missing`,
+CGI con query, POST/GET/DELETE en `/uploads/demo.txt`, CGI chunked, 413,
+request fragmentada, request sin Host y Ctrl+C.
 
-`Router::match` elige el `location` cuyo path es prefijo del URI y el más largo. Hace falta fin de string o `/` justo después, para que `/old` no capture `/oldest`. `/` pierde contra `/files`, `/uploads`, `/cgi-bin`.
+## Contradicción del subject
 
-`.` y `..` se rechazan (`fsPath` vacío, `ok = false`). No se resuelven.
+El PDF exige DELETE, pero su whitelist v24.1 no contiene una primitiva de borrado.
+Se conservan `unlink` y `rmdir`, el mínimo necesario para cumplir DELETE.
+No hay alternativa que cumpla literalmente ambas cláusulas.
 
-El path que devuelve es el del punto 5 de arriba.
+## Checklist final
 
-## 8. Respuesta — kmarrero, `HttpHandler::handle`
-
-1. Método no permitido → 405. Si `allowed_methods` está vacío, solo pasa `GET`.
-2. `GET`: `lstat`. Fichero → `setBodyFromFile` (lee el disco, `Content-Type` por extensión). Directorio → el `index.html` fijo; si no está y `autoindex` es on, `opendir` / `readdir` con el HTML escapado. Si no, 403.
-3. `POST`: 413 si `body > clientMaxBodySize`. Fichero existente: lo sobrescribe (200, `File Uploaded`). Si no existe: lo crea (201). Directorio: 409.
-4. `DELETE`: `unlink` o `rmdir`. Éxito → 204. Directorio no vacío → 409.
-5. Otro método → 501.
-
-`Response::setBody` pone `Content-Length`. `raw()` arma `HTTP/1.1`, reason, headers, línea en blanco, body. Leer el disco aquí es legal sin `poll`: el subject exime los ficheros regulares.
-
-La redirección, las error pages, el `index` y el `upload_store` no entran en este camino. Están en la lista de arriba.
-
-## 9. CGI — decisión kmarrero, proceso kebris
-
-`prepareCgi` devuelve true solo si la request está completa, hay `cgi_pass` y extensión, el método es GET o POST y está permitido, el body cabe en el límite del server, y el path termina en la extensión (`.py`). Monta el path absoluto (`getcwd` si hace falta), llama a `buildEnv` y añade `REMOTE_ADDR`.
-
-Si es CGI, `Server` junta los fds que el hijo no debe heredar (listeners, clientes, pipes de otros CGI) y `CgiProcess::start`:
-
-- dos `pipe`, extremos del padre en no bloqueante
-- `fork`
-- hijo: cierra heredados, `dup2` a stdin/stdout, `chdir` al directorio del script, `execve(cgi_pass, [intérprete, nombre], env)`. Si falla, `exit 127`
-- padre: extremo de escritura (el body) y de lectura (stdout). Body vacío → cierra stdin ya
-
-Esos dos fds entran en el mismo `poll`. `onPipeWritable` empuja el body y cierra al terminar (el CGI ve EOF). `onPipeReadable` acumula stdout, tope 16 MiB, y en EOF cierra. `tryReap` es `waitpid(WNOHANG)`: no espera. `CGI_DONE` solo con salida 0 y el stdout ya cerrado. Si no, 500.
-
-`_checkCgiProcesses` llama a `parseCgiOutput`: separa headers CGI y body, lee `Status` (sin `Status` y con `Location` → 302), exige `Content-Type` salvo redirect vacío, rechaza `Transfer-Encoding`, y monta el `Response`.
-
-La conexión se queda en `CONN_PROCESSING` hasta el hijo o el timeout de fase (120 s). `terminate` mata; el reap sigue siendo `WNOHANG`.
-
-## 10. Envío y cierre — kebris
-
-`_onWritable`: `send` desde `bytesSent`. Un `send` corto no pierde bytes. Al vaciar, cierra. No hay varias requests en la misma conexión.
-
-`_checkTimeouts`: 60 s sin actividad, o 120 s en headers / CGI. Si hay un CGI vivo, no se borra la conexión hasta el reap: `shutdown` del cliente y `terminate` del hijo.
-
-`~Server` borra conexiones y listeners. Cada dueño cierra sus fds. `errno` no se usa para decidir un reintento después de `recv` / `send` / `read` / `write`: a 0 se cierra, a fallo se limpia.
-
----
-
-## Orden para decirlo
-
-1. Un proceso, un `poll`, no bloqueante, lectura y escritura a la vez.
-2. Config → N listeners → el fd de escucha elige el `ServerConfig`.
-3. `recv` parcial → máquina de estados → complete / wait / error.
-4. Longest prefix, `..` rechazado, método, GET / POST / DELETE.
-5. CGI en el mismo `poll`: `fork` + `execve`, env, stdout a HTTP.
-6. `send` parcial, timeouts, la señal solo marca un flag.
-7. La lista de arriba, con archivo y función, antes del `curl`.
+- El PDF del subject no está trackeado.
+- `make re`, segundo `make` sin relink y `python3 tests/test_smoke.py`.
+- Sin binario, `obj/`, uploads temporales ni procesos webserv/CGI vivos.
+- README en inglés; esta guía en español.
+- Ambos recorréis el flujo sin decir “esa parte no es mía”.

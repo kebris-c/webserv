@@ -5,30 +5,6 @@
 
 #include "Connection.hpp"
 
-/* Creates an invalid connection with empty buffers and a fresh timeout. */
-Connection::Connection()
-	: _fd(-1), _state(CONN_READING_REQUEST), _bytesSent(0),
-	  _lastActivity(std::time(0)), _stateStartedAt(_lastActivity),
-	  _serverIndex(0), _remoteAddr("0.0.0.0"), _cgi(NULL)
-{
-}
-
-/* Takes ownership of an accepted client fd and starts in the reading phase. */
-Connection::Connection(int fd)
-	: _fd(fd), _state(CONN_READING_REQUEST), _bytesSent(0),
-	  _lastActivity(std::time(0)), _stateStartedAt(_lastActivity),
-	  _serverIndex(0), _remoteAddr("0.0.0.0"), _cgi(NULL)
-{
-}
-
-/* Takes an accepted fd and records which listener configuration owns it. */
-Connection::Connection(int fd, std::size_t serverIndex)
-	: _fd(fd), _state(CONN_READING_REQUEST), _bytesSent(0),
-	  _lastActivity(std::time(0)), _stateStartedAt(_lastActivity),
-	  _serverIndex(serverIndex), _remoteAddr("0.0.0.0"), _cgi(NULL)
-{
-}
-
 /* Takes fd, config index, and peer address captured at accept time. */
 Connection::Connection(int fd, std::size_t serverIndex,
 						const std::string &remoteAddr)

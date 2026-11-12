@@ -71,7 +71,7 @@ Open these URLs while the server is running:
 - [http://127.0.0.1:8080/missing](http://127.0.0.1:8080/missing) — error page
 - [http://127.0.0.1:8081/](http://127.0.0.1:8081/) — second site (multi-port)
 
-Upload and delete are under `/upload` (browser form or `curl` below).
+Upload and delete are under `/uploads` (browser form or `curl` below).
 
 ### Use (command line)
 
@@ -86,14 +86,26 @@ curl -i http://127.0.0.1:8080/old
 curl -i http://127.0.0.1:8080/cgi-bin/hello.py
 
 # Upload (POST) and delete
-curl -i -X POST --data-binary @README.md http://127.0.0.1:8080/upload
-curl -i -X DELETE http://127.0.0.1:8080/upload/<filename>
+curl -i -X POST --data-binary @README.md http://127.0.0.1:8080/uploads/readme.txt
+curl -i -X DELETE http://127.0.0.1:8080/uploads/readme.txt
 
 # Method not allowed (example: POST on /)
 curl -i -X POST http://127.0.0.1:8080/
 ```
 
 Stop the server with `Ctrl+C` in the terminal where it is running.
+
+### Tests
+
+From the repository root, after `make`:
+
+```bash
+python3 tests/test_smoke.py
+```
+
+The external test starts and stops the server and checks both ports, static files,
+redirects, error pages, autoindex, uploads, DELETE, malformed and fragmented
+requests, chunked CGI, body limits, CGI failures, disconnects, and concurrent clients.
 
 ### Demo layout
 

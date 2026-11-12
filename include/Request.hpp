@@ -33,15 +33,15 @@ class Request
 		RequestState						_state;
 		RStateMachine						_stateMachine;
 		RequestContext						_ctx;
-		std::vector<ServerConfig>			_server;
+		const ServerConfig					*_activeServer;
 		std::map<std::string, std::string>	_headers;
 		void								configureStateMachine();
 	public:
 		Request();
 		~Request();
 		void										reset();
-		void										print(RequestContext& ctx);
-		void										setServer(std::vector<ServerConfig>& server);
+		void										setActiveServer(const ServerConfig *server);
+		bool										bodyExceeds(std::size_t size) const;
 		void										setCurrentState(RequestState state);
 		void										setError(std::string message, RequestContext& ctx, RequestState state, int errorCode);
 		void										setMethod(std::string& method);
@@ -51,7 +51,6 @@ class Request
 		void										setBody(std::string& body);
 		void										setContentLength(std::size_t& length);
 		void										setHeaders(std::string name, std::string value, RequestContext& ctx);
-		void										setErrorCode(int& code);
 		RequestState								state() const;
 		const std::string							&method() const;
 		const std::string							&target() const;		/* URL path, without query */

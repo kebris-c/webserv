@@ -86,17 +86,13 @@ bool	isValidHTML(std::string htmlFileName, ParserContext& ctx)
 
 bool	isValidRoot(std::string prefix, ParserContext& ctx)
 {
-	std::string::size_type	c;
-	std::string				word;
-
-	c = prefix.find_first_of("/");
-	word = prefix.substr(0, c);
-	if (word.size() != 3)
-		return (setError("ROOT: format of root value not valid",
-			ctx, SINTAX_ERROR), false);
-	if (word == "www")
-		return (true);
-	return (false);
+	if (prefix.empty() || prefix == "." || prefix == ".."
+		|| prefix.find("/../") != std::string::npos
+		|| prefix.find("/./") != std::string::npos
+		|| prefix.compare(0, 3, "../") == 0
+		|| prefix.compare(0, 2, "./") == 0)
+		return (setError("ROOT: unsafe path", ctx, SINTAX_ERROR), false);
+	return (true);
 }
 
 bool	isValidMethod(std::string method, ParserContext& ctx)

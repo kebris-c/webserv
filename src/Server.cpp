@@ -28,7 +28,7 @@ void	requestStop(int)
 
 /* Creates a stopped server; configure() populates its listeners. */
 Server::Server()
-	: _running(false), _echoWorkaround(false), _acceptPausedUntil(0) {}
+	: _running(false), _acceptPausedUntil(0) {}
 
 /* Releases all client and listener descriptors owned by the server. */
 Server::~Server()
@@ -50,12 +50,6 @@ bool	Server::configure(const std::vector<ServerConfig> &servers)
 		return (false);
 	_configs = servers;
 	return (_setupListeners());
-}
-
-/* Enables only the explicitly marked temporary echo path in _onReadable(). */
-void	Server::enableEchoWorkaround()
-{
-	_echoWorkaround = true;
 }
 
 /*
@@ -273,7 +267,7 @@ void	Server::_acceptNew(int listenFd)
 
 /*
  * Receives one ready chunk from a client after POLLIN.
- * The temporary echo block is replaced by HTTP parsing during phase 3.
+ * A complete request is answered here; a short read waits for the next poll.
  */
 void	Server::_onReadable(int fd)
 {
@@ -306,39 +300,38 @@ void	Server::_onReadable(int fd)
 		{
 			it->second->readBuf().append(buffer, static_cast<std::size_t>(count));
 			it->second->touch();
-			if (_echoWorkaround)
-			{
-				// ============================================================
-				// TODO: This is a workaround to allow me keep going on, must be
-				// changed/improved before the project end.
-				// WHY (kebris-c): proves non-blocking recv/send + multi-port while
-				// Request/HttpHandler are stubs (not HTTP; transport only).
-				// YOU (kmarrero): when Config::load works, main must stop enabling
-				// echo; then DELETE this whole branch so the path below
-				// (parse -> router -> prepareCgi/handle) always runs.
-				// RESPECT: never add recv/send here from your side; leave readiness
-				// gating, partial send, timeouts, and CGI poll wiring untouched.
-				// ============================================================
-				it->second->writeBuf().append(it->second->readBuf());
-				it->second->readBuf().clear();
-				return ;
-			}
+			if (it->second->serverIndex() < _configs.size())
+				it->second->request().setActiveServer(
+					&_configs[it->second->serverIndex()]);
 			it->second->request().parse(it->second->readBuf(), parser);
 			it->second->readBuf().clear();
 			if (!it->second->request().isComplete()
 				&& it->second->request().state() != REQ_ERROR)
 				return ;
+			if (it->second->request().state() == REQ_ERROR)
+			{
+				int	code = it->second->request().errorCode();
+
+				if (code < 400)
+					code = 400;
+				if (it->second->serverIndex() < _configs.size())
+					response = Response::makeError(code,
+						&_configs[it->second->serverIndex()]);
+				else
+					response = Response::makeError(code);
+			}
 			else
 			{
 				if (it->second->serverIndex() >= _configs.size())
 					throw 0;
 				route = router.match(_configs[it->second->serverIndex()],
 						it->second->request());
-				if (handler.prepareCgi(it->second->request(), route,
+				if (route.location == NULL)
+					response = Response::makeError(404,
+						&_configs[it->second->serverIndex()]);
+				else if (handler.prepareCgi(it->second->request(), route,
 						it->second->remoteAddr(), scriptPath, environment))
 				{
-					if (route.location == NULL)
-						throw 0;
 					for (std::size_t i = 0; i < _listeners.size(); ++i)
 						inheritedFds.push_back(_listeners[i]->fd());
 					for (std::map<int, Connection *>::iterator current
@@ -360,7 +353,8 @@ void	Server::_onReadable(int fd)
 							it->second->request().body(), inheritedFds))
 					{
 						it->second->clearCgi();
-						response = Response::makeError(500);
+						response = Response::makeError(500,
+							&_configs[it->second->serverIndex()]);
 					}
 					else
 					{
@@ -506,12 +500,16 @@ void	Server::_checkCgiProcesses()
 		{
 			if (cgi->state() == CGI_DONE)
 			{
-				response = handler.parseCgiOutput(cgi->output());
+				response = handler.parseCgiOutput(cgi->output(),
+					connection->serverIndex() < _configs.size()
+						? &_configs[connection->serverIndex()] : NULL);
 				connection->clearCgi();
 			}
 			else
 			{
-				response = Response::makeError(500);
+				response = Response::makeError(500,
+					connection->serverIndex() < _configs.size()
+						? &_configs[connection->serverIndex()] : NULL);
 				if (cgi->childActive())
 					cgi->terminate();
 				else

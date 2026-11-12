@@ -8,9 +8,6 @@
 /* Creates an invalid socket owner; listenOn() assigns its descriptor. */
 Socket::Socket() : _fd(-1) {}
 
-/* Takes ownership of fd; the destructor will close it. */
-Socket::Socket(int fd) : _fd(fd) {}
-
 /* Releases the descriptor owned by this object. */
 Socket::~Socket() { closeFd(); }
 

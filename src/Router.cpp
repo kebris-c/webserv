@@ -10,7 +10,6 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "Utils.hpp"
 #include "Router.hpp"
 
 Router::Router()
@@ -33,6 +32,16 @@ RouteMatch	Router::match(const ServerConfig &server, const Request &req) const
 			m.ok = false;
 	}
 	return (m);
+}
+
+std::string	Router::resolve(const ServerConfig &server, const std::string &uri) const
+{
+	const LocationConfig	*location;
+
+	location = _bestLocation(server, uri);
+	if (location == NULL)
+		return ("");
+	return (_mapToFilesystem(*location, uri));
 }
 
 bool	Router::isLocationMatch(const std::string& uri, const std::string& location) const
@@ -87,10 +96,16 @@ std::string	Router::_mapToFilesystem(const LocationConfig &loc,
 {
 	std::string	route;
 
+	if (loc.root.empty() || loc.path.size() > uri.size())
+		return ("");
 	route = uri.substr(loc.path.size());
 	if (isTransversal(route))
 		return ("");
-	std::cerr << "root: " << loc.root
-			<< " | uri: " << uri << std::endl;
-	return (loc.root + uri);
+	while (!route.empty() && route[0] == '/')
+		route.erase(0, 1);
+	if (route.empty())
+		return (loc.root);
+	if (!loc.root.empty() && loc.root[loc.root.size() - 1] == '/')
+		return (loc.root + route);
+	return (loc.root + "/" + route);
 }

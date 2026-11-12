@@ -21,8 +21,6 @@ class Socket {
 public:
 	/* Creates an empty socket owner; used by Server for each listener. */
 	Socket();
-	/* Takes ownership of fd; used only when an existing descriptor is wrapped. */
-	explicit Socket(int fd);
 	/* Closes the owned descriptor during listener cleanup. */
 	~Socket();
 

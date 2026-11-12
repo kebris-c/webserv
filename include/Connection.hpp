@@ -27,12 +27,6 @@ enum ConnectionState {
 
 class Connection {
 public:
-	/* Creates an invalid connection; kept for simple C++98 construction. */
-	Connection();
-	/* Takes ownership of a new client fd accepted by Server. */
-	explicit Connection(int fd);
-	/* Also records which listener configuration accepted this client. */
-	Connection(int fd, std::size_t serverIndex);
 	/* Records peer address text for CGI REMOTE_ADDR construction. */
 	Connection(int fd, std::size_t serverIndex, const std::string &remoteAddr);
 	/* Closes the owned client fd when Server removes the connection. */

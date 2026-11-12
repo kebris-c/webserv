@@ -31,6 +31,8 @@ class	Router
 
 		/* Pick server by listen socket / host header later; for now by port index. */
 		RouteMatch	match(const ServerConfig &server, const Request &req) const;
+		/* Location prefix stripped, then joined to root. Empty if .. or no location. */
+		std::string	resolve(const ServerConfig &server, const std::string &uri) const;
 
 	private:
 		const LocationConfig	*_bestLocation(const ServerConfig &server,

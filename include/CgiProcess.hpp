@@ -36,7 +36,7 @@ public:
 	~CgiProcess();
 
 	/*
-	 * Build env for script-only URLs using an absolute scriptPath.
+	 * Build env for script-only URLs. scriptPath may be relative to the server cwd.
 	 * HttpHandler::prepareCgi must append REMOTE_ADDR from the connection.
 	 * URLs with a PATH_INFO suffix need script resolution before using this API.
 	 */
@@ -73,25 +73,6 @@ public:
 	void	fail();
 	/* Sends SIGKILL and leaves non-blocking reaping to Server. */
 	void	terminate();
-
-	/*
-	 * PSEUDOCODE — split ownership
-	 *
-	 * kmarrero:
-	 *   env = buildEnv(...); ensure PATH_TRANSLATED / SCRIPT_FILENAME as needed
-	 *
-	 * kebris-c:
-	 *   pipe(in), pipe(out); setNonBlocking both parent ends
-	 *   pid = fork()
-	 *   child: dup2 in[0]->stdin, out[1]->stdout; close extras;
-	 *          chdir(cgi cwd); execve(cgiPass, argv, envp)
-	 *   parent: close child ends; write body to in[1] when POLLOUT;
-	 *           read out[0] when POLLIN; on EOF + waitpid -> CGI_DONE
-	 *
-	 * kmarrero (after DONE):
-	 *   parse CGI headers (until blank line) + body -> HTTP Response
-	 *   default status 200 if CGI did not send Status:
-	 */
 
 private:
 	pid_t		_pid;

@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "RequestStateMachine.hpp"
+#include "Request.hpp"
 
 RStateMachine::RStateMachine()
 	:initialState(REQ_FEED), currentState(REQ_FEED)
@@ -111,16 +112,12 @@ void	RStateMachine::handle(RequestContext& ctx, RequestParser& parser, Request& 
 	RequestAction	action = this->nextTransition(currentState, event);
 	if (action.function == NULL)
 	{
-		std::cerr << "Invalid transition" << std::endl;
+		request.setError("Invalid transition", ctx, REQ_ERROR, 400);
 		setCurrentState(REQ_ERROR);
 		return ;
 	}
 	answer = (parser.*action.function)(ctx, request);
 	if (answer == REQ_ERROR)
-	{
-		std::cerr << "In: " << ctx.buffer << std::endl;
-		std::cerr << ctx.error << std::endl;
 		setCurrentState(REQ_ERROR);
-	}
 	setCurrentState(answer);
 }

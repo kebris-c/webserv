@@ -23,7 +23,6 @@ class	RequestParser
 		std::map<std::string, RequestHelpFunction>		headerHelpers;
 		std::vector<std::string>			requestSplit(const std::string& str, char delimeter);
 		std::vector<std::string>			headerSplit(Request& request);
-		std::vector<std::string>			bodySplit(std::string& body);
 		RequestState						headersChecker(RequestContext& ctx, Request& request);
 	public:
 		RequestParser();

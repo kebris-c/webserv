@@ -27,9 +27,16 @@ CgiProcess::CgiProcess()
 /* Closes parent pipe ends and stops a child still running during shutdown. */
 CgiProcess::~CgiProcess()
 {
+	int	status;
+
 	_closePipes();
 	if (_pid > 0)
+	{
 		::kill(_pid, SIGKILL);
+		while (::waitpid(_pid, &status, 0) < 0 && errno == EINTR)
+			;
+		_pid = -1;
+	}
 }
 
 /*
@@ -44,10 +51,15 @@ std::vector<std::string>	CgiProcess::buildEnv(const Request &req,
 	std::vector<std::string>	cgiEnv;
 	std::ostringstream		length;
 	std::ostringstream		port;
+	std::string				filename;
+	std::string::size_type	slash;
 
 	(void)loc;
-	if (scriptPath.empty() || scriptPath[0] != '/')
-		throw std::invalid_argument("CGI scriptPath must be absolute");
+	if (scriptPath.empty())
+		return (cgiEnv);
+	slash = scriptPath.find_last_of('/');
+	filename = slash == std::string::npos
+		? scriptPath : scriptPath.substr(slash + 1);
 	length << req.body().size();
 	port << srv.port;
 	cgiEnv.push_back("REQUEST_METHOD=" + req.method());
@@ -57,13 +69,33 @@ std::vector<std::string>	CgiProcess::buildEnv(const Request &req,
 	cgiEnv.push_back("SERVER_NAME="
 		+ (srv.serverName.empty() ? srv.host : srv.serverName));
 	cgiEnv.push_back("GATEWAY_INTERFACE=CGI/1.1");
-	cgiEnv.push_back("SCRIPT_FILENAME=" + scriptPath);
+	cgiEnv.push_back("SCRIPT_FILENAME=" + filename);
 	cgiEnv.push_back("SCRIPT_NAME=" + req.target());
 	cgiEnv.push_back("CONTENT_LENGTH=" + length.str());
-	if (!req.header("Content-Type").empty())
-		cgiEnv.push_back("CONTENT_TYPE=" + req.header("Content-Type"));
+	if (!req.header("content-type").empty())
+		cgiEnv.push_back("CONTENT_TYPE=" + req.header("content-type"));
 	cgiEnv.push_back("REDIRECT_STATUS=200");
 	cgiEnv.push_back("PATH_INFO=");
+	for (std::map<std::string, std::string>::const_iterator it = req.headers().begin();
+			it != req.headers().end(); ++it)
+	{
+		std::string	name;
+
+		if (it->first == "content-type" || it->first == "content-length"
+			|| it->first == "connection" || it->first == "transfer-encoding")
+			continue ;
+		name = "HTTP_";
+		for (std::size_t i = 0; i < it->first.size(); ++i)
+		{
+			if (it->first[i] == '-')
+				name += '_';
+			else if (it->first[i] >= 'a' && it->first[i] <= 'z')
+				name += static_cast<char>(it->first[i] - 'a' + 'A');
+			else
+				name += it->first[i];
+		}
+		cgiEnv.push_back(name + "=" + it->second);
+	}
 	return (cgiEnv);
 }
 
@@ -147,8 +179,6 @@ bool	CgiProcess::start(const LocationConfig &loc,
 		_state = CGI_FAILED;
 		return (false);
 	}
-	std::cout.flush();
-	std::cerr.flush();
 	_pid = ::fork();
 	if (_pid < 0)
 	{
