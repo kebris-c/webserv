@@ -89,6 +89,14 @@ def run():
         expect(status == 404 and b"requested resource was not found" in body,
                "configured error page")
 
+        status, _, body = request("POST", "/")
+        expect(status == 405 and b"Method Not Allowed" in body,
+               "method not allowed")
+
+        status, _, body = request("GET", "/cgi-bin/")
+        expect(status == 403 and b"403 Forbidden" in body,
+               "default error page fallback")
+
         status, _, body = request("GET", "/files/")
         expect(status == 200 and b"readme.txt" in body, "autoindex")
 
