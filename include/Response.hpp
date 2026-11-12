@@ -1,17 +1,3 @@
-/* **************************************************************************
- * Response.hpp
- * OWNER: kmarrero
- * GOAL: Build HTTP responses (status, headers, body) into a byte string for send.
- * LEARN:
- *   - Accurate status codes (subject requirement)
- *   - Content-Length, Content-Type, Connection, Location (redirects)
- *   - Default error pages when config does not override
- * NOTES:
- *   - Server only writes Response::raw() bytes via poll POLLOUT.
- *   - Prefer building full response into memory first for static files;
- *     large files may later stream from disk (disk read OK without poll).
- * ************************************************************************** */
-
 #ifndef RESPONSE_HPP
 #define RESPONSE_HPP
 

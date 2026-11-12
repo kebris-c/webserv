@@ -1,17 +1,3 @@
-/* **************************************************************************
- * Socket.hpp
- * OWNER: kebris-c
- * GOAL: Thin RAII-ish wrapper around listen/client socket fds (C++98: no real move).
- * LEARN:
- *   - socket, bind, listen, accept, setsockopt(SO_REUSEADDR)
- *   - getaddrinfo / freeaddrinfo for host:port
- *   - fcntl O_NONBLOCK (required behaviour; on macOS subject restricts fcntl flags)
- *   - NEVER block in accept/recv/send — readiness comes from Server poll loop
- * NOTES:
- *   - One listen socket per ServerConfig listen pair.
- *   - Closing policy: Server/Connection own lifetime; avoid double-close.
- * ============================================================================ */
-
 #ifndef SOCKET_HPP
 #define SOCKET_HPP
 

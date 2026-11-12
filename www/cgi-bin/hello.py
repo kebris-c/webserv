@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-# OWNER: kmarrero (script + CGI HTTP contract) / kebris-c (server executes it)
-# LEARN: CGI prints headers, blank line, then body on stdout.
-# Server must set env vars and feed POST body on stdin.
 
 import os
 import sys

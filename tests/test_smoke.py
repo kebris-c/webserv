@@ -57,6 +57,10 @@ def wait_ready(process):
         try:
             probe = socket.create_connection((HOST, PORT), timeout=0.2)
             probe.close()
+            time.sleep(0.05)
+            if process.poll() is not None:
+                raise RuntimeError(
+                    "webserv exited during startup; ports may already be in use")
             return
         except OSError:
             time.sleep(0.05)
@@ -82,7 +86,7 @@ def run():
         expect(status == 301 and headers.get("Location") == "/", "redirect")
 
         status, _, body = request("GET", "/missing")
-        expect(status == 404 and b"OWNER: kmarrero" in body,
+        expect(status == 404 and b"requested resource was not found" in body,
                "configured error page")
 
         status, _, body = request("GET", "/files/")
@@ -139,7 +143,13 @@ def run():
                 lambda _: request("GET", "/")[0], range(100)))
         expect(statuses == [200] * 100, "concurrent availability")
 
-        expect(server.poll() is None, "server remains available")
+        return_code = server.poll()
+        if return_code is not None:
+            error_output = server.stderr.read().decode(errors="replace").strip()
+            if error_output:
+                print(error_output, file=sys.stderr)
+        expect(return_code is None,
+               "server remains available (exit code %s)" % return_code)
     finally:
         if os.path.exists(UPLOAD):
             os.unlink(UPLOAD)

@@ -1,13 +1,3 @@
-/* **************************************************************************
- * Webserv.hpp — shared umbrella header
- * OWNER: both
- * GOAL: Common includes, forward declarations, project-wide constants.
- * LEARN: Prefer C++ headers (<cstring> over <string.h>). C++98 only. No Boost.
- * ============================================================================
- * Keep this light. Do not dump the whole STL here forever — only what every
- * translation unit truly needs, or split into smaller headers as the code grows.
- * ============================================================================ */
-
 #ifndef WEBSERV_HPP
 #define WEBSERV_HPP
 

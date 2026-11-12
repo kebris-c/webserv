@@ -238,7 +238,7 @@ CgiState	CgiProcess::state() const { return (_state); }
 /* Reports whether waitpid has not yet reaped the owned child. */
 bool	CgiProcess::childActive() const { return (_pid > 0); }
 
-/* Returns CGI stdout after EOF for kmarrero's HTTP conversion. */
+/* Returns CGI stdout after EOF for HTTP conversion. */
 const std::string	&CgiProcess::output() const { return (_output); }
 
 /* Writes one body chunk after the single poll loop reports POLLOUT. */

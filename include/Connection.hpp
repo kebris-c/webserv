@@ -1,16 +1,3 @@
-/* **************************************************************************
- * Connection.hpp
- * OWNER: kebris-c (buffers / lifecycle) — Request parse hooks used by kmarrero
- * GOAL: Per-client state: readBuf, writeBuf, timeout, parse/response phases.
- * LEARN:
- *   - Partial recv/send loops driven by POLLIN/POLLOUT
- *   - When to switch interest from read to write in poll
- *   - Detect peer close (recv == 0) and errors without errno-driven recovery
- *     after read/write (subject forbids using errno to adjust behaviour after
- *     read/write — design readiness + return values carefully)
- *   - Request timeout so clients never hang forever
- * ============================================================================ */
-
 #ifndef CONNECTION_HPP
 #define CONNECTION_HPP
 

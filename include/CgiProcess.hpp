@@ -1,18 +1,3 @@
-/* **************************************************************************
- * CgiProcess.hpp
- * OWNER: kebris-c (process/pipes/poll integration)
- *        kmarrero (env vars, working directory, interpreting CGI output)
- * GOAL: Execute one CGI for a request; feed stdin; collect stdout asynchronously.
- * LEARN:
- *   - RFC 3875 environment variables (REQUEST_METHOD, SCRIPT_NAME, PATH_INFO,
- *     QUERY_STRING, CONTENT_LENGTH, CONTENT_TYPE, SERVER_PROTOCOL, ...)
- *   - fork + dup2 + execve; only use fork for CGI (subject)
- *   - Unchunked body on CGI stdin; EOF marks end
- *   - If CGI omits Content-Length, EOF ends output
- *   - chdir to correct directory for relative paths
- *   - Pipes are I/O that can block => must be non-blocking + in the SAME poll loop
- * ************************************************************************** */
-
 #ifndef CGI_PROCESS_HPP
 #define CGI_PROCESS_HPP
 
@@ -60,7 +45,7 @@ public:
 	CgiState	state() const;
 	/* Reports whether this object still owns an unreaped child pid. */
 	bool		childActive() const;
-	/* Returns raw CGI stdout for kmarrero's response parser. */
+	/* Returns raw CGI stdout for HTTP response parsing. */
 	const std::string	&output() const;
 
 	/* Writes one ready body chunk after Server reports POLLOUT. */

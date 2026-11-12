@@ -1,17 +1,3 @@
-/* **************************************************************************
- * Request.hpp
- * OWNER: kmarrero
- * GOAL: Parse HTTP request from Connection::readBuf into structured fields.
- * LEARN:
- *   - RFC 9112 request line + headers
- *   - Content-Length vs Transfer-Encoding: chunked (unchunk before CGI)
- *   - When is a request "complete"? (headers + body)
- *   - Reject bad requests with proper 400/411/413/405 later via Response
- * NOTES:
- *   - Parser should be incremental: may be called as bytes arrive.
- *   - Do not read from sockets here — only consume a string buffer.
- * ************************************************************************** */
-
 #ifndef REQUEST_HPP
 # define REQUEST_HPP
 

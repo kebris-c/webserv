@@ -1,8 +1,3 @@
-/* **************************************************************************
- * Socket.cpp
- * OWNER: kebris-c
- * ************************************************************************** */
-
 #include "Socket.hpp"
 
 /* Creates an invalid socket owner; listenOn() assigns its descriptor. */

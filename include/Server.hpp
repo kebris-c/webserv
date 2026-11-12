@@ -1,17 +1,3 @@
-/* **************************************************************************
- * Server.hpp
- * OWNER: kebris-c
- * GOAL: Single process event loop multiplexing ALL listen + client (+ CGI pipe) fds.
- * LEARN:
- *   - Subject IV.1: one poll/epoll for all I/O between clients and server
- *   - Monitor reading AND writing simultaneously
- *   - Never read/write sockets/pipes without prior readiness
- *   - Disk files do NOT need poll readiness
- *   - Multi-port: several listen fds in the same loop
- *   - Stress: remain available; handle disconnects
- * HARD RULE: blocking I/O on sockets/pipes => project can be graded 0.
- * ============================================================================ */
-
 #ifndef SERVER_HPP
 #define SERVER_HPP
 

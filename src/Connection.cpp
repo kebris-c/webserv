@@ -1,8 +1,3 @@
-/* **************************************************************************
- * Connection.cpp
- * OWNER: kebris-c
- * ************************************************************************** */
-
 #include "Connection.hpp"
 
 /* Takes fd, config index, and peer address captured at accept time. */
@@ -100,7 +95,7 @@ Request	&Connection::request() { return (_request); }
 /* Returns the ServerConfig index selected when this client was accepted. */
 std::size_t	Connection::serverIndex() const { return (_serverIndex); }
 
-/* Returns peer IPv4 text for kmarrero's CGI REMOTE_ADDR environment entry. */
+/* Returns peer IPv4 text for the CGI REMOTE_ADDR environment entry. */
 const std::string	&Connection::remoteAddr() const { return (_remoteAddr); }
 
 /* Returns the active asynchronous CGI process, or NULL when absent. */

@@ -1,18 +1,3 @@
-/* ************************************************************************** */
-/* Config.hpp
- * OWNER: kmarrero
- * GOAL: Parse nginx-inspired config into ServerConfig / Location structures.
- * LEARN:
- *   - nginx `server` / `location` mental model
- *   - tokenization vs recursive descent for braces
- *   - subject IV.3 directives list (listen, error_page, client_max_body_size,
- *     methods, return/redirect, root, autoindex, index, upload_store, cgi)
- * NOTES:
- *   - Virtual hosts are optional/out of scope; server_name can wait.
- *   - No regex locations required.
- *   - Provide configs that prove every feature at evaluation.
- * ************************************************************************** */
-
 #ifndef CONFIG_HPP
 # define CONFIG_HPP
 

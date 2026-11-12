@@ -1,13 +1,3 @@
-/* **************************************************************************
- * Router.hpp
- * OWNER: kmarrero
- * GOAL: Match request URI to the best LocationConfig (prefix match).
- * LEARN:
- *   - Longest-prefix location matching (nginx-like, no regex required)
- *   - Map URL /kapouet/... to root /tmp/www/... (subject example)
- *   - Decide allowed method / redirect before hitting handlers
- * ************************************************************************** */
-
 #ifndef ROUTER_HPP
 #define ROUTER_HPP
 

@@ -1,9 +1,3 @@
-/* **************************************************************************
- * Server.cpp
- * OWNER: kebris-c
- * This is the hardest mandatory piece. Implement using the pseudocode in the header.
- * ************************************************************************** */
-
 #include "Server.hpp"
 #include "Router.hpp"
 #include "HttpHandler.hpp"
