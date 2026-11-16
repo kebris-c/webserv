@@ -1,0 +1,760 @@
+[
+  {
+    "method": "GET",
+    "path": "/",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "67",
+      "Content-Type": "text/html"
+    },
+    "bytes": 67,
+    "sha256": "93da440b1b9d3c7b896e0d7d3a471e7b6afd7b247f0b432d69b46fbdf3633296",
+    "sample": "<!doctype html><title>Configured index</title><h1>INDEX_CUSTOM</h1>",
+    "seconds": 0.0008
+  },
+  {
+    "method": "GET",
+    "path": "/",
+    "host": "127.0.0.1",
+    "port": 54567,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "41",
+      "Content-Type": "text/html"
+    },
+    "bytes": 41,
+    "sha256": "52fe73dad0ceadc575321edd104681e2201c02ee0e2fbfa65d481d2904268626",
+    "sample": "<title>Second</title><h1>SITE_SECOND</h1>",
+    "seconds": 0.0003
+  },
+  {
+    "method": "GET",
+    "path": "/",
+    "host": "127.0.0.2",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "41",
+      "Content-Type": "text/html"
+    },
+    "bytes": 41,
+    "sha256": "52fe73dad0ceadc575321edd104681e2201c02ee0e2fbfa65d481d2904268626",
+    "sample": "<title>Second</title><h1>SITE_SECOND</h1>",
+    "seconds": 0.0003
+  },
+  {
+    "method": "GET",
+    "path": "/files/readme.txt",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "60",
+      "Content-Type": "text/txt"
+    },
+    "bytes": 60,
+    "sha256": "75762f10986a4f4d125df7811a237b1396641c74f87948e9e80354aba7922ba5",
+    "sample": "This file demonstrates autoindex and static file responses.\n",
+    "seconds": 0.0003
+  },
+  {
+    "method": "GET",
+    "path": "/absent",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 404,
+    "reason": "Not Found",
+    "headers": {
+      "Content-Length": "21",
+      "Content-Type": "text/html"
+    },
+    "bytes": 21,
+    "sha256": "532fd184b9c120a0aacb39d159761607d693c35d2b0b3172bc720116cb74672d",
+    "sample": "<h1>CUSTOM_404_A</h1>",
+    "seconds": 0.0003
+  },
+  {
+    "method": "GET",
+    "path": "/absent",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 404,
+    "reason": "Not Found",
+    "headers": {
+      "Content-Length": "21",
+      "Content-Type": "text/html"
+    },
+    "bytes": 21,
+    "sha256": "626387441012fcbe6ceb33183919a61219714fd2aa8f9b77b14bef7e171c3488",
+    "sample": "<h1>CUSTOM_404_B</h1>",
+    "seconds": 0.0003
+  },
+  {
+    "method": "GET",
+    "path": "/noindex/",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 403,
+    "reason": "Forbidden",
+    "headers": {
+      "Content-Length": "48",
+      "Content-Type": "text/html"
+    },
+    "bytes": 48,
+    "sha256": "f456f61859be14fe01d14326640e4c6b0ea84ab009f3b395ec19bce90873f161",
+    "sample": "<html><body><h1>403 Forbidden</h1></body></html>",
+    "seconds": 0.0004
+  },
+  {
+    "method": "DELETE",
+    "path": "/readonly/keep.txt",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 405,
+    "reason": "Method Not Allowed",
+    "headers": {
+      "Allow": "GET, HEAD",
+      "Content-Length": "199",
+      "Content-Type": "text/html"
+    },
+    "bytes": 199,
+    "sha256": "a01578d3772330a77da2963dc19ced8f07f0f8d0ec5e5d5ba0948318fd3c8eef",
+    "sample": "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>405</title></head>\n<body><h1>405 Method Not Allowed</h1><p>This method is not allowed for the requested resource.</p></body></html>\n",
+    "seconds": 0.0003
+  },
+  {
+    "method": "DELETE",
+    "path": "/readonly/keep.txt",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 405,
+    "reason": "Method Not Allowed",
+    "headers": {
+      "Allow": "GET, HEAD",
+      "Content-Length": "199",
+      "Content-Type": "text/html"
+    },
+    "bytes": 199,
+    "sha256": "a01578d3772330a77da2963dc19ced8f07f0f8d0ec5e5d5ba0948318fd3c8eef",
+    "sample": "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>405</title></head>\n<body><h1>405 Method Not Allowed</h1><p>This method is not allowed for the requested resource.</p></body></html>\n",
+    "seconds": 0.0004
+  },
+  {
+    "method": "GET",
+    "path": "/files/",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "195",
+      "Content-Type": "text/html"
+    },
+    "bytes": 195,
+    "sha256": "68e3b96f1614e45b7fdabd49d14395dbbc66954e111015f1326c6c45545f72d7",
+    "sample": "<html><body><h1>Index of /files/</h1><ul><li><a href=\"/files/a%20b.txt\">a b.txt</a></li><li><a href=\"/files/readme.txt\">readme.txt</a></li><li><a href=\"/files/sub\">sub</a></li></ul></body></html>",
+    "seconds": 0.0003
+  },
+  {
+    "method": "GET",
+    "path": "/files/absent.txt",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 404,
+    "reason": "Not Found",
+    "headers": {
+      "Content-Length": "21",
+      "Content-Type": "text/html"
+    },
+    "bytes": 21,
+    "sha256": "626387441012fcbe6ceb33183919a61219714fd2aa8f9b77b14bef7e171c3488",
+    "sample": "<h1>CUSTOM_404_B</h1>",
+    "seconds": 0.0003
+  },
+  {
+    "method": "GET",
+    "path": "/old",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 301,
+    "reason": "Moved Permanently",
+    "headers": {
+      "Content-Length": "0",
+      "Location": "/"
+    },
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sample": "",
+    "seconds": 0.0003
+  },
+  {
+    "method": "POST",
+    "path": "/uploads/binary.bin",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 201,
+    "reason": "Created",
+    "headers": {
+      "Content-Length": "12"
+    },
+    "bytes": 12,
+    "sha256": "49c0d246f7da941a2f11a7fd4af43aae6f4b008b7cd507a93004b455c3a4c832",
+    "sample": "File created",
+    "seconds": 0.0003
+  },
+  {
+    "method": "GET",
+    "path": "/stored/binary.bin",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "512",
+      "Content-Type": "application/octet-stream"
+    },
+    "bytes": 512,
+    "sha256": "110009dcee21620b166f3abfecb5eff7a873be729d1c2d53822e7acc5f34eb9b",
+    "sample": "\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007\b\t\n\u000b\f\r\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001a\u001b\u001c\u001d\u001e\u001f !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~��������������������������������������������������������������������������������������������������������������������������������\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007\b\t\n\u000b\f\r\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001a\u001b\u001c\u001d\u001e\u001f !\"#$%&'()*+",
+    "seconds": 0.0004
+  },
+  {
+    "method": "POST",
+    "path": "/uploads/binary.bin",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "13"
+    },
+    "bytes": 13,
+    "sha256": "bb4051b2416aa52a3c558702d6e85505cc419d07fed4f9a153045029280f7cc3",
+    "sample": "File Uploaded",
+    "seconds": 0.0008
+  },
+  {
+    "method": "GET",
+    "path": "/stored/binary.bin",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "1",
+      "Content-Type": "application/octet-stream"
+    },
+    "bytes": 1,
+    "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+    "sample": "x",
+    "seconds": 0.0004
+  },
+  {
+    "method": "POST",
+    "path": "/ingest2/second.txt",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 201,
+    "reason": "Created",
+    "headers": {
+      "Content-Length": "12"
+    },
+    "bytes": 12,
+    "sha256": "49c0d246f7da941a2f11a7fd4af43aae6f4b008b7cd507a93004b455c3a4c832",
+    "sample": "File created",
+    "seconds": 0.0003
+  },
+  {
+    "method": "DELETE",
+    "path": "/stored/binary.bin",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 204,
+    "reason": "No Content",
+    "headers": {},
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sample": "",
+    "seconds": 0.0003
+  },
+  {
+    "method": "GET",
+    "path": "/stored/binary.bin",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 404,
+    "reason": "Not Found",
+    "headers": {
+      "Content-Length": "21",
+      "Content-Type": "text/html"
+    },
+    "bytes": 21,
+    "sha256": "626387441012fcbe6ceb33183919a61219714fd2aa8f9b77b14bef7e171c3488",
+    "sample": "<h1>CUSTOM_404_B</h1>",
+    "seconds": 0.0003
+  },
+  {
+    "method": "POST",
+    "path": "/uploads/limit.bin",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 201,
+    "reason": "Created",
+    "headers": {
+      "Content-Length": "12"
+    },
+    "bytes": 12,
+    "sha256": "49c0d246f7da941a2f11a7fd4af43aae6f4b008b7cd507a93004b455c3a4c832",
+    "sample": "File created",
+    "seconds": 0.0003
+  },
+  {
+    "method": "POST",
+    "path": "/uploads/too-big.bin",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 413,
+    "reason": "Content Too Large",
+    "headers": {
+      "Content-Length": "56",
+      "Content-Type": "text/html"
+    },
+    "bytes": 56,
+    "sha256": "4cd8cd0433086d4a944905ca657f9cf2570c2dfb04d568fc7246c1b48cfce294",
+    "sample": "<html><body><h1>413 Content Too Large</h1></body></html>",
+    "seconds": 0.0003
+  },
+  {
+    "method": "POST",
+    "path": "/inherit/inherited.bin",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 201,
+    "reason": "Created",
+    "headers": {
+      "Content-Length": "12"
+    },
+    "bytes": 12,
+    "sha256": "49c0d246f7da941a2f11a7fd4af43aae6f4b008b7cd507a93004b455c3a4c832",
+    "sample": "File created",
+    "seconds": 0.0006
+  },
+  {
+    "method": "POST",
+    "path": "/inherit/too-big.bin",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 413,
+    "reason": "Content Too Large",
+    "headers": {
+      "Content-Length": "56",
+      "Content-Type": "text/html"
+    },
+    "bytes": 56,
+    "sha256": "4cd8cd0433086d4a944905ca657f9cf2570c2dfb04d568fc7246c1b48cfce294",
+    "sample": "<html><body><h1>413 Content Too Large</h1></body></html>",
+    "seconds": 0.0003
+  },
+  {
+    "method": "GET",
+    "path": "/cgi-bin/hello.py?evaluation=yes",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "55",
+      "content-type": "text/plain"
+    },
+    "bytes": 55,
+    "sha256": "7014615c2f8c0a920f08e66cb27695759e2650ff17bab50091a14caeff28f1b5",
+    "sample": "Hello from webserv CGI\nMETHOD=GET\nQUERY=evaluation=yes\n",
+    "seconds": 0.0166
+  },
+  {
+    "method": "POST",
+    "path": "/cgi-bin/hello.py",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "65",
+      "content-type": "text/plain"
+    },
+    "bytes": 65,
+    "sha256": "f3480b49a8558e7b14778833d420e5acc2d14761b229d7410dc72aaa62007ed6",
+    "sample": "Hello from webserv CGI\nMETHOD=POST\nQUERY=\nPOST_BODY=BODY IS HERE\n",
+    "seconds": 0.0159
+  },
+  {
+    "method": "GET",
+    "path": "/cgi-bin/relative.py",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "16",
+      "content-type": "text/plain"
+    },
+    "bytes": 16,
+    "sha256": "77176b81737e174236d826c2a967de26535fd4a8157546ff0e2bdfbb78f7927a",
+    "sample": "RELATIVE_CGI_OK\n",
+    "seconds": 0.0235
+  },
+  {
+    "method": "POST",
+    "path": "/cgi-bin/headers.py?x=1",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "51",
+      "content-type": "text/plain"
+    },
+    "bytes": 51,
+    "sha256": "ce86f0496a7590e8c37de79ec4faa11841a2d95defdbf4094df71f3c384f0bdb",
+    "sample": "QUERY=x=1\nHEADER=present\nCTYPE=plain/text\nLEN=3\nabc",
+    "seconds": 0.0162
+  },
+  {
+    "method": "GET",
+    "path": "/cgi-bin/exit.py",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 500,
+    "reason": "Internal Server Error",
+    "headers": {
+      "Content-Length": "190",
+      "Content-Type": "text/html"
+    },
+    "bytes": 190,
+    "sha256": "c181110f2aebaf2d9b263211b87546d39696201845d515d2b4d6c5aaa138c34b",
+    "sample": "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>500</title></head>\n<body><h1>500 Internal Server Error</h1><p>The server could not complete the request.</p></body></html>\n",
+    "seconds": 0.0171
+  },
+  {
+    "method": "GET",
+    "path": "/cgi-bin/syntax.py",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 500,
+    "reason": "Internal Server Error",
+    "headers": {
+      "Content-Length": "190",
+      "Content-Type": "text/html"
+    },
+    "bytes": 190,
+    "sha256": "c181110f2aebaf2d9b263211b87546d39696201845d515d2b4d6c5aaa138c34b",
+    "sample": "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>500</title></head>\n<body><h1>500 Internal Server Error</h1><p>The server could not complete the request.</p></body></html>\n",
+    "seconds": 0.1317
+  },
+  {
+    "method": "GET",
+    "path": "/cgi-bin/malformed.py",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 500,
+    "reason": "Internal Server Error",
+    "headers": {
+      "Content-Length": "190",
+      "Content-Type": "text/html"
+    },
+    "bytes": 190,
+    "sha256": "c181110f2aebaf2d9b263211b87546d39696201845d515d2b4d6c5aaa138c34b",
+    "sample": "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>500</title></head>\n<body><h1>500 Internal Server Error</h1><p>The server could not complete the request.</p></body></html>\n",
+    "seconds": 0.0168
+  },
+  {
+    "method": "GET",
+    "path": "/cgi-bin/status.py",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 201,
+    "reason": "Created",
+    "headers": {
+      "Content-Length": "12",
+      "content-type": "text/plain"
+    },
+    "bytes": 12,
+    "sha256": "99a6f6a9428bcb9a91583df0bc27f90737c5776de814e0d496e567ec8ac27df3",
+    "sample": "CREATED_CGI\n",
+    "seconds": 0.0176
+  },
+  {
+    "method": "GET",
+    "path": "/",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "67",
+      "Content-Type": "text/html"
+    },
+    "bytes": 67,
+    "sha256": "93da440b1b9d3c7b896e0d7d3a471e7b6afd7b247f0b432d69b46fbdf3633296",
+    "sample": "<!doctype html><title>Configured index</title><h1>INDEX_CUSTOM</h1>",
+    "seconds": 0.0004
+  },
+  {
+    "method": "GET",
+    "path": "/",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "67",
+      "Content-Type": "text/html"
+    },
+    "bytes": 67,
+    "sha256": "93da440b1b9d3c7b896e0d7d3a471e7b6afd7b247f0b432d69b46fbdf3633296",
+    "sample": "<!doctype html><title>Configured index</title><h1>INDEX_CUSTOM</h1>",
+    "seconds": 0.0005
+  },
+  {
+    "method": "GET",
+    "path": "/",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "67",
+      "Content-Type": "text/html"
+    },
+    "bytes": 67,
+    "sha256": "93da440b1b9d3c7b896e0d7d3a471e7b6afd7b247f0b432d69b46fbdf3633296",
+    "sample": "<!doctype html><title>Configured index</title><h1>INDEX_CUSTOM</h1>",
+    "seconds": 0.0004
+  },
+  {
+    "method": "GET",
+    "path": "/files/sub/",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "115",
+      "Content-Type": "text/html"
+    },
+    "bytes": 115,
+    "sha256": "e7907abc71dbd5ff874610461206ab702d33b5acfd41a7cef45ebf15fc63a4be",
+    "sample": "<html><body><h1>Index of /files/sub/</h1><ul><li><a href=\"/files/sub/deep.txt\">deep.txt</a></li></ul></body></html>",
+    "seconds": 0.0005
+  },
+  {
+    "method": "GET",
+    "path": "/files/a%20b.txt",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "10",
+      "Content-Type": "text/txt"
+    },
+    "bytes": 10,
+    "sha256": "337e3cd58fe2a087c4b2fc34801c975a817a5b049892483ef41101552d975791",
+    "sample": "SPACE_FILE",
+    "seconds": 0.0003
+  },
+  {
+    "method": "GET",
+    "path": "/cgi-bin/loop.py",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 504,
+    "reason": "Gateway Timeout",
+    "headers": {
+      "Content-Length": "54",
+      "Content-Type": "text/html"
+    },
+    "bytes": 54,
+    "sha256": "50c263f2e067b8279e743b3cbd6d5400f54ae2cfa8b7893aef7920becc480f28",
+    "sample": "<html><body><h1>504 Gateway Timeout</h1></body></html>",
+    "seconds": 64.7358
+  },
+  {
+    "method": "GET",
+    "path": "/",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "67",
+      "Content-Type": "text/html"
+    },
+    "bytes": 67,
+    "sha256": "93da440b1b9d3c7b896e0d7d3a471e7b6afd7b247f0b432d69b46fbdf3633296",
+    "sample": "<!doctype html><title>Configured index</title><h1>INDEX_CUSTOM</h1>",
+    "seconds": 0.0061
+  },
+  {
+    "method": "GET",
+    "path": "/unmatched",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 404,
+    "reason": "Not Found",
+    "headers": {
+      "Content-Length": "48",
+      "Content-Type": "text/html"
+    },
+    "bytes": 48,
+    "sha256": "a5ab8a7699e699284cf698b35a5172defde53ab4db229b33d24307656cbed54b",
+    "sample": "<html><body><h1>404 Not Found</h1></body></html>",
+    "seconds": 0.0004
+  },
+  {
+    "method": "GET",
+    "path": "/",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "67",
+      "Content-Type": "text/html"
+    },
+    "bytes": 67,
+    "sha256": "93da440b1b9d3c7b896e0d7d3a471e7b6afd7b247f0b432d69b46fbdf3633296",
+    "sample": "<!doctype html><title>Configured index</title><h1>INDEX_CUSTOM</h1>",
+    "seconds": 0.1204
+  },
+  {
+    "method": "GET",
+    "path": "/files/",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "195",
+      "Content-Type": "text/html"
+    },
+    "bytes": 195,
+    "sha256": "68e3b96f1614e45b7fdabd49d14395dbbc66954e111015f1326c6c45545f72d7",
+    "sample": "<html><body><h1>Index of /files/</h1><ul><li><a href=\"/files/a%20b.txt\">a b.txt</a></li><li><a href=\"/files/readme.txt\">readme.txt</a></li><li><a href=\"/files/sub\">sub</a></li></ul></body></html>",
+    "seconds": 0.0168
+  },
+  {
+    "method": "GET",
+    "path": "/missing",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 404,
+    "reason": "Not Found",
+    "headers": {
+      "Content-Length": "21",
+      "Content-Type": "text/html"
+    },
+    "bytes": 21,
+    "sha256": "626387441012fcbe6ceb33183919a61219714fd2aa8f9b77b14bef7e171c3488",
+    "sample": "<h1>CUSTOM_404_B</h1>",
+    "seconds": 0.0073
+  },
+  {
+    "method": "POST",
+    "path": "/uploads/valgrind.txt",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 201,
+    "reason": "Created",
+    "headers": {
+      "Content-Length": "12"
+    },
+    "bytes": 12,
+    "sha256": "49c0d246f7da941a2f11a7fd4af43aae6f4b008b7cd507a93004b455c3a4c832",
+    "sample": "File created",
+    "seconds": 0.0124
+  },
+  {
+    "method": "GET",
+    "path": "/stored/valgrind.txt",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "3",
+      "Content-Type": "text/txt"
+    },
+    "bytes": 3,
+    "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+    "sample": "abc",
+    "seconds": 0.0019
+  },
+  {
+    "method": "DELETE",
+    "path": "/stored/valgrind.txt",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 204,
+    "reason": "No Content",
+    "headers": {},
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sample": "",
+    "seconds": 0.0031
+  },
+  {
+    "method": "GET",
+    "path": "/cgi-bin/hello.py",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "41",
+      "content-type": "text/plain"
+    },
+    "bytes": 41,
+    "sha256": "05bf8ac7fa5557275e3c4f2498d5bfdcf939a0b24ad51f889366ed2b4dcf50e3",
+    "sample": "Hello from webserv CGI\nMETHOD=GET\nQUERY=\n",
+    "seconds": 0.0861
+  },
+  {
+    "method": "POST",
+    "path": "/cgi-bin/hello.py",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Content-Length": "56",
+      "content-type": "text/plain"
+    },
+    "bytes": 56,
+    "sha256": "e2e6bb9f5d3977931b2df9d2e968a184d0f225556cbae41e6ed43f119316b832",
+    "sample": "Hello from webserv CGI\nMETHOD=POST\nQUERY=\nPOST_BODY=abc\n",
+    "seconds": 0.0302
+  },
+  {
+    "method": "GET",
+    "path": "/cgi-bin/exit.py",
+    "host": "127.0.0.1",
+    "port": 38743,
+    "status": 500,
+    "reason": "Internal Server Error",
+    "headers": {
+      "Content-Length": "190",
+      "Content-Type": "text/html"
+    },
+    "bytes": 190,
+    "sha256": "c181110f2aebaf2d9b263211b87546d39696201845d515d2b4d6c5aaa138c34b",
+    "sample": "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>500</title></head>\n<body><h1>500 Internal Server Error</h1><p>The server could not complete the request.</p></body></html>\n",
+    "seconds": 0.0305
+  }
+]

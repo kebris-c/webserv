@@ -121,7 +121,7 @@ bool Response::setBodyFromFile(const std::string &path)
     return (true);
 }
 
-std::string	Response::raw() const
+std::string	Response::raw(bool headOnly) const
 {
 	std::ostringstream	oss;
 	bool noBody = (_status < 200 || _status == 204 || _status == 304);
@@ -134,7 +134,7 @@ std::string	Response::raw() const
 			oss << it->first << ": " << it->second << "\r\n";
 	}
 	oss << "\r\n";
-	if (!noBody)
+	if (!noBody && !headOnly)
 		oss << _body;
 	return (oss.str());
 }

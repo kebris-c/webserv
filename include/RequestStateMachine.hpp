@@ -38,6 +38,13 @@ enum	RequestEvent
 	REQUEST_END_EVENT
 };
 
+enum ChunkState
+{
+	CHUNK_SIZE,
+	CHUNK_DATA,
+	CHUNK_TRAILERS
+};
+
 struct	RequestContext
 {
 	std::string		buffer;
@@ -49,6 +56,7 @@ struct	RequestContext
 	size_t			chunkOffSet;
 	std::string		chunkedBody; /** Accumulated body of the chunk. */
 	bool			chunked;
+	ChunkState		chunkState;
 };
 
 typedef	RequestState	(RequestParser::*RequestFunction)(RequestContext&, Request&);

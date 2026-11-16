@@ -1,0 +1,6 @@
+verbose = false
+color = off
+logging = false
+parser = false
+connection = close
+protocol = HTTP/1.1

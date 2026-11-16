@@ -1,0 +1,74 @@
+[
+  {
+    "url": "http://127.0.0.1:55267/",
+    "status": 200,
+    "headers": {
+      "content-length": "67",
+      "content-type": "text/html"
+    }
+  },
+  {
+    "url": "http://127.0.0.1:55267/index.html",
+    "status": 200,
+    "headers": {
+      "content-length": "430",
+      "content-type": "text/html"
+    }
+  },
+  {
+    "url": "http://127.0.0.1:55267/style.css",
+    "status": 200,
+    "headers": {
+      "content-type": "text/css",
+      "content-length": "324"
+    }
+  },
+  {
+    "url": "http://127.0.0.1:55267/missing",
+    "status": 404,
+    "headers": {
+      "content-length": "21",
+      "content-type": "text/html"
+    }
+  },
+  {
+    "url": "http://127.0.0.1:55267/files/",
+    "status": 200,
+    "headers": {
+      "content-length": "194",
+      "content-type": "text/html"
+    }
+  },
+  {
+    "url": "http://127.0.0.1:55267/old",
+    "status": 301,
+    "headers": {
+      "content-length": "0",
+      "location": "/"
+    }
+  },
+  {
+    "url": "http://127.0.0.1:55267/",
+    "status": 200,
+    "headers": {
+      "content-length": "67",
+      "content-type": "text/html"
+    }
+  },
+  {
+    "url": "http://127.0.0.1:57279/",
+    "status": 200,
+    "headers": {
+      "content-length": "41",
+      "content-type": "text/html"
+    }
+  },
+  {
+    "url": "http://127.0.0.2:55267/",
+    "status": 200,
+    "headers": {
+      "content-length": "41",
+      "content-type": "text/html"
+    }
+  }
+]

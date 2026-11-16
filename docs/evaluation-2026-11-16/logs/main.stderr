@@ -1,0 +1,4 @@
+  File "/tmp/webserv-evaluation-2026-11-16/run/www/cgi-bin/syntax.py", line 1
+    this is not valid python !!!
+                      ^^^^^^
+SyntaxError: invalid syntax

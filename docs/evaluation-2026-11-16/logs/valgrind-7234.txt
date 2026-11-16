@@ -1,0 +1,6 @@
+==7234== Memcheck, a memory error detector
+==7234== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==7234== Using Valgrind-3.22.0 and LibVEX; rerun with -h for copyright info
+==7234== Command: /home/kjroydev/proyectos/webserv/webserv /tmp/webserv-evaluation-2026-11-16/run/valgrind.conf
+==7234== Parent PID: 7232
+==7234== 

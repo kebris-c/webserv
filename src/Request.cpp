@@ -30,6 +30,7 @@ Request::Request()
 	_ctx.chunkDigitEnd = 0;
 	_ctx.chunkEnd = 0;
 	_ctx.chunkOffSet = 0;
+	_ctx.chunkState = CHUNK_SIZE;
 }
 
 Request::~Request()
@@ -59,6 +60,7 @@ void	Request::reset()
 	_ctx.chunkDigitEnd = 0;
 	_ctx.chunkEnd = 0;
 	_ctx.chunkOffSet = 0;
+	_ctx.chunkState = CHUNK_SIZE;
 	_state = REQ_LINE;
 	_method.clear();
 	_target.clear();

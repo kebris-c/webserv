@@ -69,10 +69,25 @@ Response	HttpHandler::handle(const Request &req, const RouteMatch &route) const
 	if (!route.ok || route.fsPath.empty())
 		return (Response::makeError(404, route.server));
 	if (!methodAllowed(loc, req.method()))
-		return (Response::makeError(405, route.server));
+	{
+		Response	response = Response::makeError(405, route.server);
+		std::string	allow;
+		const char	*methods[] = {"GET", "HEAD", "POST", "DELETE"};
+
+		for (std::size_t i = 0; i < sizeof(methods) / sizeof(methods[0]); ++i)
+		{
+			if (!methodAllowed(loc, methods[i]))
+				continue ;
+			if (!allow.empty())
+				allow += ", ";
+			allow += methods[i];
+		}
+		response.setHeader("Allow", allow);
+		return (response);
+	}
 	method = req.method();
-	if (method == "GET")
-		return (handleGet(route));
+	if (method == "GET" || method == "HEAD")
+		return (handleGet(route, req.target()));
 	if (method == "POST")
 		return (handlePost(req, route));
 	if (method == "DELETE")
@@ -103,7 +118,7 @@ bool	HttpHandler::prepareCgi(const Request &req, const RouteMatch &route,
 	limit = bodyLimit(route);
 	if (loc.cgiPass.empty() || loc.cgiExtension.empty()
 		|| !methodAllowed(loc, req.method())
-		|| (req.method() != "GET" && req.method() != "POST")
+		|| (req.method() != "GET" && req.method() != "HEAD" && req.method() != "POST")
 		|| (limit > 0 && req.body().size() > limit)
 		|| route.fsPath.size() < loc.cgiExtension.size()
 		|| route.fsPath.compare(route.fsPath.size() - loc.cgiExtension.size(),
@@ -166,7 +181,7 @@ Response	HttpHandler::parseCgiOutput(const std::string &output,
 	return (response);
 }
 
-Response	HttpHandler::handleGet(const RouteMatch &route) const
+Response	HttpHandler::handleGet(const RouteMatch &route, const std::string &uri) const
 {
 	struct stat		fileInfo;
 	Response		response;
@@ -202,7 +217,7 @@ Response	HttpHandler::handleGet(const RouteMatch &route) const
 			}
 		}
 		if (route.location->autoindex == true)
-			return (autoindex(route.fsPath, route.location->path, route.server));
+			return (autoindex(route.fsPath, uri, route.server));
 		return (Response::makeError(403, route.server));
 	}
 	return (Response::makeError(403, route.server));
@@ -334,7 +349,7 @@ std::string	HttpHandler::encodeURL(const std::string &str) const
 			|| (c >= 'A' && c <= 'Z')
 			|| (c >= '0' && c <= '9')
 			|| c == '-' || c == '_'
-			|| c == '.' || c == '~')
+			|| c == '.' || c == '~' || c == '/')
 			result += c;
 		else
 		{
@@ -365,14 +380,14 @@ Response HttpHandler::autoindex(const std::string &fsPath,
         return (Response::makeError(500, server));
     }
     body = "<html><body>";
-    body += "<h1>Index of " + uri + "</h1>";
+    body += "<h1>Index of " + escapeHTML(uri) + "</h1>";
     body += "<ul>";
     while ((entry = readdir(dir)) != NULL)
     {
         name = entry->d_name;
         if (name == "." || name == "..")
             continue ;
-        href = uri;
+        href = encodeURL(uri);
         if (href.empty() || href[href.size() - 1] != '/')
             href += "/";
         href += encodeURL(name);
@@ -394,9 +409,10 @@ Response HttpHandler::autoindex(const std::string &fsPath,
 bool	HttpHandler::methodAllowed(const LocationConfig &loc, const std::string &m) const
 {
 	if (loc.allowedMethods.empty())
-		return (m == "GET"); /* sensible default until config fills methods */
+		return (m == "GET" || m == "HEAD");
 	for (std::size_t i = 0; i < loc.allowedMethods.size(); ++i)
-		if (loc.allowedMethods[i] == m)
+		if (loc.allowedMethods[i] == m
+			|| (m == "HEAD" && loc.allowedMethods[i] == "GET"))
 			return (true);
 	return (false);
 }

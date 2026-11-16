@@ -1,0 +1,5 @@
+HTTP/1.1 200 OK
+Content-Length: 67
+Content-Type: text/html
+
+<!doctype html><title>Configured index</title><h1>INDEX_CUSTOM</h1>

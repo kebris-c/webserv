@@ -87,10 +87,14 @@ RequestState	RequestParser::parseRequestLine(RequestContext& ctx, Request& reque
 	request.setTarget(line[1]);
 	if (!checkTarget(request.target()))
 		return (request.setError("Invalid target format", ctx, REQ_ERROR, 400), REQ_ERROR);
-	prepareTarget(request.target(), request);
+	if (!prepareTarget(request.target(), request))
+		return (request.setError("Invalid URL encoding", ctx, REQ_ERROR, 400), REQ_ERROR);
 	request.setVersion(line[2]);
 	if (!checkVersion(request.version()))
 		return (request.setError("version error", ctx, REQ_ERROR, 400), REQ_ERROR);
+	if (request.method() != "GET" && request.method() != "HEAD"
+		&& request.method() != "POST" && request.method() != "DELETE")
+		return (request.setError("Method not implemented", ctx, REQ_ERROR, 501), REQ_ERROR);
 	request.setCurrentState(REQ_HEADERS);
 	ctx.buffer.erase(0, pos + 2);
 	return (request.state());
@@ -207,10 +211,14 @@ RequestState	RequestParser::parseChunkedBody(RequestContext& ctx, Request& reque
 
 	while (true)
 	{
-		step = chunkCalculations(ctx, request);
-		if (step == REQ_ERROR || step == REQ_WAIT)
-			return (step);
-		if (ctx.chunkSize == 0)
+		if (ctx.chunkState == CHUNK_SIZE)
+		{
+			step = chunkCalculations(ctx, request);
+			if (step == REQ_ERROR || step == REQ_WAIT)
+				return (step);
+			ctx.chunkState = ctx.chunkSize == 0 ? CHUNK_TRAILERS : CHUNK_DATA;
+		}
+		if (ctx.chunkState == CHUNK_TRAILERS)
 			return (consumeTrailerInFinalLine(ctx, request));
 		if (ctx.chunkSize > static_cast<std::size_t>(-1) - ctx.chunkedBody.size()
 			|| request.bodyExceeds(ctx.chunkedBody.size() + ctx.chunkSize))
@@ -223,5 +231,6 @@ RequestState	RequestParser::parseChunkedBody(RequestContext& ctx, Request& reque
 			return (request.setError("Invalid chunk delimiter", ctx, REQ_ERROR, 400), REQ_ERROR);
 		ctx.chunkedBody.append(ctx.buffer, ctx.chunkOffSet, ctx.chunkSize);
 		ctx.chunkOffSet += ctx.chunkSize + 2;
+		ctx.chunkState = CHUNK_SIZE;
 	}
 }

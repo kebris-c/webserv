@@ -360,7 +360,7 @@ void	Server::_onReadable(int fd)
 					response = handler.handle(it->second->request(), route);
 			}
 			it->second->clearWrite();
-			it->second->writeBuf() = response.raw();
+			it->second->writeBuf() = response.raw(it->second->request().method() == "HEAD");
 			it->second->setState(CONN_WRITING_RESPONSE);
 		}
 		catch (...)
@@ -510,7 +510,7 @@ void	Server::_checkCgiProcesses()
 					connection->clearCgi();
 			}
 			connection->clearWrite();
-			connection->writeBuf() = response.raw();
+			connection->writeBuf() = response.raw(connection->request().method() == "HEAD");
 			connection->setState(CONN_WRITING_RESPONSE);
 			connection->touch();
 		}
@@ -567,5 +567,31 @@ void	Server::_checkTimeouts()
 		return ;
 	}
 	for (std::size_t i = 0; i < expired.size(); ++i)
-		_closeConnection(expired[i]);
+	{
+		std::map<int, Connection *>::iterator it = _connections.find(expired[i]);
+		if (it == _connections.end())
+			continue ;
+		Connection	*connection = it->second;
+		if (connection->state() != CONN_PROCESSING || connection->cgi() == NULL)
+		{
+			_closeConnection(expired[i]);
+			continue ;
+		}
+		try
+		{
+			Response response = Response::makeError(504,
+				connection->serverIndex() < _configs.size()
+					? &_configs[connection->serverIndex()] : NULL);
+
+			connection->cgi()->terminate();
+			connection->clearWrite();
+			connection->writeBuf() = response.raw(connection->request().method() == "HEAD");
+			connection->setState(CONN_WRITING_RESPONSE);
+			connection->touch();
+		}
+		catch (...)
+		{
+			_closeConnection(expired[i]);
+		}
+	}
 }

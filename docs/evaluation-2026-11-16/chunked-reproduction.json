@@ -1,0 +1,21 @@
+{
+  "whole": {
+    "parts": [
+      "POST /cgi-bin/hello.py HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\n\r\n"
+    ],
+    "response": "HTTP/1.1 200 OK\r\nContent-Length: 58\r\ncontent-type: text/plain\r\n\r\nHello from webserv CGI\nMETHOD=POST\nQUERY=\nPOST_BODY=hello\n",
+    "send_error": null
+  },
+  "fragmented": {
+    "parts": [
+      "POST /cgi-bin/hello.py HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n\r\n",
+      "5\r",
+      "\nhe",
+      "llo\r\n",
+      "0\r\n",
+      "\r\n"
+    ],
+    "response": "HTTP/1.1 400 Bad Request\r\nContent-Length: 50\r\nContent-Type: text/html\r\n\r\n<html><body><h1>400 Bad Request</h1></body></html>",
+    "send_error": "[Errno 32] Broken pipe"
+  }
+}

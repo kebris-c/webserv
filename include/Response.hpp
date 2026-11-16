@@ -18,8 +18,8 @@ public:
 	/* Reads a regular file. False when the file cannot be opened. */
 	bool	setBodyFromFile(const std::string &path);
 
-	/* Build wire format: status-line + headers + CRLF + body */
-	std::string	raw() const;
+	/* HEAD preserves response headers while omitting body bytes. */
+	std::string	raw(bool headOnly = false) const;
 
 	/* Uses server->errorPages when the file can be read; otherwise built-in HTML. */
 	static Response	makeError(int code, const ServerConfig *server = NULL);

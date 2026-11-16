@@ -105,7 +105,7 @@ bool	isValidMethod(std::string method, ParserContext& ctx)
 				+ " must be capitalized",
 				ctx, SINTAX_ERROR), false);
 	}
-	if (method == "GET" || method == "POST" || method == "DELETE")
+	if (method == "GET" || method == "HEAD" || method == "POST" || method == "DELETE")
 		return (true);
 	else
 		return (setError("METHOD: the given method is not valid",

@@ -24,7 +24,7 @@ bool					colonChecker(const std::string::size_type& colon,
 										RequestContext& ctx);
 bool					checkNameHeader(std::string& name, RequestContext& ctx);
 bool					checkValueHeader(std::string& value, RequestContext& ctx);
-void					prepareTarget(const std::string& target, Request& request);
+bool					prepareTarget(const std::string& target, Request& request);
 RequestState			getHexadecimalLength(RequestContext& ctx, Request& request);
 RequestState			chunkCalculations(RequestContext& ctx, Request& request);
 RequestState			consumeTrailerInFinalLine(RequestContext& ctx, Request& request);

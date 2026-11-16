@@ -16,15 +16,23 @@
 
 bool	checkTarget(const std::string& word)
 {
-	if (word.empty() || word[0] == '/')
-		return (true);
-	return (false);
+	return (!word.empty() && word[0] == '/');
 }
 
 bool	checkMethod(const std::string& word)
 {
-	if (word != "GET" && word != "POST" && word != "DELETE")
+	const std::string	punctuation = "!#$%&'*+-.^_`|~";
+
+	if (word.empty())
 		return (false);
+	for (std::size_t i = 0; i < word.size(); ++i)
+	{
+		unsigned char c = word[i];
+		if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+				|| (c >= '0' && c <= '9'))
+			&& punctuation.find(c) == std::string::npos)
+			return (false);
+	}
 	return (true);
 }
 
@@ -93,18 +101,37 @@ bool	checkValueHeader(std::string& value, RequestContext& ctx)
 	return (true);
 }
 
-void	prepareTarget(const std::string& target, Request& request)
+bool	prepareTarget(const std::string& target, Request& request)
 {
+	const std::string		hex = "0123456789abcdef";
 	std::string::size_type	pos;
 	std::string				path;
 	std::string				query;
 
 	pos = target.find('?');
-	path = target.substr(0, pos);
+	for (std::size_t i = 0; i < target.size() && i != pos; ++i)
+	{
+		unsigned char c = target[i];
+		if (c == '%')
+		{
+			if (target.size() - i < 3 || (pos != std::string::npos && pos - i < 3))
+				return (false);
+			std::size_t high = hex.find(std::tolower(static_cast<unsigned char>(target[i + 1])));
+			std::size_t low = hex.find(std::tolower(static_cast<unsigned char>(target[i + 2])));
+			if (high == std::string::npos || low == std::string::npos)
+				return (false);
+			c = static_cast<unsigned char>(high * 16 + low);
+			i += 2;
+		}
+		if (c < 32 || c == 127)
+			return (false);
+		path += c;
+	}
 	if (pos != std::string::npos)
 		query = target.substr(pos + 1);
 	request.setTarget(path);
 	request.setQuery(query);
+	return (true);
 }
 
 RequestState	getHexadecimalLength(RequestContext& ctx, Request& request)

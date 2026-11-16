@@ -1,0 +1,85 @@
+{
+  "command": [
+    "/tmp/webserv-fixes-2026-11-16/tools/siege/usr/bin/siege",
+    "-R",
+    "/tmp/webserv-fixes-2026-11-16/siegerc",
+    "-b",
+    "-c",
+    "5",
+    "-r",
+    "20",
+    "--no-parser",
+    "-j",
+    "http://127.0.0.1:38743/empty.txt"
+  ],
+  "rounds": [
+    {
+      "transactions": 100,
+      "availability": 100.0,
+      "elapsed_time": 0.01,
+      "data_transferred": 0.0,
+      "response_time": 0.0,
+      "transaction_rate": 10000.0,
+      "throughput": 0.0,
+      "concurrency": 5.0,
+      "successful_transactions": 100,
+      "failed_transactions": 0,
+      "longest_transaction": 0.01,
+      "shortest_transaction": 0.0
+    },
+    {
+      "transactions": 100,
+      "availability": 100.0,
+      "elapsed_time": 0.01,
+      "data_transferred": 0.0,
+      "response_time": 0.0,
+      "transaction_rate": 10000.0,
+      "throughput": 0.0,
+      "concurrency": 5.0,
+      "successful_transactions": 100,
+      "failed_transactions": 0,
+      "longest_transaction": 0.01,
+      "shortest_transaction": 0.0
+    },
+    {
+      "transactions": 100,
+      "availability": 100.0,
+      "elapsed_time": 0.01,
+      "data_transferred": 0.0,
+      "response_time": 0.0,
+      "transaction_rate": 10000.0,
+      "throughput": 0.0,
+      "concurrency": 5.0,
+      "successful_transactions": 100,
+      "failed_transactions": 0,
+      "longest_transaction": 0.01,
+      "shortest_transaction": 0.0
+    }
+  ],
+  "snapshots": [
+    {
+      "label": "before",
+      "rss": 4325376,
+      "fds": 9,
+      "children": 1
+    },
+    {
+      "label": "round-1",
+      "rss": 4325376,
+      "fds": 9,
+      "children": 1
+    },
+    {
+      "label": "round-2",
+      "rss": 4325376,
+      "fds": 9,
+      "children": 1
+    },
+    {
+      "label": "round-3",
+      "rss": 4325376,
+      "fds": 9,
+      "children": 1
+    }
+  ]
+}

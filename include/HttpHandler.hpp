@@ -45,7 +45,7 @@ class HttpHandler {
 		Response	parseCgiOutput(const std::string &output,
 							const ServerConfig *server = NULL) const;
 	private:
-		Response	handleGet(const RouteMatch &route) const;
+		Response	handleGet(const RouteMatch &route, const std::string &uri) const;
 		Response	handlePost(const Request &req, const RouteMatch &route) const;
 		Response	handleDelete(const RouteMatch &route) const;
 		Response	handleRedirect(const LocationConfig &loc) const;
